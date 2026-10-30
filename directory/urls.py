@@ -20,6 +20,7 @@ urlpatterns = [
     path("list-your-business/", views.list_your_business, name="list_your_business"),
     path("how-it-works/", views.how_it_works, name="how_it_works"),
     path("photo-credits/", views.photo_credits, name="photo_credits"),
+    path("cron/photos/", views.cron_photos, name="cron_photos"),
     path("suggest-island/", views.suggest_island, name="suggest_island"),
     # Owner dashboard
     path("dashboard/", views.dashboard, name="dashboard"),

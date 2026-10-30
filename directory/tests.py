@@ -312,3 +312,65 @@ class MapTests(TestCase):
         r = self.client.get(reverse("directory:island_detail", args=["dhangethi"]))
         self.assertContains(r, 'data-focus-island="dhangethi"')
         self.assertContains(r, 'data-focus-atoll="south-ari"')
+
+
+class VercelTests(TestCase):
+    def test_blob_storage_uploads_and_builds_public_url(self):
+        import io
+        import json
+        from unittest import mock
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from config.blob_storage import VercelBlobStorage
+
+        calls = []
+
+        class Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        def fake_urlopen(req, timeout=None):
+            calls.append(req)
+            if req.full_url.endswith("/delete"):
+                return Resp(b"")
+            return Resp(json.dumps({"url": "https://abc123.public.blob.vercel-storage.com/listings/x-Ab12.jpg",
+                                    "pathname": "listings/x-Ab12.jpg"}).encode())
+
+        storage = VercelBlobStorage(token="vercel_blob_rw_ABC123_secretpart")
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            name = storage.save("listings/x.jpg", SimpleUploadedFile("x.jpg", b"img", content_type="image/jpeg"))
+            storage.delete(name)
+        self.assertEqual(name, "listings/x-Ab12.jpg")
+        self.assertEqual(storage.url(name), "https://abc123.public.blob.vercel-storage.com/listings/x-Ab12.jpg")
+        put = calls[0]
+        self.assertEqual(put.get_method(), "PUT")
+        self.assertIn("pathname=listings%2Fx.jpg", put.full_url)
+        self.assertEqual(put.get_header("Authorization"), "Bearer vercel_blob_rw_ABC123_secretpart")
+        self.assertEqual(put.get_header("X-vercel-blob-access"), "public")
+        self.assertEqual(calls[1].full_url, "https://vercel.com/api/blob/delete")
+
+    def test_startup_setup_seeds_empty_database_and_creates_admin(self):
+        import os
+        from unittest import mock
+
+        from config import startup
+
+        with mock.patch.dict(os.environ, {"ADMIN_EMAIL": "boss@islandstay.mv", "ADMIN_PASSWORD": "pw-123456"}):
+            startup.run()
+            startup.run()  # second cold start: nothing to do
+        self.assertEqual(Island.objects.count(), 22)
+        self.assertTrue(User.objects.filter(username="boss@islandstay.mv", is_superuser=True).exists())
+
+    def test_cron_endpoint_requires_secret(self):
+        from unittest import mock
+
+        self.assertEqual(self.client.get("/cron/photos/").status_code, 403)
+        with self.settings(CRON_SECRET="s3cret"), \
+                mock.patch("directory.management.commands.fetch_island_photos.get_json", side_effect=OSError("offline")):
+            self.assertEqual(self.client.get("/cron/photos/", HTTP_AUTHORIZATION="Bearer wrong").status_code, 403)
+            r = self.client.get("/cron/photos/", HTTP_AUTHORIZATION="Bearer s3cret")
+        self.assertEqual(r.status_code, 200)

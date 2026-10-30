@@ -73,7 +73,32 @@ The site is organised around six things a visitor needs on each island:
   Mark listings as *verified* or *featured*.
 - View all enquiries, users/business profiles and island suggestions.
 
-## Deploying to Render
+## Deploying to Vercel (recommended)
+
+Vercel detects this Django project automatically (`manage.py` + `config/wsgi.py`). On Vercel the site:
+- switches to production mode by itself;
+- prepares the database on the first visit after each deploy (applies updates, loads the island guides into an
+  empty database, creates your admin account) — see `config/startup.py`;
+- stores uploaded photos in **Vercel Blob** (`config/blob_storage.py`), because Vercel has no permanent disk;
+- links missing island photos from Wikimedia Commons once a day (Vercel Cron, see `vercel.json`).
+
+Steps:
+1. Sign in at https://vercel.com with GitHub, click **Add New → Project** and import `islandstay`. Don't deploy yet
+   if it offers; first open the project's **Storage** tab.
+2. **Storage → Create → Neon (Postgres)** and connect it to the project. This adds `DATABASE_URL`.
+3. **Storage → Create → Blob** and connect it. This adds `BLOB_READ_WRITE_TOKEN`.
+4. **Settings → Environment Variables**, add:
+   - `DJANGO_SECRET_KEY`: a long random string
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your admin login
+   - `CRON_SECRET`: another random string (protects the daily photo job)
+5. **Deployments → Redeploy** (or push to GitHub). Open the site; the first visit takes a little longer while it
+   sets up the database. The admin is at `/admin/`.
+
+Optional: email settings (`EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`),
+`SHOW_PRICES=1`, `MAP_TILES_URL` / `MAP_TILES_ATTRIBUTION`, and your own domain under **Settings → Domains**
+(Vercel's domains are allowed automatically).
+
+## Deploying to Render (alternative)
 
 The repository includes a Render Blueprint (`render.yaml`) that creates the website and a Postgres database.
 

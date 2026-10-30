@@ -438,3 +438,17 @@ def enquiry_detail(request, ref):
         messages.success(request, "Request updated.")
         return redirect("directory:enquiry_detail", ref=ref)
     return render(request, "dashboard/enquiry_detail.html", {"e": enquiry, "form": form})
+
+
+def cron_photos(request):
+    """Called daily by Vercel Cron (Authorization: Bearer CRON_SECRET) to link missing Wikimedia photos."""
+    import io
+
+    from django.core.management import call_command
+    from django.http import HttpResponseForbidden, JsonResponse
+
+    if not settings.CRON_SECRET or request.headers.get("Authorization") != f"Bearer {settings.CRON_SECRET}":
+        return HttpResponseForbidden("Forbidden")
+    out = io.StringIO()
+    call_command("fetch_island_photos", max_seconds=40, stdout=out, stderr=out)
+    return JsonResponse({"log": out.getvalue().splitlines()[-30:]})

@@ -156,6 +156,15 @@ class IslandAdmin(BaseAdmin):
     filter_horizontal = ("activities",)
     actions = ["fetch_photos"]
     actions_detail = ["fetch_photo_detail"]
+    actions_list = ["fetch_missing_photos"]
+
+    @action(description="Find missing photos", icon="add_photo_alternate", url_path="fetch-missing-photos")
+    def fetch_missing_photos(self, request):
+        out = io.StringIO()
+        call_command("fetch_island_photos", max_seconds=40, stdout=out, stderr=out)
+        lines = [line for line in out.getvalue().splitlines() if line.strip()]
+        self.message_user(request, " ".join(lines[-4:]) or "Done.")
+        return redirect(reverse("admin:directory_island_changelist"))
     fieldsets = (
         ("Overview", {"classes": ["tab"], "fields": (
             ("name", "slug"), ("atoll", "island_type"), "tagline", ("is_published", "is_featured"),

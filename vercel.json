@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "config/wsgi.py": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/cron/photos/", "schedule": "17 3 * * *" }
+  ]
+}

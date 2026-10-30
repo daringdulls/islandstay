@@ -108,13 +108,25 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--force", action="store_true", help="Look again even where a photo is already set")
         parser.add_argument("--island", help="Only this island (slug); skips experience types")
+        parser.add_argument("--max-seconds", type=float, default=0,
+                            help="Stop starting new work after this many seconds (for time-limited cron runs)")
 
     def handle(self, *args, **opts):
         islands = Island.objects.filter(is_published=True)
         if opts["island"]:
             islands = islands.filter(slug=opts["island"])
         found = 0
+        import time
+
+        started = time.monotonic()
+
+        def out_of_time():
+            return opts["max_seconds"] and time.monotonic() - started > opts["max_seconds"]
+
         for island in islands:
+            if out_of_time():
+                self.stdout.write("Time limit reached; the rest will be done on the next run.")
+                break
             try:
                 found += self.island_photos(island, opts["force"])
             except Exception as exc:  # network errors, unexpected responses
@@ -123,6 +135,8 @@ class Command(BaseCommand):
             for activity in ActivityType.objects.all():
                 if activity.image_url and not opts["force"]:
                     continue
+                if out_of_time():
+                    break
                 try:
                     query = activity.photo_search or PHOTO_SEARCH.get(activity.name, f"{activity.name} Maldives")
                     results = search(query, limit=10)

@@ -7,7 +7,9 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-me")
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+# Production by default on Vercel and Render; development mode locally.
+_HOSTED = os.environ.get("VERCEL") == "1" or bool(os.environ.get("RENDER"))
+DEBUG = os.environ.get("DJANGO_DEBUG", "0" if _HOSTED else "1") == "1"
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "*" if DEBUG else "").split(",") if h]
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 
@@ -16,6 +18,15 @@ RENDER_HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_HOST:
     ALLOWED_HOSTS.append(RENDER_HOST)
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOST}")
+
+# Vercel sets VERCEL=1 plus the deployment and production hostnames; allow them automatically.
+ON_VERCEL = os.environ.get("VERCEL") == "1"
+if ON_VERCEL:
+    for host in {os.environ.get("VERCEL_URL"), os.environ.get("VERCEL_BRANCH_URL"),
+                 os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")} - {None, ""}:
+        ALLOWED_HOSTS.append(host)
+        CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
+    ALLOWED_HOSTS.append(".vercel.app")
 
 INSTALLED_APPS = [
     "unfold",
@@ -64,8 +75,14 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # DATABASE_URL (e.g. Render Postgres) in production; a local SQLite file otherwise.
+# Vercel's Postgres (Neon) integration provides DATABASE_URL, or POSTGRES_URL on older stores.
+if not os.environ.get("DATABASE_URL") and os.environ.get("POSTGRES_URL"):
+    os.environ["DATABASE_URL"] = os.environ["POSTGRES_URL"]
 DATABASES = {
-    "default": dj_database_url.config(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}", conn_max_age=600)
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=0 if ON_VERCEL else 600,  # serverless instances shouldn't hold connections open
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -89,10 +106,13 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 SERVE_MEDIA = os.environ.get("SERVE_MEDIA", "1") == "1"
 
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Uploaded photos: Vercel Blob when connected (no permanent disk on Vercel), otherwise the local disk.
+    "default": {"BACKEND": "config.blob_storage.VercelBlobStorage" if os.environ.get("BLOB_READ_WRITE_TOKEN")
+                else "django.core.files.storage.FileSystemStorage"},
+    # Vercel serves collected static files from its CDN; hashed file names are only used elsewhere.
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-        if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG or ON_VERCEL
+        else "whitenoise.storage.CompressedManifestStaticFilesStorage"
     },
 }
 
@@ -236,3 +256,7 @@ MAP_TILES_URL = os.environ.get("MAP_TILES_URL") or "https://tile.openstreetmap.o
 MAP_TILES_ATTRIBUTION = os.environ.get("MAP_TILES_ATTRIBUTION") or (
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 )
+
+
+# Vercel Cron calls /cron/photos/ with this secret to link missing Wikimedia photos.
+CRON_SECRET = os.environ.get("CRON_SECRET", "")
