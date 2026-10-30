@@ -73,13 +73,43 @@ The site is organised around six things a visitor needs on each island:
   Mark listings as *verified* or *featured*.
 - View all enquiries, users/business profiles and island suggestions.
 
+## Deploying to Render
+
+The repository includes a Render Blueprint (`render.yaml`) that creates the website and a Postgres database.
+
+1. Sign in at https://render.com with your GitHub account.
+2. Click **New +** then **Blueprint**, and choose the `islandstay` repository.
+3. Fill in **ADMIN_EMAIL** and **ADMIN_PASSWORD** (your admin login). The email fields can stay empty for now.
+4. Click **Apply**. The first build takes a few minutes. Your site is then at `https://islandstay.onrender.com`
+   (or similar), with the admin at `/admin/`.
+
+On every start, `start.sh` applies database updates, loads the island guides if the database is empty,
+creates your admin account if it doesn't exist, and downloads missing island photos from Wikimedia Commons
+in the background. Add `SEED_DEMO=1` as an environment variable before the first start to include the demo businesses.
+
+The Blueprint uses Render's free plans, which are fine for trying the site:
+- The free web service sleeps after 15 minutes without visitors; the next visit takes about a minute.
+- The free database expires after 30 days. Upgrade it to a paid plan in Render before then to keep your data.
+- Uploaded photos are lost when the service restarts. For real use, upgrade the web service to **Starter**,
+  add a **Disk** mounted at `/var/data`, and set the environment variable `MEDIA_ROOT=/var/data/media`.
+
+To send booking requests by email, fill in `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` and
+`DEFAULT_FROM_EMAIL` with your email provider's SMTP details (for example Brevo, Resend, or a Gmail app password).
+
+To use your own domain, add it under the web service's **Settings** then **Custom Domains**, and add it
+to the `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` environment variables
+(e.g. `islandstay.mv` and `https://islandstay.mv`).
+
 ## Configuration (environment variables)
 
 | Variable | Purpose |
 |---|---|
 | `DJANGO_SECRET_KEY` | Required in production |
 | `DJANGO_DEBUG` | `0` in production |
-| `DJANGO_ALLOWED_HOSTS` | e.g. `islandstay.mv,www.islandstay.mv` |
+| `DATABASE_URL` | Postgres connection string (set automatically on Render). Defaults to a local SQLite file |
+| `DJANGO_ALLOWED_HOSTS` | e.g. `islandstay.mv,www.islandstay.mv` (the Render address is allowed automatically) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Admin account created on first start |
+| `MEDIA_ROOT` | Where uploaded photos are stored, e.g. `/var/data/media` on a Render disk |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | e.g. `https://islandstay.mv` |
 | `DJANGO_EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` to send real email (default prints to console) |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | SMTP settings |

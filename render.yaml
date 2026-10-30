@@ -1,0 +1,45 @@
+# Render Blueprint: creates the IslandStay website and its Postgres database.
+# In Render: New + -> Blueprint -> pick this repository. You'll be asked for the values marked sync: false.
+services:
+  - type: web
+    name: islandstay
+    runtime: python
+    plan: free
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: islandstay-db
+          property: connectionString
+      # Your admin login, created on first start (log in at /admin/ with this email).
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Email so booking requests reach owners. Leave blank to start; requests are then only logged.
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: ADMIN_NOTIFY_EMAILS
+        sync: false
+      # Set to 1 to show indicative prices on the site.
+      - key: SHOW_PRICES
+        value: "0"
+
+databases:
+  - name: islandstay-db
+    plan: free
+    databaseName: islandstay
+    user: islandstay

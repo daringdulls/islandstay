@@ -380,9 +380,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--demo", action="store_true", help="Also create a demo owner, listings and enquiries")
+        parser.add_argument("--if-empty", action="store_true", help="Do nothing if islands already exist (safe on every deploy)")
 
     @transaction.atomic
     def handle(self, *args, **opts):
+        if opts["if_empty"] and Island.objects.exists():
+            self.stdout.write("Islands already exist; skipping seed.")
+            return
         for i, (name, official, code, region, desc) in enumerate(ATOLLS):
             Atoll.objects.update_or_create(name=name, defaults=dict(official_name=official, code=code, region=region, description=desc, order=i))
         for name, icon, desc in ACTIVITIES:
