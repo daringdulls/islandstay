@@ -18,6 +18,9 @@ if RENDER_HOST:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOST}")
 
 INSTALLED_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -141,3 +144,87 @@ ADMIN_NOTIFY_EMAILS = [e.strip() for e in env("ADMIN_NOTIFY_EMAILS").split(",") 
 SHOW_PRICES = os.environ.get("SHOW_PRICES", "0") == "1"
 
 AUTHENTICATION_BACKENDS = ["accounts.backends.CaseInsensitiveEmailBackend"]
+
+
+# ---------------------------------------------------------------- back office (django-unfold)
+from django.templatetags.static import static  # noqa: E402
+from django.urls import reverse_lazy  # noqa: E402
+
+
+def _admin_link(name, query=""):
+    return lambda request: str(reverse_lazy(name)) + query
+
+
+UNFOLD = {
+    "SITE_TITLE": "IslandStay Back Office",
+    "SITE_HEADER": "IslandStay",
+    "SITE_SUBHEADER": "Back office",
+    "SITE_URL": "/",
+    "SITE_SYMBOL": "sailing",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "SHOW_BACK_BUTTON": True,
+    "ENVIRONMENT": "directory.admin_ui.environment_callback",
+    "DASHBOARD_CALLBACK": "directory.admin_ui.dashboard_callback",
+    "STYLES": [
+        lambda request: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap",
+        lambda request: static("css/admin.css"),
+    ],
+    "COLORS": {
+        "primary": {
+            "50": "oklch(98.4% .014 180.72)", "100": "oklch(95.3% .051 180.801)", "200": "oklch(91% .096 180.426)",
+            "300": "oklch(85.5% .138 181.071)", "400": "oklch(77.7% .152 181.912)", "500": "oklch(70.4% .14 182.503)",
+            "600": "oklch(60% .118 184.704)", "700": "oklch(51.1% .096 186.391)", "800": "oklch(43.7% .078 188.216)",
+            "900": "oklch(38.6% .063 188.416)", "950": "oklch(27.7% .046 192.524)",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Overview",
+                "items": [
+                    {"title": "Dashboard", "icon": "space_dashboard", "link": reverse_lazy("admin:index")},
+                ],
+            },
+            {
+                "title": "Needs attention",
+                "items": [
+                    {"title": "Listings to review", "icon": "pending_actions",
+                     "link": _admin_link("admin:directory_listing_changelist", "?status__exact=pending"),
+                     "badge": "directory.admin_ui.badge_pending_listings"},
+                    {"title": "Verification requests", "icon": "verified_user",
+                     "link": _admin_link("admin:directory_listing_changelist", "?verification=requested"),
+                     "badge": "directory.admin_ui.badge_verification"},
+                    {"title": "New booking requests", "icon": "mark_email_unread",
+                     "link": _admin_link("admin:directory_enquiry_changelist", "?status__exact=new"),
+                     "badge": "directory.admin_ui.badge_new_enquiries"},
+                    {"title": "Island suggestions", "icon": "add_location_alt",
+                     "link": _admin_link("admin:directory_islandsuggestion_changelist", "?handled__exact=0"),
+                     "badge": "directory.admin_ui.badge_suggestions"},
+                ],
+            },
+            {
+                "title": "Directory",
+                "items": [
+                    {"title": "All listings", "icon": "storefront", "link": reverse_lazy("admin:directory_listing_changelist")},
+                    {"title": "Booking requests", "icon": "inbox", "link": reverse_lazy("admin:directory_enquiry_changelist")},
+                    {"title": "Islands", "icon": "landscape", "link": reverse_lazy("admin:directory_island_changelist")},
+                    {"title": "Atolls", "icon": "public", "link": reverse_lazy("admin:directory_atoll_changelist")},
+                    {"title": "Transport routes", "icon": "directions_boat", "link": reverse_lazy("admin:directory_transportroute_changelist")},
+                ],
+            },
+            {
+                "title": "Settings",
+                "collapsible": True,
+                "items": [
+                    {"title": "Activity types", "icon": "scuba_diving", "link": reverse_lazy("admin:directory_activitytype_changelist")},
+                    {"title": "Amenities", "icon": "checklist", "link": reverse_lazy("admin:directory_amenity_changelist")},
+                    {"title": "Users & businesses", "icon": "group", "link": reverse_lazy("admin:auth_user_changelist")},
+                    {"title": "Staff groups", "icon": "admin_panel_settings", "link": reverse_lazy("admin:auth_group_changelist")},
+                ],
+            },
+        ],
+    },
+}

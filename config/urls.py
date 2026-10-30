@@ -6,7 +6,7 @@ from django.views.static import serve
 
 admin.site.site_header = "IslandStay Maldives — Admin"
 admin.site.site_title = "IslandStay Admin"
-admin.site.index_title = "Manage islands, listings & enquiries"
+admin.site.index_title = "Dashboard"
 
 urlpatterns = [
     path("admin/", admin.site.urls),

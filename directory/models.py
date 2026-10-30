@@ -492,7 +492,8 @@ class Enquiry(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        verbose_name_plural = "enquiries"
+        verbose_name = "booking request"
+        verbose_name_plural = "booking requests"
 
     def __str__(self):
         return f"{self.reference} — {self.guest_name} → {self.listing.name}"

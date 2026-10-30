@@ -120,7 +120,7 @@ to the `DJANGO_ALLOWED_HOSTS` and `DJANGO_CSRF_TRUSTED_ORIGINS` environment vari
 
 The look borrows from nautical charts: buff land, pale shoal water, depth contours and monospaced chart
 annotations (atoll code, distance from Malé, census population). Islands without a photo get a drawn chart
-cover instead of a placeholder. Fonts: Instrument Serif, Public Sans and JetBrains Mono (Google Fonts).
+cover instead of a placeholder. Fonts: Plus Jakarta Sans (headings) and Inter (text), from Google Fonts.
 Icons: Lucide (ISC licence), bundled in `static/img/icons.svg` and used with `{% load ui %}{% icon "name" %}`.
 
 ## Island facts and photos

@@ -1,0 +1,107 @@
+{% extends 'admin/base.html' %}
+{% load i18n unfold humanize %}
+
+{% block title %}Dashboard | {{ site_title }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="is-dash">
+  <div class="is-dash-head">
+    <div>
+      <p class="is-eyebrow">{% now "l j F Y" %}</p>
+      <h1 class="is-title">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+      <p class="is-sub">Here's what needs your attention on IslandStay today.</p>
+    </div>
+    <div class="is-quick">
+      {% for q in quick_links %}
+        <a class="is-quick-link" href="{{ q.href }}"><span class="material-symbols-outlined">{{ q.icon }}</span>{{ q.title }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="is-kpis">
+    {% for k in kpis %}
+      <a class="is-kpi {% if k.alert and k.value %}is-kpi-alert{% endif %}" href="{{ k.href }}">
+        <span class="is-kpi-icon material-symbols-outlined">{{ k.icon }}</span>
+        <span class="is-kpi-title">{{ k.title }}</span>
+        <span class="is-kpi-value">{{ k.value|intcomma }}</span>
+        <span class="is-kpi-note">{{ k.note }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="is-grid">
+    <section class="is-panel is-span-2">
+      <header><div><h2>Listings waiting for review</h2><p>Approve to publish them on the website. Owners are emailed automatically.</p></div>
+        <a class="is-link" href="{% url 'admin:directory_listing_changelist' %}?status__exact=pending">View all</a></header>
+      {% if pending %}
+      <table class="is-table">
+        <thead><tr><th>Business</th><th>Type</th><th>Island</th><th>Submitted</th><th></th></tr></thead>
+        <tbody>
+        {% for l in pending %}
+          <tr>
+            <td><strong>{{ l.name }}</strong><span class="is-muted">{{ l.owner.email }}</span></td>
+            <td>{{ l.get_kind_display }}</td>
+            <td>{{ l.island.name }}</td>
+            <td>{{ l.created_at|timesince }} ago</td>
+            <td class="is-right"><a class="is-btn" href="{% url 'admin:directory_listing_change' l.pk %}">Review</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="is-empty"><span class="material-symbols-outlined">task_alt</span>No listings waiting. You're all caught up.</div>{% endif %}
+    </section>
+
+    <section class="is-panel">
+      <header><div><h2>Booking requests</h2><p>Last 14 days · {{ requests_total }} total</p></div></header>
+      <div class="is-chart">{% component "unfold/components/chart/bar.html" with data=chart_data height=220 %}{% endcomponent %}</div>
+    </section>
+
+    <section class="is-panel is-span-2">
+      <header><div><h2>Latest booking requests</h2><p>Sent by travellers directly to hosts.</p></div>
+        <a class="is-link" href="{% url 'admin:directory_enquiry_changelist' %}">View all</a></header>
+      {% if latest_requests %}
+      <table class="is-table">
+        <thead><tr><th>Reference</th><th>Guest</th><th>For</th><th>Dates</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for e in latest_requests %}
+          <tr>
+            <td><a href="{% url 'admin:directory_enquiry_change' e.pk %}"><strong>{{ e.reference }}</strong></a><span class="is-muted">{{ e.created_at|date:"j M, H:i" }}</span></td>
+            <td>{{ e.guest_name }}<span class="is-muted">{{ e.guest_country|default:e.guest_email }}</span></td>
+            <td>{{ e.listing.name }}<span class="is-muted">{{ e.listing.island.name }}</span></td>
+            <td>{% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td>
+            <td><span class="is-status is-status-{{ e.status }}">{{ e.get_status_display }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<div class="is-empty"><span class="material-symbols-outlined">inbox</span>No booking requests yet.</div>{% endif %}
+    </section>
+
+    <div class="is-stack">
+      <section class="is-panel">
+        <header><div><h2>Verification requests</h2><p>Check the licence, then mark as verified.</p></div></header>
+        {% if verification %}
+          <ul class="is-list">{% for l in verification %}<li><a href="{% url 'admin:directory_listing_change' l.pk %}">{{ l.name }}</a><span class="is-muted">{{ l.island.name }} · {{ l.verification_requested_at|timesince }} ago</span></li>{% endfor %}</ul>
+        {% else %}<div class="is-empty is-empty-sm">No requests waiting.</div>{% endif %}
+      </section>
+      <section class="is-panel">
+        <header><div><h2>Island suggestions</h2><p>Islands businesses asked us to add.</p></div></header>
+        {% if suggestions %}
+          <ul class="is-list">{% for s in suggestions %}<li><a href="{% url 'admin:directory_islandsuggestion_change' s.pk %}">{{ s.island_name }}</a><span class="is-muted">{{ s.atoll|default:"Atoll not given" }}</span></li>{% endfor %}</ul>
+        {% else %}<div class="is-empty is-empty-sm">No new suggestions.</div>{% endif %}
+      </section>
+      {% if islands_without_photo %}
+      <section class="is-panel is-tip">
+        <span class="material-symbols-outlined">add_photo_alternate</span>
+        <div><strong>{{ islands_without_photo }} island{{ islands_without_photo|pluralize }} without a cover photo</strong>
+        <p>Select them in <a href="{% url 'admin:directory_island_changelist' %}?photo=no">Islands</a> and run "Fetch cover photo" to import one from Wikimedia Commons.</p></div>
+      </section>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

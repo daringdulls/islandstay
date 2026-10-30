@@ -227,3 +227,38 @@ class FetchPhotoTests(TestCase):
             r = self.client.get(island.get_absolute_url())
             self.assertContains(r, "Photo: <a href=\"https://commons.wikimedia.org/wiki/File:Maafushi_beach.jpg\"")
         shutil.rmtree(media)
+
+
+class BackOfficeTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.admin = User.objects.create_superuser("boss@x.mv", "boss@x.mv", "pw")
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+
+    def test_admin_pages_render(self):
+        listing = Listing.objects.get(name="Coral Breeze Inn")
+        for url in ["/admin/", "/admin/directory/listing/", "/admin/directory/listing/?status__exact=pending",
+                    f"/admin/directory/listing/{listing.pk}/change/", "/admin/directory/island/", "/admin/directory/island/?photo=no",
+                    f"/admin/directory/island/{listing.island_id}/change/", "/admin/directory/enquiry/",
+                    f"/admin/directory/enquiry/{listing.enquiries.first().pk}/change/", "/admin/directory/transportroute/",
+                    "/admin/auth/user/", "/admin/directory/atoll/", "/admin/directory/activitytype/"]:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        r = self.client.get("/admin/")
+        self.assertContains(r, "Listings waiting for review")
+        self.assertContains(r, "Sunset Sands Guest House")
+
+    def test_one_click_approve_and_buttons_follow_state(self):
+        pending = Listing.objects.get(name="Sunset Sands Guest House")
+        url = reverse("admin:directory_listing_change", args=[pending.pk])
+        r = self.client.get(url)
+        self.assertContains(r, "Approve &amp; publish")
+        import re
+
+        approve_url = re.search(r'href="([^"]*/approve/[^"]*)"', r.content.decode()).group(1)
+        self.client.get(approve_url)
+        pending.refresh_from_db()
+        self.assertEqual(pending.status, Listing.STATUS_APPROVED)
+        self.assertNotContains(self.client.get(url), "Approve &amp; publish")

@@ -4,3 +4,4 @@ gunicorn>=23
 whitenoise>=6.9
 dj-database-url>=3.0
 psycopg[binary]>=3.2
+django-unfold==0.110.0
