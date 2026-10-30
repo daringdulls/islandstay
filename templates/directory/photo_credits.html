@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Photo credits{% endblock %}
+{% block content %}
+<section class="page-hero"><div class="container"><div class="eyebrow">Credits</div><h1>Photo credits</h1><p>Island and experience photos come from Wikimedia Commons and are used under their free licences. Thank you to every photographer. Business photos are supplied by the businesses themselves.</p></div></section>
+<div class="container section" style="max-width:960px">
+  <div class="table-wrap"><table class="data">
+    <tr><th>Photo</th><th>Used for</th><th>Author</th><th>Licence</th><th>Source</th></tr>
+    {% for i in islands %}<tr><td><img src="{{ i.card_photo_url }}" alt="" style="width:72px;height:48px;object-fit:cover;border-radius:4px" loading="lazy"></td><td>{{ i.name }} (cover)</td><td>{{ i.cover_credit|default:"–" }}</td><td>{{ i.cover_license|default:"–" }}</td><td>{% if i.cover_source_url %}<a href="{{ i.cover_source_url }}" target="_blank" rel="noopener">Wikimedia Commons</a>{% endif %}</td></tr>{% endfor %}
+    {% for p in gallery %}<tr><td><img src="{{ p.thumb_url }}" alt="" style="width:72px;height:48px;object-fit:cover;border-radius:4px" loading="lazy"></td><td>{{ p.island.name }} (gallery)</td><td>{{ p.credit|default:"–" }}</td><td>{{ p.license|default:"–" }}</td><td>{% if p.source_url %}<a href="{{ p.source_url }}" target="_blank" rel="noopener">Wikimedia Commons</a>{% endif %}</td></tr>{% endfor %}
+    {% for a in activities %}<tr><td><img src="{{ a.thumb_url }}" alt="" style="width:72px;height:48px;object-fit:cover;border-radius:4px" loading="lazy"></td><td>{{ a.name }}</td><td>{{ a.image_credit|default:"–" }}</td><td>{{ a.image_license|default:"–" }}</td><td>{% if a.image_source_url %}<a href="{{ a.image_source_url }}" target="_blank" rel="noopener">Wikimedia Commons</a>{% endif %}</td></tr>{% endfor %}
+    {% if not islands and not gallery and not activities %}<tr><td colspan="5" class="muted">No photos have been imported yet.</td></tr>{% endif %}
+  </table></div>
+</div>
+{% endblock %}

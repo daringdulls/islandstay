@@ -66,6 +66,32 @@ ACTIVITIES = [
     ("Bioluminescence", "sparkles", "Spot glowing plankton on the shore at night (seasonal)"),
 ]
 
+# Wikimedia Commons searches used by fetch_island_photos to illustrate each experience.
+PHOTO_SEARCH = {
+    "Snorkeling": "snorkeling coral reef Maldives",
+    "Scuba diving": "scuba diver Maldives reef",
+    "Sandbank picnic": "sandbank Maldives",
+    "Dolphin cruise": "spinner dolphins Maldives",
+    "Sunset & night fishing": "dhoni sunset Maldives",
+    "Whale shark excursion": "whale shark Maldives",
+    "Manta ray snorkeling": "manta ray Maldives",
+    "Nurse sharks & stingrays": "nurse shark Maldives",
+    "Turtle snorkeling": "green sea turtle Maldives",
+    "Surfing": "surfing Maldives",
+    "Kayaking & SUP": "kayak lagoon Maldives",
+    "Resort day trip": "water villa Maldives",
+    "Island hopping": "dhoni boat Maldives",
+    "Local culture & village walk": "Hukuru Miskiy Male",
+    "Hammerhead dive": "scalloped hammerhead shark",
+    "Tiger shark dive": "tiger shark Fuvahmulah",
+    "Big game fishing": "yellowfin tuna fishing Maldives",
+    "Water sports": "jet ski Maldives",
+    "Spa & wellness": "spa Maldives",
+    "Freediving": "freediving Maldives",
+    "Wreck diving": "shipwreck Maldives diving",
+    "Bioluminescence": "bioluminescent plankton Maldives",
+}
+
 AMENITIES = [
     ("Free WiFi", "wifi"), ("Air conditioning", "snowflake"), ("Breakfast included", "egg-fried"), ("Restaurant", "utensils"),
     ("Airport transfer arranged", "plane-landing"), ("Hot water", "shower-head"), ("Sea view", "sunset"), ("Beach access", "umbrella"),
@@ -390,7 +416,8 @@ class Command(BaseCommand):
         for i, (name, official, code, region, desc) in enumerate(ATOLLS):
             Atoll.objects.update_or_create(name=name, defaults=dict(official_name=official, code=code, region=region, description=desc, order=i))
         for name, icon, desc in ACTIVITIES:
-            ActivityType.objects.update_or_create(name=name, defaults=dict(icon=icon, description=desc))
+            ActivityType.objects.update_or_create(
+                name=name, defaults=dict(icon=icon, description=desc, photo_search=PHOTO_SEARCH.get(name, f"{name} Maldives")))
         for name, icon in AMENITIES:
             Amenity.objects.update_or_create(name=name, defaults=dict(icon=icon))
 

@@ -4,6 +4,11 @@ from django.urls import reverse
 from django.utils.text import slugify
 
 
+def card_size(url):
+    """Smaller Wikimedia thumbnail for cards (the stored URL is the 1920px version)."""
+    return url.replace("/1920px-", "/960px-") if url else url
+
+
 def unique_slug(instance, value, field="slug"):
     base = slugify(value)[:60] or "item"
     slug, n = base, 2
@@ -49,6 +54,13 @@ class ActivityType(models.Model):
     slug = models.SlugField(unique=True, blank=True)
     icon = models.CharField(max_length=30, blank=True, default="waves", help_text="Icon name from the site icon set, e.g. fish, sailboat, anchor")
     description = models.CharField(max_length=240, blank=True)
+    photo_search = models.CharField(
+        max_length=120, blank=True, help_text="Wikimedia Commons search used to find a photo, e.g. whale shark Maldives"
+    )
+    image_url = models.URLField(max_length=500, blank=True)
+    image_credit = models.CharField(max_length=200, blank=True)
+    image_license = models.CharField(max_length=60, blank=True)
+    image_source_url = models.URLField(max_length=500, blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -60,6 +72,10 @@ class ActivityType(models.Model):
         if not self.slug:
             self.slug = unique_slug(self, self.name)
         super().save(*args, **kwargs)
+
+    @property
+    def thumb_url(self):
+        return card_size(self.image_url)
 
 
 class Amenity(models.Model):
@@ -131,7 +147,10 @@ class Island(models.Model):
         max_length=120, blank=True,
         help_text="English Wikipedia article title, e.g. Maafushi_(Kaafu_Atoll). Used by the fetch_island_photos command.",
     )
-    cover_image = models.ImageField(upload_to="islands/", blank=True)
+    cover_image = models.ImageField(upload_to="islands/", blank=True, help_text="Upload a photo, or leave empty and use the link below")
+    cover_image_url = models.URLField(
+        max_length=500, blank=True, help_text="Photo link, e.g. from Wikimedia Commons. Used when no photo is uploaded."
+    )
     cover_credit = models.CharField(max_length=200, blank=True, help_text="Photographer / author of the cover photo")
     cover_license = models.CharField(max_length=60, blank=True, help_text="e.g. CC BY-SA 4.0")
     cover_source_url = models.URLField(blank=True, help_text="Where the photo comes from (e.g. its Wikimedia Commons page)")
@@ -177,6 +196,17 @@ class Island(models.Model):
         """Deterministic position for the drawn chart cover used when there is no photo."""
         seed = sum(ord(c) * (i + 1) for i, c in enumerate(self.slug or self.name))
         return f"--x:{30 + seed % 45}%;--y:{38 + (seed // 7) % 30}%;--rot:{seed % 360}deg"
+
+    @property
+    def photo_url(self):
+        """Large cover photo: an uploaded file wins over a linked Wikimedia photo."""
+        if self.cover_image:
+            return self.cover_image.url
+        return self.cover_image_url
+
+    @property
+    def card_photo_url(self):
+        return self.cover_image.url if self.cover_image else card_size(self.cover_image_url)
 
     @property
     def local_rules_list(self):
@@ -343,6 +373,15 @@ class Listing(models.Model):
         return self.kind in self.STAY_KINDS
 
     @property
+    def photo_url(self):
+        """The business's own photo, or the island's photo so every card has an image."""
+        return self.cover_image.url if self.cover_image else self.island.card_photo_url
+
+    @property
+    def has_own_photo(self):
+        return bool(self.cover_image)
+
+    @property
     def is_food(self):
         return self.kind in self.FOOD_KINDS
 
@@ -431,6 +470,30 @@ class TransportRoute(models.Model):
     @property
     def provider(self):
         return self.operator.name if self.operator_id else self.operator_name
+
+
+class IslandPhoto(models.Model):
+    """Gallery photo for an island, usually linked from Wikimedia Commons with its credit and licence."""
+
+    island = models.ForeignKey(Island, on_delete=models.CASCADE, related_name="photos")
+    image_url = models.URLField(max_length=500)
+    caption = models.CharField(max_length=200, blank=True)
+    credit = models.CharField(max_length=200, blank=True)
+    license = models.CharField(max_length=60, blank=True)
+    source_url = models.URLField(max_length=500, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        unique_together = [("island", "image_url")]
+
+    def __str__(self):
+        return self.caption or self.image_url.rsplit("/", 1)[-1]
+
+    @property
+    def thumb_url(self):
+        return card_size(self.image_url)
 
 
 class ListingPhoto(models.Model):

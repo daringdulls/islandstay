@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Enquiry, Island, Listing
+from .models import ActivityType, Enquiry, Island, Listing
 
 User = get_user_model()
 
@@ -197,36 +197,55 @@ class CategoryTests(TestCase):
 
 
 class FetchPhotoTests(TestCase):
-    def test_fetch_island_photos_saves_photo_and_credit(self):
-        import shutil
-        import tempfile
+    """Photos are linked from Wikimedia Commons (stored as URLs with credits), not downloaded."""
+
+    def test_links_cover_gallery_and_activity_photos(self):
         from unittest import mock
 
         call_command("seed_maldives", stdout=open("/dev/null", "w"))
-        media = tempfile.mkdtemp()
-        responses = {
-            "en.wikipedia.org": {"query": {"pages": {"1": {"pageimage": "Maafushi_beach.jpg"}}}},
-            "commons.wikimedia.org": {"query": {"pages": {"-1": {"imageinfo": [{
-                "thumburl": "https://upload.wikimedia.org/x/1800px-Maafushi_beach.jpg", "mime": "image/jpeg",
-                "descriptionurl": "https://commons.wikimedia.org/wiki/File:Maafushi_beach.jpg",
-                "extmetadata": {"Artist": {"value": '<a href="#">Jane Doe</a>'}, "LicenseShortName": {"value": "CC BY-SA 4.0"}},
-            }]}}}},
-        }
+
+        def info(title, w=2400):
+            return {"title": title, "index": 1, "imageinfo": [{
+                "thumburl": f"https://upload.wikimedia.org/x/1920px-{title[5:]}", "mime": "image/jpeg", "width": w,
+                "descriptionurl": f"https://commons.wikimedia.org/wiki/{title}",
+                "extmetadata": {"Artist": {"value": '<a href="#">Jane Doe</a>'}, "LicenseShortName": {"value": "CC BY-SA 4.0"},
+                                "ImageDescription": {"value": "Beach"}}}]}
 
         def fake_json(url):
-            return next(v for k, v in responses.items() if k in url)
+            if "en.wikipedia.org" in url:
+                return {"query": {"pages": {"1": {"pageimage": "Maafushi_beach.jpg"}}}}
+            if "generator=search" in url:
+                return {"query": {"pages": {
+                    "1": info("File:Maafushi_harbour.jpg"), "2": info("File:Maafushi_map.png"),
+                    "3": info("File:Unrelated_island.jpg"), "4": info("File:Maafushi_small.jpg", w=300)}}}
+            return {"query": {"pages": {"-1": info("File:Maafushi_beach.jpg")}}}
 
-        with self.settings(MEDIA_ROOT=media), \
-                mock.patch("directory.management.commands.fetch_island_photos.get_json", side_effect=fake_json), \
-                mock.patch("directory.management.commands.fetch_island_photos.get_bytes", return_value=b"\xff\xd8jpeg"):
+        with mock.patch("directory.management.commands.fetch_island_photos.get_json", side_effect=fake_json):
+            call_command("fetch_island_photos", stdout=open("/dev/null", "w"))
+        island = Island.objects.get(slug="maafushi")
+        self.assertEqual(island.cover_image_url, "https://upload.wikimedia.org/x/1920px-Maafushi_beach.jpg")
+        self.assertEqual(island.card_photo_url, "https://upload.wikimedia.org/x/960px-Maafushi_beach.jpg")
+        self.assertEqual((island.cover_credit, island.cover_license), ("Jane Doe", "CC BY-SA 4.0"))
+        # Gallery keeps only files named after the island, skipping maps and small images.
+        self.assertEqual(list(island.photos.values_list("image_url", flat=True)), ["https://upload.wikimedia.org/x/1920px-Maafushi_harbour.jpg"])
+        self.assertTrue(ActivityType.objects.get(name="Snorkeling").image_url)
+
+        r = self.client.get(island.get_absolute_url())
+        self.assertContains(r, 'src="https://upload.wikimedia.org/x/1920px-Maafushi_beach.jpg"')
+        self.assertContains(r, "Jane Doe")
+        self.assertContains(self.client.get(reverse("directory:photo_credits")), "Maafushi (cover)")
+        # A second run without --force makes no requests for an island that already has photos.
+        with mock.patch("directory.management.commands.fetch_island_photos.get_json", side_effect=AssertionError("no request expected")) as m:
             call_command("fetch_island_photos", island="maafushi", stdout=open("/dev/null", "w"))
-            island = Island.objects.get(slug="maafushi")
-            self.assertTrue(island.cover_image.name.startswith("islands/maafushi"))
-            self.assertEqual(island.cover_credit, "Jane Doe")
-            self.assertEqual(island.cover_license, "CC BY-SA 4.0")
-            r = self.client.get(island.get_absolute_url())
-            self.assertContains(r, "Photo: <a href=\"https://commons.wikimedia.org/wiki/File:Maafushi_beach.jpg\"")
-        shutil.rmtree(media)
+        m.assert_not_called()
+
+    def test_listing_cards_fall_back_to_island_photo(self):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        island = Island.objects.get(slug="dhangethi")
+        island.cover_image_url = "https://upload.wikimedia.org/x/1920px-Dhangethi.jpg"
+        island.save()
+        r = self.client.get(reverse("directory:stay_list"))
+        self.assertContains(r, "960px-Dhangethi.jpg")
 
 
 class BackOfficeTests(TestCase):

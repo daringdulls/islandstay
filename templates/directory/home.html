@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load ui %}
 {% block content %}
-<section class="hero">
+<section class="hero hero-photo">
   {% if hero_island %}
-    <div class="hero-media"><img src="{{ hero_island.cover_image.url }}" alt="{{ hero_island.name }}, {{ hero_island.atoll.name }}"></div>
-    <div class="photo-credit">{{ hero_island.name }}{% if hero_island.cover_credit %} · Photo: {% if hero_island.cover_source_url %}<a href="{{ hero_island.cover_source_url }}" target="_blank" rel="noopener">{{ hero_island.cover_credit }}</a>{% else %}{{ hero_island.cover_credit }}{% endif %}{% if hero_island.cover_license %}, {{ hero_island.cover_license }}{% endif %}{% endif %}</div>
+    <div class="hero-media"><img src="{{ hero_island.photo_url }}" alt="{{ hero_island.name }}, {{ hero_island.atoll.name }}"></div>
+    <div class="photo-credit"><a href="{{ hero_island.get_absolute_url }}">{{ hero_island.name }}, {{ hero_island.atoll.name }}</a>{% if hero_island.cover_credit %} · Photo: {% if hero_island.cover_source_url %}<a href="{{ hero_island.cover_source_url }}" target="_blank" rel="noopener">{{ hero_island.cover_credit|truncatechars:40 }}</a>{% else %}{{ hero_island.cover_credit|truncatechars:40 }}{% endif %}{% if hero_island.cover_license %}, {{ hero_island.cover_license }}{% endif %}{% endif %}</div>
   {% else %}
     <div class="hero-media chart"></div>
   {% endif %}
@@ -34,94 +34,92 @@
   </div>
 </section>
 
-<section class="section" style="padding-bottom:0">
-  <div class="container">
-    <nav class="feature-grid" aria-label="What you can plan">
-      <a class="feature" href="{% url 'directory:stay_list' %}">{% icon "house" %}<b>Stays</b><span>Guest houses and hotels on local islands</span></a>
-      <a class="feature" href="{% url 'directory:service_list' %}">{% icon "sailboat" %}<b>Experiences</b><span>Snorkeling, diving, sandbanks and fishing</span></a>
-      <a class="feature" href="{% url 'directory:transport_list' %}">{% icon "ship" %}<b>Transport</b><span>Ferries, speedboats and domestic flights</span></a>
-      <a class="feature" href="{% url 'directory:food_list' %}">{% icon "utensils" %}<b>Food</b><span>Cafés, restaurants and local dining</span></a>
-      <a class="feature" href="{% url 'directory:island_list' %}">{% icon "compass" %}<b>Island guides</b><span>Facilities, regulations and accessibility</span></a>
-      <a class="feature" href="{% url 'directory:how_it_works' %}#verified">{% icon "badge-check" %}<b>Verified hosts</b><span>Licences checked by our team</span></a>
-    </nav>
-  </div>
-</section>
-
 <section class="section">
   <div class="container">
     <div class="section-head">
       <div><div class="eyebrow">Island guides</div><h2>Where to go</h2></div>
-      <a class="link-arrow" href="{% url 'directory:island_list' %}">All {{ stats.islands }} islands {% icon "arrow-right" %}</a>
+      <div class="row"><a class="link-arrow muted" href="{% url 'directory:atoll_list' %}">By atoll</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:island_list' %}">All {{ stats.islands }} islands {% icon "arrow-right" %}</a></div>
     </div>
-    <div class="grid">{% for island in featured_islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
+    <div class="photo-grid-3">{% for island in featured_islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
   </div>
 </section>
 
-<section class="section band">
+<section class="section band" id="plan">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">By experience</div><h2>Choose an island for what you want to do</h2></div></div>
-    <div class="activity-grid">
-      {% for a in activities %}<a class="activity" href="{% url 'directory:island_list' %}?activity={{ a.slug }}">{% icon a.icon %}<span>{{ a.name }}<small>{{ a.n }} ISLAND{{ a.n|pluralize:"S" }}</small></span></a>{% endfor %}
+    <div class="section-head"><div><div class="eyebrow">Plan your trip</div><h2>Everything for your island, in one place</h2></div></div>
+    <div class="seg" role="tablist" aria-label="Plan by category">
+      <button class="seg-btn active" role="tab" aria-selected="true" aria-controls="tab-stays" id="t-stays">{% icon "house" %} Stays</button>
+      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-experiences" id="t-experiences">{% icon "sailboat" %} Experiences</button>
+      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-transport" id="t-transport">{% icon "ship" %} Transport</button>
+      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-food" id="t-food">{% icon "utensils" %} Food</button>
+    </div>
+    <div class="seg-panel" id="tab-stays" role="tabpanel" aria-labelledby="t-stays">
+      {% if featured_stays %}<div class="grid">{% for l in featured_stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Guest houses will appear here as soon as they're approved. <a href="{% url 'directory:list_your_business' %}">List yours.</a></div>{% endif %}
+      <a class="link-arrow seg-more" href="{% url 'directory:stay_list' %}">All places to stay {% icon "arrow-right" %}</a>
+    </div>
+    <div class="seg-panel" id="tab-experiences" role="tabpanel" aria-labelledby="t-experiences" hidden>
+      {% if featured_services %}<div class="grid">{% for l in featured_services %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Excursion and dive operators will appear here once approved.</div>{% endif %}
+      <a class="link-arrow seg-more" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a>
+    </div>
+    <div class="seg-panel" id="tab-transport" role="tabpanel" aria-labelledby="t-transport" hidden>
+      {% if featured_routes %}<div class="panel" style="padding-block:4px">{% for r in featured_routes %}{% include "partials/route_row.html" with show_island=True %}{% endfor %}</div>{% else %}<div class="empty">Routes will appear here soon.</div>{% endif %}
+      <a class="link-arrow seg-more" href="{% url 'directory:transport_list' %}">Ferries, speedboats and flights to every island {% icon "arrow-right" %}</a>
+    </div>
+    <div class="seg-panel" id="tab-food" role="tabpanel" aria-labelledby="t-food" hidden>
+      {% if featured_food %}<div class="grid">{% for l in featured_food %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Cafés and restaurants will appear here once approved.</div>{% endif %}
+      <a class="link-arrow seg-more" href="{% url 'directory:food_list' %}">All restaurants {% icon "arrow-right" %}</a>
     </div>
   </div>
 </section>
 
-{% if featured_stays %}
 <section class="section">
   <div class="container">
-    <div class="section-head">
-      <div><div class="eyebrow">Stays</div><h2>Guest houses and island hotels</h2></div>
-      <a class="link-arrow" href="{% url 'directory:stay_list' %}">All stays {% icon "arrow-right" %}</a>
-    </div>
-    <div class="grid">{% for l in featured_stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+    <div class="section-head"><div><div class="eyebrow">By experience</div><h2>What do you want to do?</h2></div><a class="link-arrow" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a></div>
+    <div class="activity-rail">{% for a in activities %}{% include "partials/activity_tile.html" %}{% endfor %}</div>
   </div>
 </section>
-{% endif %}
-
-{% if featured_services %}
-<section class="section" style="padding-top:0">
-  <div class="container">
-    <div class="section-head">
-      <div><div class="eyebrow">Experiences</div><h2>Run by people from the island</h2></div>
-      <a class="link-arrow" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a>
-    </div>
-    <div class="grid">{% for l in featured_services %}{% include "partials/listing_card.html" %}{% endfor %}</div>
-  </div>
-</section>
-{% endif %}
-
-{% if featured_food %}
-<section class="section" style="padding-top:0">
-  <div class="container">
-    <div class="section-head">
-      <div><div class="eyebrow">Food</div><h2>Where to eat</h2></div>
-      <a class="link-arrow" href="{% url 'directory:food_list' %}">All restaurants {% icon "arrow-right" %}</a>
-    </div>
-    <div class="grid">{% for l in featured_food %}{% include "partials/listing_card.html" %}{% endfor %}</div>
-  </div>
-</section>
-{% endif %}
 
 <section class="section band-dark">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">Direct requests</div><h2>No booking engine. No fees.</h2></div></div>
-    <div class="steps">
-      <div class="step"><h3>Read the island guide</h3><p>What it's known for, local rules, facilities and how to get there.</p></div>
-      <div class="step"><h3>Choose a host</h3><p>Guest houses, dive centres, transfer operators and cafés on that island.</p></div>
-      <div class="step"><h3>Send a request</h3><p>Your dates and questions go to the owner by email. No card details are needed.</p></div>
-      <div class="step"><h3>Agree directly</h3><p>The host confirms availability, price and payment with you.</p></div>
-    </div>
+    <div class="section-head"><div><div class="eyebrow">North to south</div><h2>Browse by atoll</h2></div><a class="link-arrow" style="color:#fff" href="{% url 'directory:atoll_list' %}">About the atolls {% icon "arrow-right" %}</a></div>
+    <div class="atoll-chips">{% for a in atolls %}<a class="atoll-chip" href="{{ a.get_absolute_url }}">{{ a.name }}<span>{{ a.n }}</span></a>{% endfor %}</div>
   </div>
 </section>
 
 <section class="section">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">North to south</div><h2>Browse by atoll</h2></div><a class="link-arrow" href="{% url 'directory:atoll_list' %}">All atolls {% icon "arrow-right" %}</a></div>
-    <div class="atoll-list">{% for a in atolls %}<a href="{{ a.get_absolute_url }}"><span>{{ a.name }}</span><span class="data">{{ a.code|upper }} · {{ a.n }}</span></a>{% endfor %}</div>
-    <div class="cta" style="margin-top:56px">
-      <div><h2>Run a guest house, dive centre or café?</h2><p>List it under your island for free and receive requests directly.</p></div>
-      <a class="btn btn-light" href="{% url 'directory:list_your_business' %}">List your business</a>
+    <div class="section-head"><div><div class="eyebrow">Inside every island guide</div><h2>The answers you need before you book</h2></div></div>
+    <div class="guide-cards">
+      <div class="guide-card"><span class="guide-icon">{% icon "landmark" %}</span><h3>The island, in numbers</h3><p>Census population, size and distance from Malé, plus whether there's an ATM, clinic, pharmacy and 4G.</p></div>
+      <div class="guide-card"><span class="guide-icon">{% icon "ship" %}</span><h3>How to get there</h3><p>Speedboats, public ferries and domestic flights, with journey times, timetables and who runs them.</p></div>
+      <div class="guide-card"><span class="guide-icon">{% icon "scroll-text" %}</span><h3>Local rules, plainly</h3><p>Where swimwear is fine, dress codes in the village, alcohol, drones and what changes on Fridays.</p></div>
+      <div class="guide-card"><span class="guide-icon">{% icon "badge-check" %}</span><h3>Hosts you can trust</h3><p>Every listing is reviewed. Verified hosts have shown us their tourism licence or business registration.</p></div>
     </div>
   </div>
 </section>
+
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="cta cta-big">
+      <div><div class="eyebrow" style="color:#8fd8d2">For island businesses</div><h2>Put your guest house, dive centre or café on the map.</h2><p>Free listing under your island. Requests come straight to you, with no commission.</p></div>
+      <div class="row"><a class="btn btn-light" href="{% url 'directory:list_your_business' %}">List your business</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="{% url 'directory:how_it_works' %}#verified">About verification</a></div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll(".seg-btn");
+  btns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      btns.forEach(function (o) {
+        var on = o === b;
+        o.classList.toggle("active", on);
+        o.setAttribute("aria-selected", on);
+        document.getElementById(o.getAttribute("aria-controls")).hidden = !on;
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

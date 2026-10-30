@@ -2,17 +2,18 @@ import io
 
 from django.contrib import admin, messages
 from django.core.management import call_command
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RelatedDropdownFilter
 from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -25,6 +26,13 @@ class BaseAdmin(ModelAdmin):
     warn_unsaved_form = True
     list_filter_submit = True
     list_per_page = 50
+
+
+def photo_preview(url, credit="", license=""):
+    if not url:
+        return "No photo yet. Run \"Find photos\" from the island list, or paste a link below."
+    return format_html('<img src="{}" style="max-width:420px;border-radius:8px;display:block"><small>{} {}</small>',
+                       url, credit, f"· {license}" if license else "")
 
 
 # ---------------------------------------------------------------- reference data
@@ -51,7 +59,22 @@ class AtollAdmin(BaseAdmin):
 
 @admin.register(ActivityType)
 class ActivityTypeAdmin(BaseAdmin):
-    list_display = ("name", "icon", "description", "island_count")
+    list_display = ("activity", "description", "island_count")
+    list_display_links = ("activity",)
+    fieldsets = (
+        (None, {"fields": (("name", "slug"), "icon", "description")}),
+        ("Photo", {"fields": ("photo_preview", "photo_search", "image_url", ("image_credit", "image_license"), "image_source_url")}),
+    )
+    readonly_fields = ("photo_preview",)
+
+    @display(description="Experience", header=True, ordering="name")
+    def activity(self, obj):
+        image = {"path": obj.thumb_url, "squared": True} if obj.image_url else None
+        return [obj.name, obj.photo_search, obj.name[:2], image]
+
+    @display(description="Current photo")
+    def photo_preview(self, obj):
+        return photo_preview(obj.thumb_url, obj.image_credit, obj.image_license)
     search_fields = ("name",)
     prepopulated_fields = {"slug": ("name",)}
 
@@ -79,10 +102,11 @@ class PhotoFilter(admin.SimpleListFilter):
         return [("yes", "Has a photo"), ("no", "No photo yet")]
 
     def queryset(self, request, qs):
+        has_photo = ~(Q(cover_image="") & Q(cover_image_url=""))
         if self.value() == "yes":
-            return qs.exclude(cover_image="")
+            return qs.filter(has_photo)
         if self.value() == "no":
-            return qs.filter(cover_image="")
+            return qs.exclude(has_photo)
         return qs
 
 
@@ -96,6 +120,19 @@ class IslandRouteInline(TabularInline):
     autocomplete_fields = ("operator",)
 
 
+class IslandPhotoInline(TabularInline):
+    model = IslandPhoto
+    extra = 0
+    tab = True
+    verbose_name_plural = "Photo gallery"
+    fields = ("preview", "image_url", "caption", "credit", "license", "source_url", "order", "is_visible")
+    readonly_fields = ("preview",)
+
+    @display(description="Photo")
+    def preview(self, obj):
+        return format_html('<img src="{}" style="width:96px;height:64px;object-fit:cover;border-radius:6px">', obj.thumb_url) if obj.pk else "–"
+
+
 def _fetch_photos(admin_obj, request, islands):
     out = io.StringIO()
     for island in islands:
@@ -106,7 +143,7 @@ def _fetch_photos(admin_obj, request, islands):
 
 @admin.register(Island)
 class IslandAdmin(BaseAdmin):
-    inlines = [IslandRouteInline]
+    inlines = [IslandPhotoInline, IslandRouteInline]
     list_display = ("island", "atoll", "island_type", "population", "listing_count", "has_photo", "is_featured", "is_published")
     list_display_links = ("island",)
     list_editable = ("is_featured", "is_published")
@@ -131,15 +168,21 @@ class IslandAdmin(BaseAdmin):
         ("Facts & sources", {"classes": ["tab"], "fields": (
             ("population", "population_year", "area_km2"), "sources", "wikipedia_title", ("latitude", "longitude"))}),
         ("Cover photo", {"classes": ["tab"], "fields": (
-            "cover_image", ("cover_credit", "cover_license"), "cover_source_url", "cover_color")}),
+            "cover_preview", "cover_image", "cover_image_url", ("cover_credit", "cover_license"), "cover_source_url")}),
     )
+    readonly_fields = ("cover_preview",)
+
+    @display(description="Current cover")
+    def cover_preview(self, obj):
+        return photo_preview(obj.card_photo_url, obj.cover_credit, obj.cover_license)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("atoll").annotate(_n=Count("listings"))
 
     @display(description="Island", header=True, ordering="name")
     def island(self, obj):
-        return [obj.name, obj.tagline, obj.name[:2]]
+        image = {"path": obj.card_photo_url, "squared": True} if obj.photo_url else None
+        return [obj.name, obj.tagline, obj.name[:2], image]
 
     @display(description="Listings", ordering="_n")
     def listing_count(self, obj):
@@ -147,13 +190,13 @@ class IslandAdmin(BaseAdmin):
 
     @display(description="Photo", boolean=True)
     def has_photo(self, obj):
-        return bool(obj.cover_image)
+        return bool(obj.photo_url)
 
-    @admin.action(description="Fetch cover photo from Wikimedia Commons")
+    @admin.action(description="Find photos on Wikimedia Commons")
     def fetch_photos(self, request, queryset):
         _fetch_photos(self, request, queryset)
 
-    @action(description="Fetch photo from Wikimedia", icon="add_photo_alternate", url_path="fetch-photo")
+    @action(description="Find photos on Wikimedia", icon="add_photo_alternate", url_path="fetch-photo")
     def fetch_photo_detail(self, request, object_id):
         _fetch_photos(self, request, Island.objects.filter(pk=object_id))
         return redirect(reverse("admin:directory_island_change", args=[object_id]))

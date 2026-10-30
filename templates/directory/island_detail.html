@@ -3,8 +3,8 @@
 {% block title %}{{ island.name }}, {{ island.atoll.name }} — island guide{% endblock %}
 {% block meta_description %}{{ island.tagline }}. {{ island.overview|truncatechars:140 }}{% endblock %}
 {% block content %}
-<section class="island-hero {% if not island.cover_image %}no-photo{% endif %}">
-  {% if island.cover_image %}<img src="{{ island.cover_image.url }}" alt="{{ island.name }}, {{ island.atoll.name }}">{% else %}<div class="chart" style="{{ island.chart_style }};--x:72%"></div>{% endif %}
+<section class="island-hero {% if not island.photo_url %}no-photo{% endif %}">
+  {% if island.photo_url %}<img src="{{ island.photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}">{% else %}<div class="chart" style="{{ island.chart_style }};--x:72%"></div>{% endif %}
   <div class="container">
     <div class="crumbs"><a href="{% url 'directory:island_list' %}">Islands</a> / <a href="{{ island.atoll.get_absolute_url }}">{{ island.atoll.name }}</a></div>
     <div class="eyebrow">{{ island.get_island_type_display }}</div>
@@ -17,7 +17,7 @@
       {% if island.area_km2 %}<span>{{ island.area_km2|floatformat:"-2" }} km²</span>{% endif %}
     </div>
   </div>
-  {% if island.cover_image and island.cover_credit %}<div class="photo-credit">Photo: {% if island.cover_source_url %}<a href="{{ island.cover_source_url }}" target="_blank" rel="noopener">{{ island.cover_credit }}</a>{% else %}{{ island.cover_credit }}{% endif %}{% if island.cover_license %}, {{ island.cover_license }}{% endif %}</div>{% endif %}
+  {% if island.photo_url and island.cover_credit %}<div class="photo-credit">Photo: {% if island.cover_source_url %}<a href="{{ island.cover_source_url }}" target="_blank" rel="noopener">{{ island.cover_credit }}</a>{% else %}{{ island.cover_credit }}{% endif %}{% if island.cover_license %}, {{ island.cover_license }}{% endif %}</div>{% endif %}
 </section>
 <div class="container">
   <div class="facts">
@@ -43,6 +43,14 @@
       <section id="about">
         <div class="lede">{{ island.overview|linebreaks }}</div>
       </section>
+      {% with gallery=island.photos.all %}{% if gallery %}
+      <section class="gallery-strip" aria-label="Photos of {{ island.name }}">
+        {% for p in gallery %}{% if p.is_visible %}
+        <figure><a href="{{ p.source_url|default:p.image_url }}" target="_blank" rel="noopener"><img src="{{ p.thumb_url }}" alt="{{ p.caption|default:island.name }}" loading="lazy"></a>
+          <figcaption>{{ p.credit|truncatechars:32 }}{% if p.license %} · {{ p.license }}{% endif %}</figcaption></figure>
+        {% endif %}{% endfor %}
+      </section>
+      {% endif %}{% endwith %}
       <div class="two-col">
         {% if island.famous_for_list %}
         <section class="panel">

@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, Min, Q
+from django.db.models import Count, F, Min, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -14,7 +14,7 @@ from .forms import (
     EnquiryForm, EnquiryUpdateForm, IslandSuggestionForm, ListingForm, PhotoUploadForm, RoomFormSet, RouteFormSet,
     VerificationForm,
 )
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, ListingPhoto, TransportRoute
+from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandPhoto, Listing, ListingPhoto, TransportRoute
 
 APPROVED = Listing.STATUS_APPROVED
 
@@ -41,14 +41,17 @@ def _live_listings():
 
 def home(request):
     return render(request, "directory/home.html", {
-        "featured_islands": _islands().filter(is_featured=True).order_by("-cover_image", "name")[:8],
-        "hero_island": Island.objects.filter(is_published=True, is_featured=True).exclude(cover_image="").order_by("?").first(),
-        "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:8],
+        "featured_islands": _islands().filter(is_featured=True).order_by("name")[:6],
+        "hero_island": Island.objects.filter(is_published=True, is_featured=True)
+        .exclude(Q(cover_image="") & Q(cover_image_url="")).order_by("?").first(),
+        "featured_routes": TransportRoute.objects.filter(is_active=True, island__is_published=True, island__is_featured=True)
+        .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("island", "operator").order_by(F("operator").desc(nulls_last=True), "island__name", "order")[:6],
+        "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:4],
         "featured_services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).order_by("-is_featured", "-created_at")[:4],
         "featured_food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).order_by("-is_featured", "-created_at")[:4],
         "island_options": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
         "atolls": Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0),
-        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:8],
+        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:10],
         "stats": {
             "islands": Island.objects.filter(is_published=True).count(),
             "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(),
@@ -99,7 +102,7 @@ def island_list(request):
 
 
 def island_detail(request, slug):
-    island = get_object_or_404(_islands().prefetch_related("activities"), slug=slug)
+    island = get_object_or_404(_islands().prefetch_related("activities", "photos"), slug=slug)
     listings = _live_listings().filter(island=island).prefetch_related("activity_types")
     kind = request.GET.get("kind", "")
     stays = listings.filter(kind__in=Listing.STAY_KINDS)
@@ -243,6 +246,14 @@ def enquiry_sent(request, ref):
 
 def list_your_business(request):
     return render(request, "directory/list_your_business.html", {"islands_count": Island.objects.filter(is_published=True).count()})
+
+
+def photo_credits(request):
+    return render(request, "directory/photo_credits.html", {
+        "islands": Island.objects.filter(is_published=True).exclude(cover_image_url="").order_by("name"),
+        "gallery": IslandPhoto.objects.filter(is_visible=True, island__is_published=True).select_related("island"),
+        "activities": ActivityType.objects.exclude(image_url=""),
+    })
 
 
 def how_it_works(request):

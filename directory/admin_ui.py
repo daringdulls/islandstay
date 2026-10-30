@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.urls import reverse
 from django.utils import timezone
@@ -50,6 +50,7 @@ def dashboard_callback(request, context):
                       "backgroundColor": "var(--color-primary-600)"}],
     }
 
+    has_photo = ~(Q(cover_image="") & Q(cover_image_url=""))
     listing_url = reverse("admin:directory_listing_changelist")
     enquiry_url = reverse("admin:directory_enquiry_changelist")
     island_url = reverse("admin:directory_island_changelist")
@@ -67,7 +68,7 @@ def dashboard_callback(request, context):
              "note": f"{live.filter(is_verified=True).count()} verified hosts", "href": listing_url + "?status__exact=approved",
              "icon": "storefront"},
             {"title": "Island guides", "value": Island.objects.filter(is_published=True).count(),
-             "note": f"{Island.objects.exclude(cover_image='').count()} with a cover photo", "href": island_url, "icon": "landscape"},
+             "note": f"{Island.objects.filter(has_photo).count()} with a cover photo", "href": island_url, "icon": "landscape"},
             {"title": "Businesses registered", "value": get_user_model().objects.filter(is_staff=False).count(),
              "note": f"{get_user_model().objects.filter(date_joined__gte=week_ago, is_staff=False).count()} joined this week",
              "href": reverse("admin:auth_user_changelist"), "icon": "group"},
@@ -79,7 +80,7 @@ def dashboard_callback(request, context):
         .select_related("island").order_by("verification_requested_at")[:5],
         "latest_requests": Enquiry.objects.select_related("listing", "listing__island")[:8],
         "suggestions": IslandSuggestion.objects.filter(handled=False)[:5],
-        "islands_without_photo": Island.objects.filter(is_published=True, cover_image="").count(),
+        "islands_without_photo": Island.objects.filter(is_published=True).exclude(has_photo).count(),
         "quick_links": [
             {"title": "Add a listing", "icon": "add_business", "href": reverse("admin:directory_listing_add")},
             {"title": "Add an island", "icon": "add_location_alt", "href": reverse("admin:directory_island_add")},

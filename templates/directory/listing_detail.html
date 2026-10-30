@@ -22,7 +22,7 @@
 
   {% with photos=listing.photos.all %}
   <div class="gallery {% if not photos %}single{% endif %}">
-    {% if listing.cover_image %}<img src="{{ listing.cover_image.url }}" alt="{{ listing.name }}">
+    {% if listing.photo_url %}<img src="{{ listing.photo_url }}" alt="{% if listing.has_own_photo %}{{ listing.name }}{% else %}{{ listing.island.name }}{% endif %}">
     {% else %}<div class="cover chart" style="{{ listing.island.chart_style }};aspect-ratio:auto"><span class="label">{{ listing.name }}</span><span class="kind-mark">{% icon listing.kind_icon %}</span></div>{% endif %}
     {% for p in photos|slice:":4" %}<img src="{{ p.image.url }}" alt="{{ p.caption|default:listing.name }}">{% endfor %}
   </div>

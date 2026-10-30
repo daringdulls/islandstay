@@ -98,7 +98,7 @@
       <section class="is-panel is-tip">
         <span class="material-symbols-outlined">add_photo_alternate</span>
         <div><strong>{{ islands_without_photo }} island{{ islands_without_photo|pluralize }} without a cover photo</strong>
-        <p>Select them in <a href="{% url 'admin:directory_island_changelist' %}?photo=no">Islands</a> and run "Fetch cover photo" to import one from Wikimedia Commons.</p></div>
+        <p>Select them in <a href="{% url 'admin:directory_island_changelist' %}?photo=no">Islands</a> and run "Find photos on Wikimedia Commons". They also update automatically each time the site starts.</p></div>
       </section>
       {% endif %}
     </div>

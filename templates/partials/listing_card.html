@@ -1,7 +1,8 @@
 {% load ui %}<a class="card" href="{{ l.get_absolute_url }}">
-  {% if l.cover_image %}<div class="cover has-photo"><img src="{{ l.cover_image.url }}" alt="{{ l.name }}" loading="lazy">
+  {% if l.photo_url %}<div class="cover has-photo"><img src="{{ l.photo_url }}" alt="{% if l.has_own_photo %}{{ l.name }}{% else %}{{ l.island.name }}{% endif %}" loading="lazy"><span class="shade"></span>
   {% else %}<div class="cover chart" style="{{ l.island.chart_style }}">{% endif %}
     <span class="tag pill white">{{ l.get_kind_display }}</span>
+    {% if l.is_verified %}<span class="corner corner-ok">{% icon "badge-check" %} VERIFIED</span>{% endif %}
     <span class="kind-mark">{% icon l.kind_icon %}</span>
   </div>
   <div class="card-body">
@@ -11,9 +12,8 @@
     <p class="small muted" style="margin:0">{{ l.short_description|truncatechars:110 }}</p>
   </div>
   <div class="card-foot">
-    {% if l.is_verified %}<span class="verified-badge">{% icon "badge-check" %} Verified host</span>
-    {% elif SHOW_PRICES and l.price_from %}<span class="price">from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b></span>
-    {% else %}<span>{% if l.is_food %}{{ l.opening_hours|truncatechars:30 }}{% else %}Contact the host{% endif %}</span>{% endif %}
+    {% if SHOW_PRICES and l.price_from %}<span class="price">from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b></span>
+    {% else %}<span>{% if l.is_food %}{{ l.opening_hours|truncatechars:30|default:"See opening hours" }}{% elif l.is_stay and l.room_count %}{{ l.room_count }} rooms{% else %}Contact the host{% endif %}</span>{% endif %}
     <span class="link-arrow">{% if l.is_food %}View{% else %}Send request{% endif %} {% icon "arrow-right" %}</span>
   </div>
 </a>
