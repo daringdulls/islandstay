@@ -1,4 +1,4 @@
-/* IslandStay back office: headings in Plus Jakarta Sans (body text stays in Unfold's Inter). */
+/* Island Stay back office: headings in Plus Jakarta Sans (body text stays in Unfold's Inter). */
 :root {
   --is-heading: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --is-surface: #fff;

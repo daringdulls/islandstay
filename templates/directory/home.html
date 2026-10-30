@@ -1,125 +1,162 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui humanize %}
+{% block extra_head %}{% include "partials/map_assets.html" %}{% endblock %}
 {% block content %}
-<section class="hero hero-photo">
-  {% if hero_island %}
-    <div class="hero-media"><img src="{{ hero_island.photo_url }}" alt="{{ hero_island.name }}, {{ hero_island.atoll.name }}"></div>
-    <div class="photo-credit"><a href="{{ hero_island.get_absolute_url }}">{{ hero_island.name }}, {{ hero_island.atoll.name }}</a>{% if hero_island.cover_credit %} · Photo: {% if hero_island.cover_source_url %}<a href="{{ hero_island.cover_source_url }}" target="_blank" rel="noopener">{{ hero_island.cover_credit|truncatechars:40 }}</a>{% else %}{{ hero_island.cover_credit|truncatechars:40 }}{% endif %}{% if hero_island.cover_license %}, {{ hero_island.cover_license }}{% endif %}{% endif %}</div>
-  {% else %}
-    <div class="hero-media chart"></div>
-  {% endif %}
-  <div class="container">
-    <div class="eyebrow">The local islands of the Maldives</div>
-    <h1>Stay where Maldivians <em>live</em>, fish and gather.</h1>
-    <p class="lead">Island guides with facts, rules and transport, and the guest houses, operators and cafés on each one. Send your request straight to the host.</p>
-    <form class="search-box" action="{% url 'directory:search' %}" role="search">
-      <label class="field" for="hero-q">{% icon "search" %}<input id="hero-q" type="search" name="q" list="island-names" placeholder="Which island? e.g. Dhangethi" aria-label="Island name" required></label>
+{{ map|json_script:"map-data" }}
+
+{# 1 — The chart table: headline, search and atoll index beside the interactive map #}
+<section class="chart-table">
+  <div class="chart-table-text">
+    <div class="eyebrow">1,192 islands · 26 atolls · one guide</div>
+    <h1>Find your island, <span class="ink-accent">then</span> the people who live there.</h1>
+    <p class="lead">Tap an atoll on the map to see its local islands. Each guide covers facilities, local rules and how to get there, with guest houses, operators and cafés you can contact directly.</p>
+    <form class="search-inline" action="{% url 'directory:search' %}" role="search">
+      <label for="hero-q" class="sr-only">Island name</label>
+      {% icon "search" %}
+      <input id="hero-q" type="search" name="q" list="island-names" placeholder="Go to an island, e.g. Dhangethi" required>
       <datalist id="island-names">{% for i in island_options %}<option value="{{ i.name }}">{{ i.atoll.name }}</option>{% endfor %}</datalist>
-      <select name="section" aria-label="Looking for" id="hero-section">
-        <option value="">Everything</option>
-        <option value="stays">Stays</option>
-        <option value="experiences">Experiences</option>
-        <option value="transport">Transport</option>
-        <option value="food">Food</option>
-        <option value="guide">Island guide</option>
-      </select>
-      <button class="btn btn-accent" type="submit">Explore</button>
+      <button class="btn btn-accent btn-sm" type="submit">Go</button>
     </form>
-    <div class="hero-stats">
-      <div><b>{{ stats.islands }}</b><span>Island guides</span></div>
-      <div><b>{{ stats.stays }}</b><span>Places to stay</span></div>
-      <div><b>{{ stats.services }}</b><span>Experiences</span></div>
-      <div><b>{{ stats.verified }}</b><span>Verified hosts</span></div>
+
     </div>
+  </div>
+
+  <div class="chart-table-map">
+    <div id="explore-map" class="island-map" data-island-map data-mode="explore" data-panel="#map-panel" aria-label="Interactive map of the Maldives"></div>
+    <aside id="map-panel" class="map-panel" aria-live="polite"></aside>
+    <div class="map-hint">{% icon "navigation" %} Click an atoll to explore its islands</div>
+    <noscript><div class="map-hint">Turn on JavaScript to use the interactive map, or browse the atoll list.</div></noscript>
+  </div>
+
+  <div class="chart-table-index">
+    <div class="atoll-index" aria-label="Atolls from north to south">
+      <div class="atoll-index-head"><span>Atolls, north to south</span><span>Guides</span></div>
+      <ol>
+        {% for a in atoll_index %}
+          <li><a href="{{ a.get_absolute_url }}" data-atoll-link="{{ a.slug }}" class="{% if not a.n %}is-empty{% endif %}">
+            <span class="code">{{ a.code|default:"–" }}</span><span class="name">{{ a.name }}</span><span class="n">{{ a.n }}</span></a></li>
+        {% endfor %}
+      </ol>
   </div>
 </section>
 
+{# 2 — Figures #}
+<section class="figures">
+  <div class="container figures-row">
+    <div><b data-count="{{ stats.islands }}">{{ stats.islands }}</b><span>island guides</span></div>
+    <div><b data-count="{{ stats.stays }}">{{ stats.stays }}</b><span>places to stay</span></div>
+    <div><b data-count="{{ stats.services }}">{{ stats.services }}</b><span>experience operators</span></div>
+    <div><b data-count="{{ stats.routes }}">{{ stats.routes }}</b><span>transport routes</span></div>
+    <div><b data-count="{{ stats.verified }}">{{ stats.verified }}</b><span>verified hosts</span></div>
+  </div>
+</section>
+
+{# 3 — Island portraits: editorial rows rather than a card grid #}
 <section class="section">
   <div class="container">
-    <div class="section-head">
-      <div><div class="eyebrow">Island guides</div><h2>Where to go</h2></div>
-      <div class="row"><a class="link-arrow muted" href="{% url 'directory:atoll_list' %}">By atoll</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:island_list' %}">All {{ stats.islands }} islands {% icon "arrow-right" %}</a></div>
-    </div>
-    <div class="photo-grid-3">{% for island in featured_islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
+    <div class="section-head reveal"><div><div class="eyebrow">Island portraits</div><h2>Three islands, three different trips</h2></div>
+      <a class="link-arrow" href="{% url 'directory:island_list' %}">All {{ stats.islands }} islands {% icon "arrow-right" %}</a></div>
+    {% for island in portraits %}
+    <article class="portrait reveal {% cycle '' 'flip' %}">
+      <a class="portrait-media" href="{{ island.get_absolute_url }}">
+        {% if island.photo_url %}<img src="{{ island.photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}" loading="lazy">{% else %}<div class="chart" style="{{ island.chart_style }}"></div>{% endif %}
+        <span class="portrait-num">0{{ forloop.counter }}</span>
+      </a>
+      <div class="portrait-text">
+        <div class="eyebrow">{{ island.atoll.name }}{% if island.atoll.code %} · {{ island.atoll.code }}{% endif %}</div>
+        <h3>{{ island.name }}</h3>
+        <p class="portrait-tagline">{{ island.tagline }}</p>
+        <ul class="list-check">{% for f in island.famous_for_list|slice:":3" %}<li>{{ f }}</li>{% endfor %}</ul>
+        <dl class="portrait-facts">
+          {% if island.population %}<div><dt>Population</dt><dd>{{ island.population|intcomma }}</dd></div>{% endif %}
+          {% if island.transfer_time %}<div><dt>From Malé</dt><dd>{{ island.transfer_time }}</dd></div>{% endif %}
+          <div><dt>Stays</dt><dd>{{ island.stay_count }}</dd></div>
+          <div><dt>Experiences</dt><dd>{{ island.service_count }}</dd></div>
+        </dl>
+        <a class="btn" href="{{ island.get_absolute_url }}">Read the {{ island.name }} guide {% icon "arrow-right" %}</a>
+      </div>
+    </article>
+    {% endfor %}
+    {% if more_islands %}
+    <div class="more-islands reveal"><span>Also popular:</span>{% for i in more_islands %}<a href="{{ i.get_absolute_url }}">{{ i.name }}</a>{% endfor %}</div>
+    {% endif %}
   </div>
 </section>
 
-<section class="section band" id="plan">
+{# 4 — Plan by need: a typographic directory index #}
+<section class="section band">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">Plan your trip</div><h2>Everything for your island, in one place</h2></div></div>
-    <div class="seg" role="tablist" aria-label="Plan by category">
-      <button class="seg-btn active" role="tab" aria-selected="true" aria-controls="tab-stays" id="t-stays">{% icon "house" %} Stays</button>
-      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-experiences" id="t-experiences">{% icon "sailboat" %} Experiences</button>
-      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-transport" id="t-transport">{% icon "ship" %} Transport</button>
-      <button class="seg-btn" role="tab" aria-selected="false" aria-controls="tab-food" id="t-food">{% icon "utensils" %} Food</button>
-    </div>
-    <div class="seg-panel" id="tab-stays" role="tabpanel" aria-labelledby="t-stays">
-      {% if featured_stays %}<div class="grid">{% for l in featured_stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Guest houses will appear here as soon as they're approved. <a href="{% url 'directory:list_your_business' %}">List yours.</a></div>{% endif %}
-      <a class="link-arrow seg-more" href="{% url 'directory:stay_list' %}">All places to stay {% icon "arrow-right" %}</a>
-    </div>
-    <div class="seg-panel" id="tab-experiences" role="tabpanel" aria-labelledby="t-experiences" hidden>
-      {% if featured_services %}<div class="grid">{% for l in featured_services %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Excursion and dive operators will appear here once approved.</div>{% endif %}
-      <a class="link-arrow seg-more" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a>
-    </div>
-    <div class="seg-panel" id="tab-transport" role="tabpanel" aria-labelledby="t-transport" hidden>
-      {% if featured_routes %}<div class="panel" style="padding-block:4px">{% for r in featured_routes %}{% include "partials/route_row.html" with show_island=True %}{% endfor %}</div>{% else %}<div class="empty">Routes will appear here soon.</div>{% endif %}
-      <a class="link-arrow seg-more" href="{% url 'directory:transport_list' %}">Ferries, speedboats and flights to every island {% icon "arrow-right" %}</a>
-    </div>
-    <div class="seg-panel" id="tab-food" role="tabpanel" aria-labelledby="t-food" hidden>
-      {% if featured_food %}<div class="grid">{% for l in featured_food %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% else %}<div class="empty">Cafés and restaurants will appear here once approved.</div>{% endif %}
-      <a class="link-arrow seg-more" href="{% url 'directory:food_list' %}">All restaurants {% icon "arrow-right" %}</a>
+    <div class="section-head reveal"><div><div class="eyebrow">Plan by need</div><h2>Stays, experiences, transport and food</h2></div></div>
+    <div class="need-index">
+      <div class="need reveal" data-delay="0">
+        <a class="need-head" href="{% url 'directory:stay_list' %}">{% icon "house" %}<b>Stays</b><span>{{ stats.stays }}</span></a>
+        <ul>{% for l in featured_stays %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }}{% if l.is_verified %} · Verified{% endif %}</small></a></li>{% empty %}<li class="muted small">Listings appear here once approved.</li>{% endfor %}</ul>
+        <a class="link-arrow" href="{% url 'directory:stay_list' %}">All stays {% icon "arrow-right" %}</a>
+      </div>
+      <div class="need reveal" data-delay="80">
+        <a class="need-head" href="{% url 'directory:service_list' %}">{% icon "sailboat" %}<b>Experiences</b><span>{{ stats.services }}</span></a>
+        <ul>{% for l in featured_services %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }} · {{ l.get_kind_display }}</small></a></li>{% empty %}<li class="muted small">Operators appear here once approved.</li>{% endfor %}</ul>
+        <a class="link-arrow" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a>
+      </div>
+      <div class="need reveal" data-delay="160">
+        <a class="need-head" href="{% url 'directory:transport_list' %}">{% icon "ship" %}<b>Transport</b><span>{{ stats.routes }}</span></a>
+        <ul>{% for r in featured_routes %}<li><a href="{{ r.island.get_absolute_url }}#transport"><span>{{ r.mode_label }} to {{ r.island.name }}</span><small>{{ r.duration }}{% if r.provider %} · {{ r.provider }}{% endif %}</small></a></li>{% empty %}<li class="muted small">Routes appear here soon.</li>{% endfor %}</ul>
+        <a class="link-arrow" href="{% url 'directory:transport_list' %}">Ferries, speedboats, flights {% icon "arrow-right" %}</a>
+      </div>
+      <div class="need reveal" data-delay="240">
+        <a class="need-head" href="{% url 'directory:food_list' %}">{% icon "utensils" %}<b>Food</b><span>{{ stats.food }}</span></a>
+        <ul>{% for l in featured_food %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }}{% if l.cuisine %} · {{ l.cuisine|truncatechars:28 }}{% endif %}</small></a></li>{% empty %}<li class="muted small">Restaurants appear here once approved.</li>{% endfor %}</ul>
+        <a class="link-arrow" href="{% url 'directory:food_list' %}">All places to eat {% icon "arrow-right" %}</a>
+      </div>
     </div>
   </div>
 </section>
 
+{# 5 — Experiences mosaic #}
 <section class="section">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">By experience</div><h2>What do you want to do?</h2></div><a class="link-arrow" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a></div>
-    <div class="activity-rail">{% for a in activities %}{% include "partials/activity_tile.html" %}{% endfor %}</div>
+    <div class="section-head reveal"><div><div class="eyebrow">Under the surface and on it</div><h2>Choose an island by what you want to do</h2></div></div>
+    <div class="mosaic">
+      {% for a in activities %}
+      <a class="mosaic-tile reveal" data-delay="{% widthratio forloop.counter0 1 60 %}" href="{% url 'directory:island_list' %}?activity={{ a.slug }}">
+        {% if a.image_url %}<img src="{% if forloop.first %}{{ a.image_url }}{% else %}{{ a.thumb_url }}{% endif %}" alt="{{ a.name }}" loading="lazy">{% else %}<div class="chart" style="--x:{% cycle '35%' '62%' '48%' '70%' '30%' '55%' '66%' %};--y:58%"></div>{% endif %}
+        <span class="mosaic-body"><span class="mosaic-icon">{% icon a.icon %}</span><b>{{ a.name }}</b><small>{{ a.description }}</small><em>{{ a.n }} island{{ a.n|pluralize }}</em></span>
+      </a>
+      {% endfor %}
+    </div>
   </div>
 </section>
 
+{# 6 — How requests work #}
 <section class="section band-dark">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">North to south</div><h2>Browse by atoll</h2></div><a class="link-arrow" style="color:#fff" href="{% url 'directory:atoll_list' %}">About the atolls {% icon "arrow-right" %}</a></div>
-    <div class="atoll-chips">{% for a in atolls %}<a class="atoll-chip" href="{{ a.get_absolute_url }}">{{ a.name }}<span>{{ a.n }}</span></a>{% endfor %}</div>
+    <div class="section-head reveal"><div><div class="eyebrow">Direct requests</div><h2>No booking engine. No fees.</h2></div></div>
+    <div class="steps reveal">
+      <div class="step"><h3>Read the island guide</h3><p>What it's known for, local rules, facilities and how to get there.</p></div>
+      <div class="step"><h3>Choose a host</h3><p>Guest houses, dive centres, transfer operators and cafés on that island.</p></div>
+      <div class="step"><h3>Send a request</h3><p>Your dates and questions go to the owner by email. No card details are needed.</p></div>
+      <div class="step"><h3>Agree directly</h3><p>The host confirms availability, price and payment with you.</p></div>
+    </div>
   </div>
 </section>
 
+{# 7 — For businesses #}
 <section class="section">
   <div class="container">
-    <div class="section-head"><div><div class="eyebrow">Inside every island guide</div><h2>The answers you need before you book</h2></div></div>
-    <div class="guide-cards">
-      <div class="guide-card"><span class="guide-icon">{% icon "landmark" %}</span><h3>The island, in numbers</h3><p>Census population, size and distance from Malé, plus whether there's an ATM, clinic, pharmacy and 4G.</p></div>
-      <div class="guide-card"><span class="guide-icon">{% icon "ship" %}</span><h3>How to get there</h3><p>Speedboats, public ferries and domestic flights, with journey times, timetables and who runs them.</p></div>
-      <div class="guide-card"><span class="guide-icon">{% icon "scroll-text" %}</span><h3>Local rules, plainly</h3><p>Where swimwear is fine, dress codes in the village, alcohol, drones and what changes on Fridays.</p></div>
-      <div class="guide-card"><span class="guide-icon">{% icon "badge-check" %}</span><h3>Hosts you can trust</h3><p>Every listing is reviewed. Verified hosts have shown us their tourism licence or business registration.</p></div>
+    <div class="host-cta reveal">
+      <div>
+        <div class="eyebrow">For island businesses</div>
+        <h2>Your island already has a page. Put your business on it.</h2>
+        <a class="btn btn-accent" href="{% url 'directory:list_your_business' %}">List your business free</a>
+      </div>
+      <ul class="host-cta-list">
+        <li>{% icon "inbox" %}<span><b>Requests straight to your inbox</b> and dashboard, no commission</span></li>
+        <li>{% icon "map-pin" %}<span><b>Shown on your island's guide</b> and on the map</span></li>
+        <li>{% cowrie %}<span><b>Verified host badge</b> once we've checked your licence</span></li>
+        <li>{% icon "route" %}<span><b>Transfer operators</b> appear on every island they serve</span></li>
+      </ul>
     </div>
   </div>
 </section>
-
-<section class="section" style="padding-top:0">
-  <div class="container">
-    <div class="cta cta-big">
-      <div><div class="eyebrow" style="color:#8fd8d2">For island businesses</div><h2>Put your guest house, dive centre or café on the map.</h2><p>Free listing under your island. Requests come straight to you, with no commission.</p></div>
-      <div class="row"><a class="btn btn-light" href="{% url 'directory:list_your_business' %}">List your business</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="{% url 'directory:how_it_works' %}#verified">About verification</a></div>
-    </div>
-  </div>
-</section>
-
-<script>
-(function () {
-  var btns = document.querySelectorAll(".seg-btn");
-  btns.forEach(function (b) {
-    b.addEventListener("click", function () {
-      btns.forEach(function (o) {
-        var on = o === b;
-        o.classList.toggle("active", on);
-        o.setAttribute("aria-selected", on);
-        document.getElementById(o.getAttribute("aria-controls")).hidden = !on;
-      });
-    });
-  });
-})();
-</script>
 {% endblock %}
+{% block extra_js %}{% include "partials/map_scripts.html" %}{% endblock %}

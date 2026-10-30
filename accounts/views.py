@@ -19,6 +19,6 @@ def signup(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
-        messages.success(request, "Welcome to IslandStay! Now add your property or service — our team reviews every listing before it goes live.")
+        messages.success(request, "Welcome to Island Stay! Now add your property or service — our team reviews every listing before it goes live.")
         return redirect("directory:listing_create")
     return render(request, "accounts/signup.html", {"form": form})

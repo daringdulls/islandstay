@@ -31,6 +31,10 @@ class Atoll(models.Model):
     )
     description = models.TextField(blank=True)
     order = models.PositiveSmallIntegerField(default=0, help_text="North-to-south ordering")
+    map_lat = models.FloatField("Map centre latitude", null=True, blank=True)
+    map_lng = models.FloatField("Map centre longitude", null=True, blank=True)
+    map_rlat = models.FloatField("Map half-height (degrees)", null=True, blank=True, help_text="Size of the clickable atoll outline")
+    map_rlng = models.FloatField("Map half-width (degrees)", null=True, blank=True)
 
     class Meta:
         ordering = ["order", "name"]
@@ -344,7 +348,7 @@ class Listing(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     admin_note = models.TextField(blank=True, help_text="Feedback to the owner (e.g. reason for rejection)")
     is_featured = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=False, help_text="Licence checked by the IslandStay team")
+    is_verified = models.BooleanField(default=False, help_text="Licence checked by the Island Stay team")
     verified_at = models.DateTimeField(null=True, blank=True)
     verification_document = models.FileField(
         upload_to="verification/", blank=True,

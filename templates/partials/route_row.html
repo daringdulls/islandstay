@@ -5,7 +5,7 @@
     <div class="data"><b>{{ r.duration|upper }}</b>{% if r.via %} · VIA {{ r.via|upper }}{% endif %}</div>
     {% if r.schedule %}<div class="small muted">{{ r.schedule }}</div>{% endif %}
     {% if r.notes %}<div class="small muted">{{ r.notes }}</div>{% endif %}
-    {% if r.provider %}<div class="small" style="margin-top:4px">Operator: {% if r.operator %}<a href="{{ r.operator.get_absolute_url }}">{{ r.operator.name }}</a>{% if r.operator.is_verified %} <span class="verified-badge">{% icon "badge-check" %}</span>{% endif %}{% else %}{{ r.operator_name }}{% endif %}</div>{% endif %}
+    {% if r.provider %}<div class="small" style="margin-top:4px">Operator: {% if r.operator %}<a href="{{ r.operator.get_absolute_url }}">{{ r.operator.name }}</a>{% if r.operator.is_verified %} <span class="verified-badge">{% cowrie %}</span>{% endif %}{% else %}{{ r.operator_name }}{% endif %}</div>{% endif %}
   </div>
   <div class="side">
     {% if SHOW_PRICES and r.price_from %}<div class="price">from <b>{% if r.currency == 'USD' %}${% else %}MVR {% endif %}{{ r.price_from|floatformat:0 }}</b></div>{% if r.price_note %}<div class="small muted">{{ r.price_note }}</div>{% endif %}{% endif %}

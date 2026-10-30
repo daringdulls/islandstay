@@ -23,7 +23,7 @@
     <aside class="sticky">
       <div class="panel">
         <h3>Transfer operators{% if island %} for {{ island.name }}{% endif %}</h3>
-        {% if operators %}<ul class="contact-list">{% for o in operators %}<li>{% icon "ship" %}<span><a href="{{ o.get_absolute_url }}">{{ o.name }}</a>{% if o.is_verified %} <span class="verified-badge">{% icon "badge-check" %}</span>{% endif %}<br><span class="small muted">Based on {{ o.island.name }}</span></span></li>{% endfor %}</ul>
+        {% if operators %}<ul class="contact-list">{% for o in operators %}<li>{% icon "ship" %}<span><a href="{{ o.get_absolute_url }}">{{ o.name }}</a>{% if o.is_verified %} <span class="verified-badge">{% cowrie %}</span>{% endif %}<br><span class="small muted">Based on {{ o.island.name }}</span></span></li>{% endfor %}</ul>
         {% else %}<p class="muted small">None listed yet. Your guest house can arrange transfers for you.</p>{% endif %}
       </div>
       <div class="panel">

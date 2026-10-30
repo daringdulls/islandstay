@@ -14,6 +14,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import Profile
+from directory import geo
 from directory.models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, RoomType, TransportRoute
 
 ATOLLS = [
@@ -450,6 +451,7 @@ class Command(BaseCommand):
             if not island.routes.exists():
                 for i, r in enumerate(d.get("routes") or default_routes(d)):
                     TransportRoute.objects.create(island=island, order=i, **r)
+        geo.apply(Atoll, Island)
         self.stdout.write(self.style.SUCCESS(f"Seeded {Atoll.objects.count()} atolls, {Island.objects.count()} islands, {ActivityType.objects.count()} activity types."))
 
         if opts["demo"]:

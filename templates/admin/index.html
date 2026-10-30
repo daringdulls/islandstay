@@ -13,7 +13,7 @@
     <div>
       <p class="is-eyebrow">{% now "l j F Y" %}</p>
       <h1 class="is-title">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
-      <p class="is-sub">Here's what needs your attention on IslandStay today.</p>
+      <p class="is-sub">Here's what needs your attention on Island Stay today.</p>
     </div>
     <div class="is-quick">
       {% for q in quick_links %}

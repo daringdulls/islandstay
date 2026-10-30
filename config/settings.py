@@ -131,12 +131,12 @@ EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = env("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "IslandStay Maldives <no-reply@islandstay.mv>")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Island Stay <no-reply@islandstay.mv>")
 # With SMTP details filled in, send real email even if DJANGO_EMAIL_BACKEND wasn't set.
 if EMAIL_HOST and "DJANGO_EMAIL_BACKEND" not in os.environ:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
-SITE_NAME = "IslandStay Maldives"
+SITE_NAME = "Island Stay"
 ADMIN_NOTIFY_EMAILS = [e.strip() for e in env("ADMIN_NOTIFY_EMAILS").split(",") if e.strip()]
 
 # Prices are hidden on the public site by default; owners still confirm rates directly with guests.
@@ -156,11 +156,12 @@ def _admin_link(name, query=""):
 
 
 UNFOLD = {
-    "SITE_TITLE": "IslandStay Back Office",
-    "SITE_HEADER": "IslandStay",
+    "SITE_TITLE": "Island Stay back office",
+    "SITE_HEADER": "Island Stay",
     "SITE_SUBHEADER": "Back office",
     "SITE_URL": "/",
-    "SITE_SYMBOL": "sailing",
+    "SITE_ICON": lambda request: static("img/brand/islandstay-symbol-simple.svg"),
+    "SITE_FAVICONS": [{"rel": "icon", "type": "image/svg+xml", "href": lambda request: static("img/brand/favicon.svg")}],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "SHOW_BACK_BUTTON": True,
@@ -172,10 +173,10 @@ UNFOLD = {
     ],
     "COLORS": {
         "primary": {
-            "50": "oklch(98.4% .014 180.72)", "100": "oklch(95.3% .051 180.801)", "200": "oklch(91% .096 180.426)",
-            "300": "oklch(85.5% .138 181.071)", "400": "oklch(77.7% .152 181.912)", "500": "oklch(70.4% .14 182.503)",
-            "600": "oklch(60% .118 184.704)", "700": "oklch(51.1% .096 186.391)", "800": "oklch(43.7% .078 188.216)",
-            "900": "oklch(38.6% .063 188.416)", "950": "oklch(27.7% .046 192.524)",
+            "50": "oklch(98.4% .019 200.873)", "100": "oklch(95.6% .045 203.388)", "200": "oklch(91.7% .08 205.041)",
+            "300": "oklch(86.5% .127 207.078)", "400": "oklch(78.9% .154 211.53)", "500": "oklch(71.5% .143 215.221)",
+            "600": "oklch(52% .105 223.128)", "700": "oklch(45% .085 224.283)", "800": "oklch(39.8% .07 227.392)",
+            "900": "oklch(34% .06 228)", "950": "oklch(30.2% .056 229.695)",
         },
     },
     "SIDEBAR": {
@@ -228,3 +229,10 @@ UNFOLD = {
         ],
     },
 }
+
+# Background map tiles for the interactive map. OpenStreetMap's standard tiles are free with attribution
+# for modest traffic; for heavier use switch to a provider such as MapTiler or Stadia (set both values).
+MAP_TILES_URL = os.environ.get("MAP_TILES_URL") or "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+MAP_TILES_ATTRIBUTION = os.environ.get("MAP_TILES_ATTRIBUTION") or (
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+)

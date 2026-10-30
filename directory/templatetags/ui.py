@@ -12,3 +12,9 @@ def icon(name, cls=""):
         '<svg class="i {}" aria-hidden="true" focusable="false"><use href="{}#{}"></use></svg>',
         cls, static("img/icons.svg"), name,
     )
+
+
+@register.simple_tag
+def cowrie(cls=""):
+    """The Island Stay cowrie, which marks verified local hosts."""
+    return format_html('<img class="cowrie {}" src="{}" alt="" aria-hidden="true">', cls, static("img/brand/islandstay-symbol-simple.svg"))

@@ -37,25 +37,53 @@ def _live_listings():
     return Listing.objects.filter(status=APPROVED, island__is_published=True).select_related("island", "island__atoll")
 
 
+def map_data(islands=None, atolls=None):
+    """Atolls and islands for the interactive map (passed to the page with json_script)."""
+    islands = islands if islands is not None else _islands()
+    atolls = atolls if atolls is not None else Atoll.objects.annotate(
+        n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name")
+    return {
+        "atolls": [
+            {"slug": a.slug, "name": a.name, "official": a.official_name, "code": a.code, "url": a.get_absolute_url(),
+             "description": a.description, "islands": getattr(a, "n", None),
+             "shape": [a.map_lat, a.map_lng, a.map_rlat, a.map_rlng]}
+            for a in atolls if a.map_lat is not None
+        ],
+        "islands": [
+            {"slug": i.slug, "name": i.name, "atoll": i.atoll.slug, "atollName": i.atoll.name, "url": i.get_absolute_url(),
+             "lat": float(i.latitude), "lng": float(i.longitude), "tagline": i.tagline, "photo": i.card_photo_url or "",
+             "featured": i.is_featured, "population": i.population, "transfer": i.transfer_time,
+             "stays": getattr(i, "stay_count", 0), "experiences": getattr(i, "service_count", 0),
+             "bikini": i.has_bikini_beach}
+            for i in islands if i.latitude is not None
+        ],
+    }
+
+
 # ---------------------------------------------------------------- public pages
 
 def home(request):
+    atoll_counts = Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name")
+    featured = sorted(_islands().filter(is_featured=True).prefetch_related("activities"),
+                      key=lambda i: (not i.photo_url, i.name))
     return render(request, "directory/home.html", {
-        "featured_islands": _islands().filter(is_featured=True).order_by("name")[:6],
-        "hero_island": Island.objects.filter(is_published=True, is_featured=True)
-        .exclude(Q(cover_image="") & Q(cover_image_url="")).order_by("?").first(),
-        "featured_routes": TransportRoute.objects.filter(is_active=True, island__is_published=True, island__is_featured=True)
-        .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("island", "operator").order_by(F("operator").desc(nulls_last=True), "island__name", "order")[:6],
+        "map": map_data(atolls=atoll_counts),
+        "atoll_index": atoll_counts,
+        "portraits": featured[:3],
+        "more_islands": featured[3:9],
+        "featured_routes": TransportRoute.objects.filter(is_active=True, island__is_published=True)
+        .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("island", "operator")
+        .order_by(F("operator").desc(nulls_last=True), "-island__is_featured", "island__name")[:4],
         "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:4],
         "featured_services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).order_by("-is_featured", "-created_at")[:4],
         "featured_food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).order_by("-is_featured", "-created_at")[:4],
         "island_options": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
-        "atolls": Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0),
-        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:10],
+        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:8],
         "stats": {
             "islands": Island.objects.filter(is_published=True).count(),
             "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(),
             "services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).count(),
+            "routes": TransportRoute.objects.filter(is_active=True).count(),
             "food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).count(),
             "verified": _live_listings().filter(is_verified=True).count(),
         },
@@ -110,6 +138,7 @@ def island_detail(request, slug):
         stays = stays.filter(kind=kind)
     nearby = _islands().filter(atoll=island.atoll).exclude(pk=island.pk)[:4]
     return render(request, "directory/island_detail.html", {
+        "map": map_data(_islands().filter(atoll=island.atoll), [island.atoll]),
         "island": island, "stays": stays, "kind": kind, "nearby": nearby,
         "services": listings.filter(kind__in=Listing.EXPERIENCE_KINDS),
         "food": listings.filter(kind__in=Listing.FOOD_KINDS),
@@ -120,7 +149,7 @@ def island_detail(request, slug):
 
 
 def atoll_list(request):
-    atolls = Atoll.objects.annotate(
+    atolls = Atoll.objects.order_by("order", "name").annotate(
         n_islands=Count("islands", filter=Q(islands__is_published=True), distinct=True),
         n_listings=Count("islands__listings", filter=Q(islands__listings__status=APPROVED), distinct=True),
     )
@@ -129,8 +158,9 @@ def atoll_list(request):
 
 def atoll_detail(request, slug):
     atoll = get_object_or_404(Atoll, slug=slug)
+    islands = _islands().filter(atoll=atoll)
     return render(request, "directory/atoll_detail.html", {
-        "atoll": atoll, "islands": _islands().filter(atoll=atoll),
+        "atoll": atoll, "islands": islands, "map": map_data(islands, [atoll]),
     })
 
 
