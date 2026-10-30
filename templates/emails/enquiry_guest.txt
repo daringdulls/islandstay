@@ -1,0 +1,18 @@
+{% autoescape off %}Hi {{ e.guest_name }},
+
+Your request has been sent directly to {{ listing.name }} on {{ listing.island.name }}.
+Reference: {{ e.reference }}
+
+{% if e.check_in %}Dates:  {{ e.check_in|date:"D j M Y" }}{% if e.check_out %} → {{ e.check_out|date:"D j M Y" }}{% endif %}
+{% endif %}Guests: {{ e.adults }} adult(s), {{ e.children }} child(ren)
+
+The owner will contact you by {{ e.get_preferred_contact_display|lower }} to confirm availability, the final price and how to pay.
+{{ site_name }} never asks for card details or payment.
+
+You can reply to this email to reach the owner.
+{% if listing.whatsapp %}WhatsApp: {{ listing.whatsapp }}
+{% endif %}{% if listing.contact_phone %}Phone: {{ listing.contact_phone }}
+{% endif %}Listing: {{ listing_url }}
+
+— {{ site_name }}
+{% endautoescape %}

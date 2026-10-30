@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Atolls of the Maldives{% endblock %}
+{% block content %}
+<section class="page-hero"><div class="container"><h1>Atolls of the Maldives</h1><p>The Maldives is made up of 26 natural atolls grouped into administrative atolls. Browse from the far north to Addu in the south.</p></div></section>
+<div class="container section">
+  {% regroup atolls by get_region_display as regions %}
+  {% for r in regions %}
+    <h2 style="margin-top:12px">{{ r.grouper }}</h2>
+    <div class="grid-2" style="margin-bottom:28px">
+      {% for a in r.list %}
+      <a class="card" href="{{ a.get_absolute_url }}"><div class="card-body">
+        <div class="row"><h3>{{ a.name }}</h3><span class="spacer"></span>{% if a.code %}<span class="pill info">{{ a.official_name }} · {{ a.code }}</span>{% endif %}</div>
+        <p class="small muted" style="margin:0">{{ a.description }}</p>
+      </div><div class="card-foot"><span>🏝️ {{ a.n_islands }} island{{ a.n_islands|pluralize }}</span><span>🏠 {{ a.n_listings }} listing{{ a.n_listings|pluralize }}</span></div></a>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

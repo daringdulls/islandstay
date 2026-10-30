@@ -1,0 +1,72 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Maldives local islands, guest houses & experiences{% endblock %} · {{ SITE_NAME }}</title>
+  <meta name="description" content="{% block meta_description %}Discover every local island in the Maldives. Find guest houses, resorts and local experiences and send your booking request directly to the owner — no booking fees.{% endblock %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="{% url 'directory:home' %}"><span class="logo">◐</span> IslandStay <small>.mv</small></a>
+    <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
+    <nav class="nav">
+      {% with p=request.path %}
+      <a href="{% url 'directory:island_list' %}" class="{% if p|slice:':8' == '/islands' %}active{% endif %}">Islands</a>
+      <a href="{% url 'directory:stay_list' %}" class="{% if p|slice:':6' == '/stays' %}active{% endif %}">Stays</a>
+      <a href="{% url 'directory:service_list' %}" class="{% if p|slice:':12' == '/experiences' %}active{% endif %}">Experiences</a>
+      <a href="{% url 'directory:atoll_list' %}" class="{% if p|slice:':7' == '/atolls' %}active{% endif %}">Atolls</a>
+      <a href="{% url 'directory:how_it_works' %}" class="{% if p == '/how-it-works/' %}active{% endif %}">How it works</a>
+      {% endwith %}
+      {% if user.is_authenticated %}
+        <a href="{% url 'directory:dashboard' %}">My dashboard{% if new_enquiry_count %}<span class="badge-count">{{ new_enquiry_count }}</span>{% endif %}</a>
+        {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+        <form method="post" action="{% url 'accounts:logout' %}" style="display:inline">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">Log out</button></form>
+      {% else %}
+        <a href="{% url 'accounts:login' %}">Log in</a>
+        <a class="btn btn-coral btn-sm" href="{% url 'directory:list_your_business' %}">List your business</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+{% if messages %}
+<div class="container"><ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="{% url 'directory:home' %}" style="color:#fff"><span class="logo">◐</span> IslandStay</a>
+        <p style="margin-top:10px">The local guide to the Maldives' inhabited islands. Discover islands, then contact guest houses, resorts and local operators directly — no middleman, no booking fees.</p>
+      </div>
+      <div><h4>Explore</h4><ul>
+        <li><a href="{% url 'directory:island_list' %}">All islands</a></li>
+        <li><a href="{% url 'directory:atoll_list' %}">Atolls</a></li>
+        <li><a href="{% url 'directory:stay_list' %}">Guest houses & resorts</a></li>
+        <li><a href="{% url 'directory:service_list' %}">Experiences</a></li>
+      </ul></div>
+      <div><h4>For businesses</h4><ul>
+        <li><a href="{% url 'directory:list_your_business' %}">List your business</a></li>
+        <li><a href="{% url 'accounts:signup' %}">Create an account</a></li>
+        <li><a href="{% url 'directory:suggest_island' %}">Suggest an island</a></li>
+        <li><a href="{% url 'accounts:login' %}">Owner login</a></li>
+      </ul></div>
+      <div><h4>Travel info</h4><ul>
+        <li><a href="{% url 'directory:how_it_works' %}">How booking requests work</a></li>
+        <li><a href="{% url 'directory:how_it_works' %}#local-islands">Local island etiquette</a></li>
+      </ul></div>
+    </div>
+    <div class="footer-bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span>Made in the Maldives 🇲🇻</span></div>
+  </div>
+</footer>
+</body>
+</html>

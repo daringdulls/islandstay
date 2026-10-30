@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow" style="color:#bff6f1">Local island travel · Maldives</div>
+    <h1>Discover the real Maldives, one local island at a time.</h1>
+    <p class="lead">Explore every inhabited island, see what it's famous for, then send your booking request straight to the guest house, resort or local operator. No booking fees, no middleman.</p>
+    <form class="search-box" action="{% url 'directory:island_list' %}">
+      <input type="search" name="q" placeholder="Search an island — Maafushi, Thoddoo, Dhigurah…" aria-label="Island name">
+      <select name="atoll" aria-label="Atoll">
+        <option value="">Any atoll</option>
+        {% for a in atolls %}<option value="{{ a.slug }}">{{ a.name }}</option>{% endfor %}
+      </select>
+      <button class="btn btn-coral" type="submit">Explore</button>
+    </form>
+    <div class="hero-stats">
+      <div><b>{{ stats.islands }}</b><span>local islands</span></div>
+      <div><b>{{ stats.stays }}</b><span>places to stay</span></div>
+      <div><b>{{ stats.services }}</b><span>local experiences</span></div>
+      <div><b>0%</b><span>booking fees</span></div>
+    </div>
+  </div>
+  <svg class="waves" viewBox="0 0 1440 80" preserveAspectRatio="none"><path fill="#fbfaf7" d="M0 40 C 240 80 480 0 720 30 S 1200 70 1440 30 V80 H0z"/></svg>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div><div class="eyebrow">Island guides</div><h2>Popular local islands</h2></div>
+      <a href="{% url 'directory:island_list' %}">See all islands →</a>
+    </div>
+    <div class="grid">{% for island in featured_islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+
+<section class="section band">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Things to do</div><h2>Find an island by experience</h2></div></div>
+    <div class="activity-grid">
+      {% for a in activities %}<a class="activity" href="{% url 'directory:island_list' %}?activity={{ a.slug }}"><span class="ico">{{ a.icon }}</span><span>{{ a.name }}<br><small class="muted">{{ a.n }} island{{ a.n|pluralize }}</small></span></a>{% endfor %}
+    </div>
+  </div>
+</section>
+
+{% if featured_stays %}
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div><div class="eyebrow">Stay local</div><h2>Guest houses & hotels</h2></div>
+      <a href="{% url 'directory:stay_list' %}">All places to stay →</a>
+    </div>
+    <div class="grid">{% for l in featured_stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured_services %}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-head">
+      <div><div class="eyebrow">Book with locals</div><h2>Excursions, diving & transfers</h2></div>
+      <a href="{% url 'directory:service_list' %}">All experiences →</a>
+    </div>
+    <div class="grid">{% for l in featured_services %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section band-dark">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Simple & direct</div><h2>How booking requests work</h2></div></div>
+    <div class="steps">
+      <div class="step"><h3>Pick an island</h3><p class="muted">Read what it's famous for, what to expect and what you can do there.</p></div>
+      <div class="step"><h3>Choose a stay or service</h3><p class="muted">Compare guest houses, resorts, dive centres and excursion operators on that island.</p></div>
+      <div class="step"><h3>Send a request</h3><p class="muted">Your dates and message go straight to the owner by email — no card details, no fees.</p></div>
+      <div class="step"><h3>Arrange directly</h3><p class="muted">The owner replies to confirm availability, price and how to pay. You deal with them directly.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">North to south</div><h2>Browse by atoll</h2></div><a href="{% url 'directory:atoll_list' %}">All atolls →</a></div>
+    <div class="pills" style="gap:10px">{% for a in atolls %}<a class="chip-link" href="{{ a.get_absolute_url }}">{{ a.name }} <span class="muted small">{{ a.n }}</span></a>{% endfor %}</div>
+    <div class="cta" style="margin-top:40px">
+      <div><h2>Own a guest house, resort or tour company?</h2><p style="margin:0;opacity:.95">List it under your island for free and receive booking requests directly.</p></div>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your business</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

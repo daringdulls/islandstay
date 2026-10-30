@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ island.name }} — guest houses, things to do & travel guide{% endblock %}
+{% block meta_description %}{{ island.tagline }}. {{ island.overview|truncatechars:140 }}{% endblock %}
+{% block content %}
+<section class="island-hero" style="--c: {{ island.cover_color }}">
+  {% if island.cover_image %}<img src="{{ island.cover_image.url }}" alt="{{ island.name }}">{% else %}{% include "partials/island_art.html" with x="300" %}{% endif %}
+  <div class="container">
+    <div class="crumbs"><a href="{% url 'directory:island_list' %}">Islands</a> › <a href="{{ island.atoll.get_absolute_url }}">{{ island.atoll.name }}</a></div>
+    <h1 style="margin-bottom:4px">{{ island.name }}</h1>
+    <p style="font-size:1.1rem;margin:0;opacity:.95">{{ island.tagline }}</p>
+  </div>
+</section>
+<div class="container">
+  <div class="facts">
+    <div class="fact"><span>Atoll</span><b>{{ island.atoll.name }}{% if island.atoll.code %} ({{ island.atoll.code }}){% endif %}</b></div>
+    <div class="fact"><span>Island type</span><b>{{ island.get_island_type_display }}</b></div>
+    {% if island.transfer_time %}<div class="fact"><span>From airport</span><b>{{ island.transfer_time }}</b></div>{% endif %}
+    {% if island.population %}<div class="fact"><span>Population</span><b>≈ {{ island.population|floatformat:"0g" }}</b></div>{% endif %}
+    <div class="fact"><span>Bikini beach</span><b>{{ island.has_bikini_beach|yesno:"Yes,No" }}</b></div>
+    <div class="fact"><span>ATM / Health centre</span><b>{{ island.has_atm|yesno:"✔,✖" }} / {{ island.has_hospital|yesno:"✔,✖" }}</b></div>
+  </div>
+
+  <nav class="anchor-nav">
+    <a class="chip-link" href="#about">About</a>
+    <a class="chip-link" href="#stays">Places to stay ({{ island.stay_count }})</a>
+    <a class="chip-link" href="#experiences">Experiences & services ({{ island.service_count }})</a>
+    <a class="chip-link" href="#activities">Things to do</a>
+    <a class="chip-link" href="#getting-there">Getting there</a>
+  </nav>
+
+  <div class="layout">
+    <div class="stack">
+      <section id="about">
+        <h2>About {{ island.name }}</h2>
+        {{ island.overview|linebreaks }}
+      </section>
+      {% if island.famous_for_list %}
+      <section class="panel">
+        <h3>⭐ What {{ island.name }} is famous for</h3>
+        <ul class="list-check">{% for f in island.famous_for_list %}<li>{{ f }}</li>{% endfor %}</ul>
+      </section>
+      {% endif %}
+      {% if island.what_to_expect_list %}
+      <section class="panel">
+        <h3>🧭 What to expect</h3>
+        <ul class="list-check expect">{% for f in island.what_to_expect_list %}<li>{{ f }}</li>{% endfor %}</ul>
+      </section>
+      {% endif %}
+
+      <section id="activities" style="padding-top:16px">
+        <h2>Things to do on {{ island.name }}</h2>
+        {% if island.activities.all %}
+        <div class="activity-grid">{% for a in island.activities.all %}<a class="activity" href="{% url 'directory:service_list' %}?island={{ island.slug }}&activity={{ a.slug }}" title="{{ a.description }}"><span class="ico">{{ a.icon }}</span>{{ a.name }}</a>{% endfor %}</div>
+        {% else %}<p class="muted">Activities will be added soon.</p>{% endif %}
+      </section>
+
+      <section id="stays" style="padding-top:24px">
+        <div class="section-head"><h2>Places to stay on {{ island.name }}</h2></div>
+        <div class="tabs">
+          <a class="chip-link {% if not kind %}active{% endif %}" href="?#stays">All</a>
+          {% for k, label in stay_kinds %}<a class="chip-link {% if kind == k %}active{% endif %}" href="?kind={{ k }}#stays">{{ label }}</a>{% endfor %}
+        </div>
+        {% if stays %}<div class="grid">{% for l in stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+        {% else %}<div class="empty">No {% if kind %}listings of this type{% else %}places to stay{% endif %} listed yet. <br><a href="{% url 'accounts:signup' %}">Own one on {{ island.name }}? List it free →</a></div>{% endif %}
+      </section>
+
+      <section id="experiences" style="padding-top:24px">
+        <h2>Experiences & local services</h2>
+        {% if services %}<div class="grid">{% for l in services %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+        {% else %}<div class="empty">No operators listed yet. <br><a href="{% url 'accounts:signup' %}">Run tours, diving or transfers on {{ island.name }}? List your service →</a></div>{% endif %}
+      </section>
+    </div>
+
+    <aside class="sticky">
+      <div class="panel" id="getting-there">
+        <h3>🚤 Getting there</h3>
+        <p>{{ island.getting_there|default:"Ask your host to arrange your transfer." }}</p>
+        {% if island.transfer_labels %}<div class="pills">{% for t in island.transfer_labels %}<span class="pill info">{{ t }}</span>{% endfor %}</div>{% endif %}
+        {% if island.distance_from_airport_km %}<p class="small muted" style="margin-top:10px">≈ {{ island.distance_from_airport_km }} km from Velana International Airport</p>{% endif %}
+      </div>
+      {% if island.best_time_to_visit %}<div class="panel"><h3>☀️ Best time to visit</h3><p style="margin:0">{{ island.best_time_to_visit }}</p></div>{% endif %}
+      <div class="panel">
+        <h3>Have a business on {{ island.name }}?</h3>
+        <p class="small muted">Guest houses, resorts, dive centres, excursion and transfer operators can list for free.</p>
+        <a class="btn btn-coral btn-block" href="{% url 'directory:list_your_business' %}">List your business</a>
+      </div>
+      {% if nearby %}
+      <div class="panel">
+        <h3>Nearby in {{ island.atoll.name }}</h3>
+        <ul class="contact-list">{% for n in nearby %}<li><a href="{{ n.get_absolute_url }}">{{ n.name }}</a> <span class="muted small">— {{ n.tagline|truncatechars:42 }}</span></li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</div>
+{% endblock %}

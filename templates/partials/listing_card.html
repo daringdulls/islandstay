@@ -1,0 +1,16 @@
+<a class="card" href="{{ l.get_absolute_url }}">
+  <div class="cover" style="--c: {{ l.island.cover_color }}">
+    {% if l.cover_image %}<img src="{{ l.cover_image.url }}" alt="{{ l.name }}" loading="lazy">{% else %}{% include "partials/island_art.html" with x="120" %}{% endif %}
+    <span class="tag pill white">{{ l.get_kind_display }}</span>
+    <span class="emoji">{{ l.kind_icon }}</span>
+  </div>
+  <div class="card-body">
+    <h3>{{ l.name }}</h3>
+    <div class="meta">📍 {{ l.island.name }}, {{ l.island.atoll.name }}{% if l.is_verified %} · <span style="color:var(--ok)">✔ Verified</span>{% endif %}</div>
+    <p class="small muted" style="margin:0">{{ l.short_description|truncatechars:110 }}</p>
+  </div>
+  <div class="card-foot">
+    {% if l.price_from %}<span class="price">from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b> {{ l.get_price_unit_display }}</span>{% else %}<span class="muted">Price on request</span>{% endif %}
+    <span style="font-weight:700;color:var(--ocean)">Request →</span>
+  </div>
+</a>

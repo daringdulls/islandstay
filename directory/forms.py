@@ -1,0 +1,137 @@
+from django import forms
+from django.forms import inlineformset_factory
+
+from .models import Amenity, ActivityType, Enquiry, Island, IslandSuggestion, Listing, RoomType
+
+
+class DateInput(forms.DateInput):
+    input_type = "date"
+
+
+class EnquiryForm(forms.ModelForm):
+    # Honeypot: real people never see or fill this field.
+    website = forms.CharField(required=False, widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"}))
+
+    class Meta:
+        model = Enquiry
+        fields = [
+            "guest_name", "guest_email", "guest_phone", "guest_country", "preferred_contact",
+            "check_in", "check_out", "adults", "children", "rooms", "room_type", "needs_transfer", "message",
+        ]
+        labels = {
+            "guest_name": "Full name", "guest_email": "Email", "guest_phone": "Phone / WhatsApp",
+            "guest_country": "Country", "check_in": "Check-in / date", "check_out": "Check-out",
+            "rooms": "Rooms", "room_type": "Room / package", "needs_transfer": "I'd like help arranging a transfer",
+            "message": "Your message",
+        }
+        widgets = {
+            "check_in": DateInput(), "check_out": DateInput(),
+            "message": forms.Textarea(attrs={"rows": 4, "placeholder": "Tell the host about your plans, special requests, arrival time…"}),
+        }
+
+    def __init__(self, *args, listing=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.listing = listing
+        if listing is not None:
+            rooms = list(listing.rooms.values_list("name", flat=True))
+            if rooms:
+                self.fields["room_type"] = forms.ChoiceField(
+                    required=False, label="Room / package", choices=[("", "No preference")] + [(r, r) for r in rooms]
+                )
+            if not listing.is_stay:
+                self.fields["check_in"].label = "Preferred date"
+                self.fields["adults"].label = "Adults"
+                for f in ("check_out", "rooms"):
+                    self.fields.pop(f)
+
+    def clean_website(self):
+        if self.cleaned_data.get("website"):
+            raise forms.ValidationError("Spam detected.")
+        return ""
+
+    def clean(self):
+        data = super().clean()
+        ci, co = data.get("check_in"), data.get("check_out")
+        if ci and co and co <= ci:
+            self.add_error("check_out", "Check-out must be after check-in.")
+        from django.utils import timezone
+
+        if ci and ci < timezone.localdate():
+            self.add_error("check_in", "Date can't be in the past.")
+        return data
+
+
+class ListingForm(forms.ModelForm):
+    island = forms.ModelChoiceField(
+        queryset=Island.objects.filter(is_published=True).select_related("atoll").order_by("atoll__order", "name"),
+        help_text="Can't find your island? <a href='/suggest-island/' target='_blank'>Suggest an island</a>.",
+    )
+    amenities = forms.ModelMultipleChoiceField(
+        queryset=Amenity.objects.all(), required=False, widget=forms.CheckboxSelectMultiple
+    )
+    activity_types = forms.ModelMultipleChoiceField(
+        queryset=ActivityType.objects.all(), required=False, widget=forms.CheckboxSelectMultiple,
+        label="Experiences offered",
+    )
+
+    class Meta:
+        model = Listing
+        fields = [
+            "kind", "name", "island", "short_description", "description", "cover_image",
+            "room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
+            "house_rules", "amenities", "activity_types",
+            "price_from", "currency", "price_unit",
+            "contact_name", "contact_email", "contact_phone", "whatsapp", "viber",
+            "website", "facebook", "instagram", "address", "registration_number",
+        ]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 6}),
+            "house_rules": forms.Textarea(attrs={"rows": 3}),
+        }
+        labels = {
+            "price_from": "Starting price (optional, indicative)",
+            "distance_to_beach_m": "Distance to beach (metres)",
+        }
+
+    GROUPS = {
+        "basics": ["kind", "name", "island", "short_description", "description", "cover_image"],
+        "stay": ["room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
+                 "house_rules", "amenities"],
+        "pricing": ["price_from", "currency", "price_unit"],
+        "contact": ["contact_name", "contact_email", "contact_phone", "whatsapp", "viber", "website", "facebook",
+                    "instagram", "address", "registration_number"],
+    }
+
+    def __getattr__(self, name):
+        if name in ListingForm.GROUPS:
+            return [self[f] for f in ListingForm.GROUPS[name]]
+        raise AttributeError(name)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["island"].label_from_instance = lambda i: f"{i.name} — {i.atoll.name}"
+
+
+RoomFormSet = inlineformset_factory(
+    Listing, RoomType, fields=["name", "description", "max_guests", "price_from"], extra=2, can_delete=True,
+    labels={"name": "Room / package name", "price_from": "From price"},
+)
+
+
+class PhotoUploadForm(forms.Form):
+    image = forms.ImageField()
+    caption = forms.CharField(max_length=120, required=False)
+
+
+class EnquiryUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Enquiry
+        fields = ["status", "owner_notes"]
+        widgets = {"owner_notes": forms.Textarea(attrs={"rows": 3})}
+
+
+class IslandSuggestionForm(forms.ModelForm):
+    class Meta:
+        model = IslandSuggestion
+        fields = ["island_name", "atoll", "contact_email", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 3})}

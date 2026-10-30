@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Booking requests{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="dash-head"><div><a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a><h1 style="margin:0">Booking requests</h1></div></div>
+  <div class="tabs">
+    <a class="chip-link {% if not status %}active{% endif %}" href="?">All</a>
+    {% for k, label in statuses %}<a class="chip-link {% if status == k %}active{% endif %}" href="?status={{ k }}">{{ label }}</a>{% endfor %}
+  </div>
+  {% include "dashboard/_enquiry_table.html" with enquiries=page.object_list %}
+  {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

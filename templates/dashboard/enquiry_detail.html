@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Request {{ e.reference }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="dash-head"><div><a class="small" href="{% url 'directory:enquiry_list' %}">← All requests</a><h1 style="margin:0">Request {{ e.reference }}</h1><p class="muted" style="margin:0">For {{ e.listing.name }} · received {{ e.created_at|date:"j M Y, H:i" }}</p></div>
+    <span class="pill {% if e.status == 'new' %}warn{% elif e.status == 'confirmed' %}ok{% elif e.status == 'declined' %}bad{% else %}info{% endif %}" style="font-size:.95rem">{{ e.get_status_display }}</span></div>
+  <div class="layout">
+    <div class="stack">
+      <div class="panel">
+        <h3>Guest & stay</h3>
+        <dl class="kv">
+          <dt>Name</dt><dd>{{ e.guest_name }}</dd>
+          <dt>Email</dt><dd><a href="mailto:{{ e.guest_email }}?subject=Re: your request {{ e.reference }} — {{ e.listing.name|urlencode }}">{{ e.guest_email }}</a></dd>
+          {% if e.guest_phone %}<dt>Phone</dt><dd>{{ e.guest_phone }}</dd>{% endif %}
+          {% if e.guest_country %}<dt>Country</dt><dd>{{ e.guest_country }}</dd>{% endif %}
+          <dt>Prefers</dt><dd>{{ e.get_preferred_contact_display }}</dd>
+          {% if e.check_in %}<dt>{% if e.listing.is_stay %}Check-in{% else %}Date{% endif %}</dt><dd>{{ e.check_in|date:"l j M Y" }}</dd>{% endif %}
+          {% if e.check_out %}<dt>Check-out</dt><dd>{{ e.check_out|date:"l j M Y" }} ({{ e.nights }} night{{ e.nights|pluralize }})</dd>{% endif %}
+          <dt>Guests</dt><dd>{{ e.adults }} adult{{ e.adults|pluralize }}{% if e.children %}, {{ e.children }} child{{ e.children|pluralize:"ren" }}{% endif %}</dd>
+          {% if e.rooms %}<dt>Rooms</dt><dd>{{ e.rooms }}</dd>{% endif %}
+          {% if e.room_type %}<dt>Room / package</dt><dd>{{ e.room_type }}</dd>{% endif %}
+          <dt>Transfer help</dt><dd>{{ e.needs_transfer|yesno:"Yes, please arrange,No" }}</dd>
+        </dl>
+      </div>
+      <div class="panel"><h3>Message</h3>{{ e.message|linebreaks }}</div>
+    </div>
+    <aside class="sticky">
+      <div class="panel">
+        <h3>Reply to the guest</h3>
+        <div class="stack">
+          <a class="btn btn-block" href="mailto:{{ e.guest_email }}?subject=Re: your request {{ e.reference }}">✉️ Reply by email</a>
+          {% if e.guest_phone %}<a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="https://wa.me/{{ e.guest_phone|cut:'+'|cut:' '|cut:'-' }}?text={{ 'Hello '|urlencode }}{{ e.guest_name|urlencode }}{{ ', thank you for your request ('|urlencode }}{{ e.reference }}{{ ') to '|urlencode }}{{ e.listing.name|urlencode }}">💬 Reply on WhatsApp</a>{% endif %}
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Track this request</h3>
+        <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:12px">Save</button></form>
+        <p class="small muted" style="margin-top:10px">Status and notes are private to you.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

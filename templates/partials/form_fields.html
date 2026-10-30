@@ -1,0 +1,19 @@
+{% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+<div class="form-grid">
+{% for field in form.visible_fields %}
+  {% if field.name == 'website' and honeypot %}<div class="hp" aria-hidden="true">{{ field }}</div>
+  {% else %}
+  <div class="{% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}full check-inline{% elif field.field.widget.allow_multiple_selected %}full checks{% elif field.field.widget.attrs.rows or field.name in full_fields %}full{% endif %}">
+    {% if field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}
+      <label>{{ field }} {{ field.label }}</label>
+    {% else %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color:var(--coral)">*</span>{% endif %}</label>
+      {{ field }}
+    {% endif %}
+    {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+    {{ field.errors }}
+  </div>
+  {% endif %}
+{% endfor %}
+</div>

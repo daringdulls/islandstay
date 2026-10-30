@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <div class="panel">
+    <h1 style="font-size:1.7rem">Business owner login</h1>
+    <p class="muted">Manage your listings and booking requests.</p>
+    <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-block" style="margin-top:16px">Log in</button></form>
+    <p class="small" style="margin-top:16px">New here? <a href="{% url 'accounts:signup' %}">Create a free business account</a></p>
+  </div>
+</div>
+{% endblock %}

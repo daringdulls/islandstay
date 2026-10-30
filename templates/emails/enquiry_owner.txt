@@ -1,0 +1,21 @@
+{% autoescape off %}New booking request for {{ listing.name }} ({{ listing.island.name }})
+Reference: {{ e.reference }}
+
+Guest:      {{ e.guest_name }}{% if e.guest_country %} ({{ e.guest_country }}){% endif %}
+Email:      {{ e.guest_email }}
+Phone:      {{ e.guest_phone|default:"-" }}
+Prefers:    {{ e.get_preferred_contact_display }}
+{% if e.check_in %}Dates:      {{ e.check_in|date:"D j M Y" }}{% if e.check_out %} → {{ e.check_out|date:"D j M Y" }} ({{ e.nights }} nights){% endif %}
+{% endif %}Guests:     {{ e.adults }} adult(s), {{ e.children }} child(ren)
+{% if e.rooms %}Rooms:      {{ e.rooms }}
+{% endif %}{% if e.room_type %}Room:       {{ e.room_type }}
+{% endif %}Transfer:   {{ e.needs_transfer|yesno:"Guest would like help with a transfer,Not requested" }}
+
+Message:
+{{ e.message }}
+
+Reply to this email to answer the guest directly.
+Manage this request: {{ dashboard_url }}
+
+— {{ site_name }}
+{% endautoescape %}

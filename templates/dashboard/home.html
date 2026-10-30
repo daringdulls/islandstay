@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My dashboard{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="dash-head">
+    <div><h1 style="margin:0">Hi {{ user.first_name|default:user.username }} 👋</h1><p class="muted" style="margin:0">{{ user.profile.business_name|default:"Manage your listings and booking requests" }}</p></div>
+    <div class="row"><a class="btn btn-ghost" href="{% url 'directory:enquiry_list' %}">All requests</a><a class="btn btn-coral" href="{% url 'directory:listing_create' %}">+ Add listing</a></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><b>{{ listings|length }}</b><span>Listings</span></div>
+    <div class="kpi"><b>{{ new_enquiry_count }}</b><span>New requests</span></div>
+    <div class="kpi"><b>{{ live_count }}</b><span>Live listings</span></div>
+  </div>
+
+  <h2>Your listings</h2>
+  {% if listings %}
+  <div class="table-wrap"><table class="data">
+    <tr><th>Listing</th><th>Island</th><th>Status</th><th>Requests</th><th></th></tr>
+    {% for l in listings %}
+    <tr>
+      <td><a href="{{ l.get_absolute_url }}"><b>{{ l.name }}</b></a><br><span class="muted small">{{ l.get_kind_display }}</span></td>
+      <td>{{ l.island.name }}</td>
+      <td><span class="pill {% if l.status == 'approved' %}ok{% elif l.status == 'pending' %}warn{% else %}bad{% endif %}">{{ l.get_status_display }}</span>
+        {% if l.admin_note and l.status != 'approved' %}<br><span class="small muted">{{ l.admin_note }}</span>{% endif %}</td>
+      <td>{{ l.n_enquiries }}{% if l.n_new %} <span class="badge-count">{{ l.n_new }} new</span>{% endif %}</td>
+      <td><div class="row" style="gap:6px"><a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' l.pk %}">Edit</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_photos' l.pk %}">Photos</a></div></td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}
+  <div class="empty">You haven't added a listing yet.<br><a class="btn btn-coral" style="margin-top:12px" href="{% url 'directory:listing_create' %}">Add your first listing</a></div>
+  {% endif %}
+
+  <h2 style="margin-top:32px">Latest booking requests</h2>
+  {% include "dashboard/_enquiry_table.html" with enquiries=recent %}
+  <p class="small muted" style="margin-top:16px">Island not listed? <a href="{% url 'directory:suggest_island' %}">Suggest an island</a>.</p>
+</div>
+{% endblock %}

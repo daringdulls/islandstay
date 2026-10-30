@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.name }}, {{ listing.island.name }}{% endblock %}
+{% block meta_description %}{{ listing.short_description }}{% endblock %}
+{% block content %}
+<div class="container" style="padding-top:24px">
+  {% if not listing.is_live %}<div class="notice warn" style="margin-bottom:16px">Preview — this listing is <b>{{ listing.get_status_display|lower }}</b> and not visible to the public.{% if listing.admin_note %} Note from our team: {{ listing.admin_note }}{% endif %}</div>{% endif %}
+  <div class="crumbs muted"><a href="{% url 'directory:island_list' %}">Islands</a> › <a href="{{ listing.island.get_absolute_url }}">{{ listing.island.name }}</a> › {{ listing.get_kind_display }}</div>
+  <div class="row" style="align-items:flex-end;margin-bottom:16px">
+    <div>
+      <h1 style="margin-bottom:6px">{{ listing.name }}</h1>
+      <div class="pills">
+        <span class="pill">{{ listing.kind_icon }} {{ listing.get_kind_display }}</span>
+        <a class="pill info" href="{{ listing.island.get_absolute_url }}">📍 {{ listing.island.name }}, {{ listing.island.atoll.name }}</a>
+        {% if listing.is_verified %}<span class="pill ok">✔ Verified business</span>{% endif %}
+        {% if listing.star_rating %}<span class="pill warn">{% for _ in "x"|rjust:listing.star_rating %}★{% endfor %}</span>{% endif %}
+      </div>
+    </div>
+    <span class="spacer"></span>
+    {% if is_owner %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' listing.pk %}">Edit listing</a>{% endif %}
+  </div>
+
+  <div class="gallery">
+    <div class="cover" style="--c: {{ listing.island.cover_color }};aspect-ratio:auto">
+      {% if listing.cover_image %}<img src="{{ listing.cover_image.url }}" alt="{{ listing.name }}">{% else %}{% include "partials/island_art.html" with x="200" %}<span class="emoji" style="font-size:3rem">{{ listing.kind_icon }}</span>{% endif %}
+    </div>
+    {% for p in listing.photos.all|slice:":4" %}<img src="{{ p.image.url }}" alt="{{ p.caption|default:listing.name }}">{% empty %}
+      <div class="cover" style="--c:#19b6b0;aspect-ratio:auto"></div><div class="cover" style="--c:#0b6e8a;aspect-ratio:auto"></div>
+      <div class="cover" style="--c:#2a9d8f;aspect-ratio:auto"></div><div class="cover" style="--c:#08465a;aspect-ratio:auto"></div>
+    {% endfor %}
+  </div>
+
+  <div class="layout" style="margin-top:28px">
+    <div class="stack">
+      <section>
+        <p style="font-size:1.1rem;font-weight:600">{{ listing.short_description }}</p>
+        {{ listing.description|linebreaks }}
+      </section>
+
+      {% if listing.is_stay %}
+      <section class="panel">
+        <h3>Property details</h3>
+        <dl class="kv">
+          {% if listing.room_count %}<dt>Rooms</dt><dd>{{ listing.room_count }}</dd>{% endif %}
+          {% if listing.max_guests %}<dt>Max guests / room</dt><dd>{{ listing.max_guests }}</dd>{% endif %}
+          {% if listing.distance_to_beach_m %}<dt>To the beach</dt><dd>{{ listing.distance_to_beach_m }} m</dd>{% endif %}
+          {% if listing.check_in_time %}<dt>Check-in</dt><dd>from {{ listing.check_in_time }}</dd>{% endif %}
+          {% if listing.check_out_time %}<dt>Check-out</dt><dd>until {{ listing.check_out_time }}</dd>{% endif %}
+        </dl>
+      </section>
+      {% endif %}
+
+      {% if listing.rooms.all %}
+      <section class="panel">
+        <h3>{% if listing.is_stay %}Rooms{% else %}Packages{% endif %}</h3>
+        <div style="overflow-x:auto"><table class="rooms">
+          <tr><th>Name</th><th>Details</th><th>Guests</th><th>From</th></tr>
+          {% for r in listing.rooms.all %}<tr><td><b>{{ r.name }}</b></td><td class="muted">{{ r.description }}</td><td>{{ r.max_guests|default:"–" }}</td><td>{% if r.price_from %}{% if listing.currency == 'USD' %}${% else %}MVR {% endif %}{{ r.price_from|floatformat:0 }}{% else %}On request{% endif %}</td></tr>{% endfor %}
+        </table></div>
+        <p class="small muted" style="margin:10px 0 0">Prices are indicative. The owner confirms the final rate and availability when they reply.</p>
+      </section>
+      {% endif %}
+
+      {% if listing.amenities.all %}
+      <section class="panel"><h3>Amenities</h3><div class="amen">{% for a in listing.amenities.all %}<div><span>{{ a.icon }}</span>{{ a.name }}</div>{% endfor %}</div></section>
+      {% endif %}
+      {% if listing.activity_types.all %}
+      <section class="panel"><h3>Experiences offered</h3><div class="activity-grid">{% for a in listing.activity_types.all %}<div class="activity"><span class="ico">{{ a.icon }}</span>{{ a.name }}</div>{% endfor %}</div></section>
+      {% endif %}
+      {% if listing.house_rules %}<section class="panel"><h3>House rules</h3>{{ listing.house_rules|linebreaks }}</section>{% endif %}
+
+      <section class="panel">
+        <h3>About {{ listing.island.name }}</h3>
+        <p class="muted">{{ listing.island.tagline }}</p>
+        <ul class="list-check">{% for f in listing.island.famous_for_list|slice:":3" %}<li>{{ f }}</li>{% endfor %}</ul>
+        <p style="margin:12px 0 0"><a href="{{ listing.island.get_absolute_url }}">Read the full {{ listing.island.name }} island guide →</a></p>
+      </section>
+
+      {% if more %}
+      <section><h2>More on {{ listing.island.name }}</h2><div class="grid">{% for l in more %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>
+      {% endif %}
+    </div>
+
+    <aside class="sticky" id="request">
+      <div class="panel">
+        {% if listing.price_from %}<div class="price" style="margin-bottom:6px">from <b style="font-size:1.5rem">{% if listing.currency == 'USD' %}${% else %}MVR {% endif %}{{ listing.price_from|floatformat:0 }}</b> {{ listing.get_price_unit_display }}</div>{% endif %}
+        <h3 style="margin-top:4px">Send a {% if listing.is_stay %}booking{% else %}service{% endif %} request</h3>
+        <p class="small muted">Goes directly to {{ listing.contact_name|default:"the owner" }}. No payment or card needed — they'll reply to confirm availability and price.</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "partials/form_fields.html" with honeypot=True %}
+          <button class="btn btn-coral btn-block" type="submit" style="margin-top:14px">Send request to {{ listing.name|truncatechars:24 }}</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Contact directly</h3>
+        <ul class="contact-list">
+          {% if listing.contact_phone %}<li>📞 <a href="tel:{{ listing.contact_phone }}">{{ listing.contact_phone }}</a></li>{% endif %}
+          {% if listing.viber %}<li>💬 Viber: {{ listing.viber }}</li>{% endif %}
+          {% if listing.website %}<li>🌐 <a href="{{ listing.website }}" target="_blank" rel="noopener nofollow">Website</a></li>{% endif %}
+          {% if listing.instagram %}<li>📸 <a href="{{ listing.instagram }}" target="_blank" rel="noopener nofollow">Instagram</a></li>{% endif %}
+          {% if listing.facebook %}<li>👍 <a href="{{ listing.facebook }}" target="_blank" rel="noopener nofollow">Facebook</a></li>{% endif %}
+          {% if listing.address %}<li>📍 {{ listing.address }}</li>{% endif %}
+        </ul>
+        {% if listing.whatsapp_digits %}<a class="btn btn-wa btn-block" style="margin-top:12px" target="_blank" rel="noopener" href="https://wa.me/{{ listing.whatsapp_digits }}?text={{ 'Hi! I found you on IslandStay and would like to ask about '|urlencode }}{{ listing.name|urlencode }}">WhatsApp the owner</a>{% endif %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

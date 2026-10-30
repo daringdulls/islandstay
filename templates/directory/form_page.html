@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container auth-wrap" style="max-width:640px">
+  <div class="panel">
+    <h1 style="font-size:1.7rem">{{ title }}</h1>
+    {% if intro %}<p class="muted">{{ intro }}</p>{% endif %}
+    <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:16px">{{ submit|default:"Submit" }}</button></form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% if enquiries %}
+<div class="table-wrap"><table class="data">
+  <tr><th>Ref</th><th>Guest</th><th>Listing</th><th>Dates</th><th>Guests</th><th>Status</th><th>Received</th></tr>
+  {% for e in enquiries %}
+  <tr class="{% if e.status == 'new' %}unread{% endif %}">
+    <td><a href="{% url 'directory:enquiry_detail' e.reference %}">{{ e.reference }}</a></td>
+    <td>{{ e.guest_name }}<br><span class="muted small">{{ e.guest_country }}</span></td>
+    <td>{{ e.listing.name }}</td>
+    <td>{% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M Y" }}{% endif %}{% else %}–{% endif %}</td>
+    <td>{{ e.adults }}{% if e.children %}+{{ e.children }}{% endif %}</td>
+    <td><span class="pill {% if e.status == 'new' %}warn{% elif e.status == 'confirmed' %}ok{% elif e.status == 'declined' %}bad{% else %}info{% endif %}">{{ e.get_status_display }}</span></td>
+    <td class="muted small">{{ e.created_at|timesince }} ago</td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<div class="empty">No booking requests yet. They'll appear here and in your inbox.</div>{% endif %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Local islands of the Maldives{% endblock %}
+{% block content %}
+<section class="page-hero"><div class="container">
+  <h1>Local islands</h1>
+  <p>Every inhabited island with a guide to what it's famous for, what to expect, how to get there and who to stay with.</p>
+</div></section>
+<div class="container" style="margin-top:24px">
+  <form class="filters">
+    <div><label for="q">Search</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Island or keyword"></div>
+    <div><label for="atoll">Atoll</label><select id="atoll" name="atoll"><option value="">All atolls</option>{% for a in atolls %}<option value="{{ a.slug }}" {% if a.slug == atoll_sel %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></div>
+    <div><label for="activity">Activity</label><select id="activity" name="activity"><option value="">Any activity</option>{% for a in activities %}<option value="{{ a.slug }}" {% if a.slug == activity_sel %}selected{% endif %}>{{ a.icon }} {{ a.name }}</option>{% endfor %}</select></div>
+    <div><label for="sort">Sort</label><select id="sort" name="sort">
+      <option value="name" {% if sort == 'name' %}selected{% endif %}>A–Z</option>
+      <option value="stays" {% if sort == 'stays' %}selected{% endif %}>Most places to stay</option>
+      <option value="near" {% if sort == 'near' %}selected{% endif %}>Closest to airport</option>
+      <option value="atoll" {% if sort == 'atoll' %}selected{% endif %}>North → south</option>
+    </select></div>
+    <div class="check-inline"><label><input type="checkbox" name="bikini" value="1" {% if request.GET.bikini %}checked{% endif %}> Bikini beach</label></div>
+    <div><button class="btn btn-block" type="submit">Filter</button></div>
+  </form>
+  <p class="muted small">{{ page.paginator.count }} island{{ page.paginator.count|pluralize }} found</p>
+  {% if page.object_list %}
+    <div class="grid">{% for island in page.object_list %}{% include "partials/island_card.html" %}{% endfor %}</div>
+  {% else %}
+    <div class="empty">No islands match those filters. <a href="{% url 'directory:island_list' %}">Clear filters</a></div>
+  {% endif %}
+  {% include "partials/pagination.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}List your guest house, resort or service{% endblock %}
+{% block content %}
+<section class="hero"><div class="container" style="padding-bottom:90px">
+  <div class="eyebrow" style="color:#bff6f1">For island businesses</div>
+  <h1>Get booking requests directly from travellers — free.</h1>
+  <p class="lead">List your guest house, hotel, resort, dive centre, excursion or transfer service under your island. Guests contact you directly. No commission, no channel manager, no payment processing.</p>
+  <div class="row" style="margin-top:24px">
+    {% if user.is_authenticated %}<a class="btn btn-coral" href="{% url 'directory:listing_create' %}">Add a listing</a>
+    {% else %}<a class="btn btn-coral" href="{% url 'accounts:signup' %}">Create a free account</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" href="{% url 'accounts:login' %}">I already have an account</a>{% endif %}
+  </div>
+</div>
+<svg class="waves" viewBox="0 0 1440 80" preserveAspectRatio="none"><path fill="#fbfaf7" d="M0 40 C 240 80 480 0 720 30 S 1200 70 1440 30 V80 H0z"/></svg></section>
+<div class="container section">
+  <h2>How it works</h2>
+  <div class="steps" style="margin-top:16px">
+    <div class="step"><h3>Create your account</h3><p class="muted">Sign up with your email in under a minute.</p></div>
+    <div class="step"><h3>Add your listing</h3><p class="muted">Choose your island, add photos, rooms or packages, prices and contact details.</p></div>
+    <div class="step"><h3>We review it</h3><p class="muted">Our team checks every listing (usually within 1–2 working days) before it goes live.</p></div>
+    <div class="step"><h3>Receive requests</h3><p class="muted">Requests arrive in your email and dashboard. Reply to the guest directly and agree payment your way.</p></div>
+  </div>
+  <div class="grid-2" style="margin-top:36px">
+    <div class="panel"><h3>🏠 Places to stay</h3><p class="muted" style="margin:0">Guest houses, island hotels, private villas & home stays, and resorts.</p></div>
+    <div class="panel"><h3>🚤 Services & experiences</h3><p class="muted" style="margin:0">Excursion operators, dive centres, speedboat transfers, restaurants and other local services.</p></div>
+    <div class="panel"><h3>🏝️ Tied to your island</h3><p class="muted" style="margin:0">Your listing appears on your island's guide page, which travellers use to plan their trip. {{ islands_count }} islands and growing — <a href="{% url 'directory:suggest_island' %}">suggest yours</a>.</p></div>
+    <div class="panel"><h3>📬 You stay in control</h3><p class="muted" style="margin:0">No availability calendar to maintain and no payments through us. You confirm each request yourself.</p></div>
+  </div>
+</div>
+{% endblock %}
