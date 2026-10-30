@@ -11,7 +11,7 @@
       <div class="pills">
         <span class="pill">{{ listing.kind_icon }} {{ listing.get_kind_display }}</span>
         <a class="pill info" href="{{ listing.island.get_absolute_url }}">📍 {{ listing.island.name }}, {{ listing.island.atoll.name }}</a>
-        {% if listing.is_verified %}<span class="pill ok">✔ Verified business</span>{% endif %}
+        {% if listing.is_verified %}<span class="verified-badge" title="Licence checked by our team{% if listing.verified_at %} on {{ listing.verified_at|date:'j M Y' }}{% endif %}">✔ Verified host</span>{% endif %}
         {% if listing.star_rating %}<span class="pill warn">{% for _ in "x"|rjust:listing.star_rating %}★{% endfor %}</span>{% endif %}
       </div>
     </div>
@@ -49,6 +49,29 @@
       </section>
       {% endif %}
 
+      {% if listing.is_food %}
+      <section class="panel">
+        <h3>Restaurant details</h3>
+        <dl class="kv">
+          {% if listing.cuisine %}<dt>Cuisine</dt><dd>{{ listing.cuisine }}</dd>{% endif %}
+          {% if listing.opening_hours %}<dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd>{% endif %}
+          <dt>Breakfast</dt><dd>{{ listing.serves_breakfast|yesno:"Served,Not served" }}</dd>
+          <dt>Delivery</dt><dd>{{ listing.delivery|yesno:"Delivers to guest houses,No delivery" }}</dd>
+        </dl>
+      </section>
+      {% endif %}
+
+      {% if listing.routes.all %}
+      <section class="panel">
+        <h3>Routes we operate</h3>
+        {% for r in listing.routes.all %}{% if r.is_active %}{% include "partials/route_row.html" with show_island=True %}{% endif %}{% endfor %}
+      </section>
+      {% endif %}
+
+      {% if listing.is_verified %}
+      <section class="notice" style="background:#e2f5ee;color:#0b6b4b">✔ <b>Verified host</b> — our team has checked this business's tourism licence / registration{% if listing.verified_at %} ({{ listing.verified_at|date:"M Y" }}){% endif %}.</section>
+      {% endif %}
+
       {% if listing.rooms.all %}
       <section class="panel">
         <h3>{% if listing.is_stay %}Rooms{% else %}Packages{% endif %}</h3>
@@ -82,8 +105,8 @@
 
     <aside class="sticky" id="request">
       <div class="panel">
-        {% if listing.price_from %}<div class="price" style="margin-bottom:6px">from <b style="font-size:1.5rem">{% if listing.currency == 'USD' %}${% else %}MVR {% endif %}{{ listing.price_from|floatformat:0 }}</b> {{ listing.get_price_unit_display }}</div>{% endif %}
-        <h3 style="margin-top:4px">Send a {% if listing.is_stay %}booking{% else %}service{% endif %} request</h3>
+        {% if listing.price_from %}<div class="price" style="margin-bottom:6px">{% if listing.is_food %}meals {% endif %}from <b style="font-size:1.5rem">{% if listing.currency == 'USD' %}${% else %}MVR {% endif %}{{ listing.price_from|floatformat:0 }}</b> {{ listing.get_price_unit_display }}</div>{% endif %}
+        <h3 style="margin-top:4px">{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
         <p class="small muted">Goes directly to {{ listing.contact_name|default:"the owner" }}. No payment or card needed — they'll reply to confirm availability and price.</p>
         <form method="post" novalidate>
           {% csrf_token %}

@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import Amenity, ActivityType, Enquiry, Island, IslandSuggestion, Listing, RoomType
+from .models import Amenity, ActivityType, Enquiry, Island, IslandSuggestion, Listing, RoomType, TransportRoute
 
 
 class DateInput(forms.DateInput):
@@ -79,7 +79,7 @@ class ListingForm(forms.ModelForm):
         fields = [
             "kind", "name", "island", "short_description", "description", "cover_image",
             "room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
-            "house_rules", "amenities", "activity_types",
+            "house_rules", "amenities", "activity_types", "cuisine", "opening_hours", "serves_breakfast", "delivery",
             "price_from", "currency", "price_unit",
             "contact_name", "contact_email", "contact_phone", "whatsapp", "viber",
             "website", "facebook", "instagram", "address", "registration_number",
@@ -97,6 +97,7 @@ class ListingForm(forms.ModelForm):
         "basics": ["kind", "name", "island", "short_description", "description", "cover_image"],
         "stay": ["room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
                  "house_rules", "amenities"],
+        "food": ["cuisine", "opening_hours", "serves_breakfast", "delivery"],
         "pricing": ["price_from", "currency", "price_unit"],
         "contact": ["contact_name", "contact_email", "contact_phone", "whatsapp", "viber", "website", "facebook",
                     "instagram", "address", "registration_number"],
@@ -116,6 +117,34 @@ RoomFormSet = inlineformset_factory(
     Listing, RoomType, fields=["name", "description", "max_guests", "price_from"], extra=2, can_delete=True,
     labels={"name": "Room / package name", "price_from": "From price"},
 )
+
+
+RouteFormSet = inlineformset_factory(
+    Listing, TransportRoute, fk_name="operator",
+    fields=["island", "mode", "origin", "via", "duration", "schedule", "price_from", "currency", "price_note", "notes", "is_active"],
+    extra=2, can_delete=True,
+    labels={"island": "To island", "origin": "From", "price_from": "Price from"},
+)
+
+
+class VerificationForm(forms.ModelForm):
+    class Meta:
+        model = Listing
+        fields = ["registration_number", "verification_document"]
+        labels = {"registration_number": "Tourism licence / registration number"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["registration_number"].required = True
+        self.fields["verification_document"].required = not (self.instance and self.instance.verification_document)
+
+    def clean_verification_document(self):
+        f = self.cleaned_data.get("verification_document")
+        if f and hasattr(f, "size") and f.size > 8 * 1024 * 1024:
+            raise forms.ValidationError("Please upload a file smaller than 8 MB.")
+        if f and hasattr(f, "name") and not f.name.lower().rsplit(".", 1)[-1] in ("pdf", "jpg", "jpeg", "png", "webp"):
+            raise forms.ValidationError("Upload a PDF, JPG or PNG.")
+        return f
 
 
 class PhotoUploadForm(forms.Form):

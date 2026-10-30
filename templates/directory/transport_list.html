@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Transport{% if island %} to {{ island.name }}{% endif %} — ferries, speedboats & flights{% endblock %}
+{% block content %}
+<section class="page-hero"><div class="container">
+  <h1>{% if island %}Getting to {{ island.name }}{% else %}Transport{% endif %}</h1>
+  <p>Public ferries, shared and private speedboats, domestic flights and seaplanes to the local islands. Pick an island to see how to reach it, then contact a transfer operator directly.</p>
+</div></section>
+<div class="container" style="margin-top:24px">
+  <form class="filters">
+    <div><label for="island">Island</label><select id="island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if island and i.slug == island.slug %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select></div>
+    <div><label for="mode">Type</label><select id="mode" name="mode"><option value="">All transport</option>{% for k, label in modes %}<option value="{{ k }}" {% if k == mode %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div><button class="btn btn-block" type="submit">Show routes</button></div>
+  </form>
+  <div class="layout">
+    <div>
+      <h2>Routes</h2>
+      {% if routes %}<div class="panel" style="padding-top:6px;padding-bottom:6px">{% for r in routes %}{% include "partials/route_row.html" with show_island=True %}{% endfor %}</div>
+      <p class="small muted" style="margin-top:8px">Schedules and fares are indicative and change with the season — always confirm with the operator or your host.</p>
+      {% else %}<div class="empty">No routes listed for this selection yet.</div>{% endif %}
+    </div>
+    <aside class="sticky">
+      <div class="panel">
+        <h3>Transfer operators{% if island %} for {{ island.name }}{% endif %}</h3>
+        {% if operators %}<ul class="contact-list">{% for o in operators %}<li>🚤 <span><a href="{{ o.get_absolute_url }}">{{ o.name }}</a>{% if o.is_verified %} <span class="verified-badge" style="padding:1px 7px">✔</span>{% endif %}<br><span class="small muted">Based on {{ o.island.name }}</span></span></li>{% endfor %}</ul>
+        {% else %}<p class="muted small">None listed yet. Your guest house can arrange transfers for you.</p>{% endif %}
+      </div>
+      <div class="panel">
+        <h3>Transport tips</h3>
+        <ul class="list-check expect small">
+          <li>Speedboats are timed around international flights; tell your host your flight number.</li>
+          <li>Public ferries are the cheapest option but don't run on Fridays.</li>
+          <li>Domestic flights have lower baggage allowances (often 20 kg) — check before you fly.</li>
+          <li>Rough seas (May–October) can delay boats; plan a buffer before your flight home.</li>
+        </ul>
+      </div>
+      <div class="panel"><h3>Run a transfer service?</h3><p class="small muted">List your speedboat or transfer service and your routes for free.</p><a class="btn btn-coral btn-block" href="{% url 'directory:list_your_business' %}">List your service</a></div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

@@ -17,11 +17,11 @@
     <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
     <nav class="nav">
       {% with p=request.path %}
-      <a href="{% url 'directory:island_list' %}" class="{% if p|slice:':8' == '/islands' %}active{% endif %}">Islands</a>
+      <a href="{% url 'directory:island_list' %}" class="{% if p|slice:':8' == '/islands' or p|slice:':7' == '/atolls' %}active{% endif %}">Islands</a>
       <a href="{% url 'directory:stay_list' %}" class="{% if p|slice:':6' == '/stays' %}active{% endif %}">Stays</a>
       <a href="{% url 'directory:service_list' %}" class="{% if p|slice:':12' == '/experiences' %}active{% endif %}">Experiences</a>
-      <a href="{% url 'directory:atoll_list' %}" class="{% if p|slice:':7' == '/atolls' %}active{% endif %}">Atolls</a>
-      <a href="{% url 'directory:how_it_works' %}" class="{% if p == '/how-it-works/' %}active{% endif %}">How it works</a>
+      <a href="{% url 'directory:transport_list' %}" class="{% if p|slice:':10' == '/transport' %}active{% endif %}">Transport</a>
+      <a href="{% url 'directory:food_list' %}" class="{% if p|slice:':5' == '/food' %}active{% endif %}">Food</a>
       {% endwith %}
       {% if user.is_authenticated %}
         <a href="{% url 'directory:dashboard' %}">My dashboard{% if new_enquiry_count %}<span class="badge-count">{{ new_enquiry_count }}</span>{% endif %}</a>
@@ -53,6 +53,8 @@
         <li><a href="{% url 'directory:atoll_list' %}">Atolls</a></li>
         <li><a href="{% url 'directory:stay_list' %}">Guest houses & resorts</a></li>
         <li><a href="{% url 'directory:service_list' %}">Experiences</a></li>
+        <li><a href="{% url 'directory:transport_list' %}">Transport</a></li>
+        <li><a href="{% url 'directory:food_list' %}">Food & restaurants</a></li>
       </ul></div>
       <div><h4>For businesses</h4><ul>
         <li><a href="{% url 'directory:list_your_business' %}">List your business</a></li>
@@ -62,7 +64,9 @@
       </ul></div>
       <div><h4>Travel info</h4><ul>
         <li><a href="{% url 'directory:how_it_works' %}">How booking requests work</a></li>
-        <li><a href="{% url 'directory:how_it_works' %}#local-islands">Local island etiquette</a></li>
+        <li><a href="{% url 'directory:how_it_works' %}#local-islands">Local island rules</a></li>
+        <li><a href="{% url 'directory:how_it_works' %}#verified">Verified hosts</a></li>
+        <li><a href="{% url 'directory:stay_list' %}?verified=1">Stays with verified hosts</a></li>
       </ul></div>
     </div>
     <div class="footer-bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span>Made in the Maldives 🇲🇻</span></div>

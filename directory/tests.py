@@ -111,3 +111,75 @@ class FlowTests(TestCase):
         r = self.client.get(reverse("directory:stay_list"), {"max_price": "80"})
         self.assertContains(r, "Coral Breeze Inn")
         self.assertNotContains(r, "Lagoon View Hotel")
+
+
+class CategoryTests(TestCase):
+    """Transport, food, island guide and verified-host features."""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.owner = User.objects.get(username="owner@demo.mv")
+
+    def test_island_page_has_all_sections(self):
+        r = self.client.get(reverse("directory:island_detail", args=["dhangethi"]))
+        for text in ["Ari Reef View Guest House", "Dhangethi Whale Shark Trips", "Fathuhu Café", "South Ari Speed Link",
+                     "Maamigili (VAM)", "Local regulations", "Accessibility", "Pharmacy", "Domestic flight"]:
+            self.assertContains(r, text)
+
+    def test_search_jumps_to_island_section(self):
+        r = self.client.get(reverse("directory:search"), {"q": "dhangethi", "section": "food"})
+        self.assertRedirects(r, "/islands/dhangethi/#food", fetch_redirect_response=False)
+
+    def test_transport_page_filters_by_island_and_mode(self):
+        r = self.client.get(reverse("directory:transport_list"), {"island": "dhangethi", "mode": "flight"})
+        self.assertContains(r, "Domestic flight")
+        self.assertNotContains(r, "<h4>Shared speedboat")
+        self.assertContains(r, "South Ari Speed Link")  # operator sidebar
+
+    def test_routes_of_unapproved_operator_are_hidden(self):
+        op = Listing.objects.get(name="South Ari Speed Link")
+        op.status = Listing.STATUS_SUSPENDED
+        op.save()
+        r = self.client.get(reverse("directory:transport_list"), {"island": "dhangethi"})
+        self.assertNotContains(r, "South Ari Speed Link")
+
+    def test_food_list_and_kind_separation(self):
+        r = self.client.get(reverse("directory:food_list"), {"q": "seafood"})
+        self.assertContains(r, "Fathuhu Café")
+        self.assertNotContains(self.client.get(reverse("directory:service_list")), "Fathuhu Café")
+
+    def test_verified_filter(self):
+        r = self.client.get(reverse("directory:stay_list"), {"verified": "1"})
+        self.assertContains(r, "Coral Breeze Inn")
+        self.assertNotContains(r, "Lagoon View Hotel")
+
+    def test_owner_requests_verification_and_manages_routes(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.force_login(self.owner)
+        hotel = Listing.objects.get(name="Lagoon View Hotel")
+        r = self.client.post(reverse("directory:listing_verify", args=[hotel.pk]), {
+            "registration_number": "TR-12345",
+            "verification_document": SimpleUploadedFile("licence.pdf", b"%PDF-1.4 test", content_type="application/pdf"),
+        })
+        self.assertRedirects(r, reverse("directory:dashboard"))
+        hotel.refresh_from_db()
+        self.assertTrue(hotel.verification_pending)
+        hotel.verification_document.delete()
+
+        op = Listing.objects.get(name="South Ari Speed Link")
+        before = op.routes.count()
+        mgmt = {"routes-TOTAL_FORMS": str(before + 1), "routes-INITIAL_FORMS": str(before), "routes-MIN_NUM_FORMS": "0", "routes-MAX_NUM_FORMS": "1000"}
+        data = dict(mgmt)
+        for i, route in enumerate(op.routes.all()):
+            data.update({f"routes-{i}-id": route.pk, f"routes-{i}-island": route.island_id, f"routes-{i}-mode": route.mode,
+                         f"routes-{i}-origin": route.origin, f"routes-{i}-duration": route.duration, f"routes-{i}-currency": "USD",
+                         f"routes-{i}-is_active": "on"})
+        n = before
+        data.update({f"routes-{n}-island": Island.objects.get(slug="dhigurah").pk, f"routes-{n}-mode": "speedboat",
+                     f"routes-{n}-origin": "Dhangethi", f"routes-{n}-duration": "15 min", f"routes-{n}-currency": "USD",
+                     f"routes-{n}-is_active": "on"})
+        self.client.post(reverse("directory:listing_routes", args=[op.pk]), data)
+        self.assertEqual(op.routes.count(), before + 1)
+        self.assertContains(self.client.get(reverse("directory:island_detail", args=["dhigurah"])), "South Ari Speed Link")

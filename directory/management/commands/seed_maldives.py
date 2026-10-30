@@ -14,7 +14,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import Profile
-from directory.models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, RoomType
+from directory.models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, RoomType, TransportRoute
 
 ATOLLS = [
     # (common name, administrative name, code, region, description)
@@ -74,11 +74,25 @@ AMENITIES = [
     ("Swimming pool", "🏊"), ("24h reception", "🛎️"), ("Private bathroom", "🛁"), ("Kayak / SUP", "🛶"),
 ]
 
+STD_RULES = [
+    "Dress modestly in the village: cover shoulders and knees (men and women).",
+    "Bikinis and swimwear only on the designated bikini beach, on excursions and on resort day trips.",
+    "Alcohol and pork are not permitted on local islands — don't bring them in your luggage.",
+    "Public displays of affection are frowned upon; be respectful near mosques and during prayer times.",
+    "Flying drones requires a permit from the Maldives Civil Aviation Authority.",
+    "Don't touch or stand on coral, and never take shells, sand or coral off the island.",
+]
 STD_EXPECT = [
-    "Local islands are Muslim communities: dress modestly in the village (cover shoulders and knees).",
-    "Alcohol is not available on local islands — it is served only on resorts and liveaboards.",
-    "Swimwear is fine on the designated bikini beach and on excursions.",
-    "Friday is the weekly holiday; many shops close for prayers and ferries run less.",
+    "A quiet village pace — most places are within a few minutes' walk.",
+    "Cash (USD or MVR) is widely used; larger guest houses and shops accept cards.",
+    "Friday is the weekly day of rest: shops close around midday prayers and ferries run less.",
+    "Guest houses usually arrange excursions and transfers for you.",
+]
+STD_ACCESS = [
+    "Roads are mostly flat, compacted sand; there are few paved paths or kerbs.",
+    "Wheelchair access is limited — ask your host about step-free rooms before booking.",
+    "Boarding speedboats and ferries involves steps from the jetty; crews will help.",
+    "No taxis on most small islands: buggies or bicycles may be available on request.",
 ]
 
 ISLANDS = [
@@ -193,10 +207,23 @@ ISLANDS = [
          best="All year for whale sharks; mantas December–April", transfers="speedboat,domestic_flight", km=95, time="≈1 hr 30 min by speedboat",
          pop=600, bikini=True,
          activities=["Whale shark excursion", "Manta ray snorkeling", "Snorkeling", "Scuba diving", "Sandbank picnic", "Turtle snorkeling"]),
-    dict(name="Dhangethi", atoll="South Ari", color="#1b6c9b",
+    dict(name="Dhangethi", atoll="South Ari", color="#1b6c9b", featured=True,
          tagline="Whale shark trips from a friendly fishing island",
-         overview="Dhangethi is a traditional fishing community with easy access to the whale shark zone and several manta points.",
-         famous_for="Whale shark excursions\nTraditional fishing community\nMantas and turtles nearby",
+         overview="Dhangethi is a traditional fishing community on the southern rim of Ari Atoll, a short boat ride from the South Ari Marine Protected Area where whale sharks are seen year-round. Guest houses, a bikini beach, local cafés and a handful of dive and excursion operators make it an easy, authentic base.",
+         famous_for="Whale shark excursions in the South Ari MPA\nTraditional fishing community and boat-building\nMantas and turtles nearby\nClose to Maamigili domestic airport",
+         airport="Maamigili (VAM)", airport_km=12,
+         facilities="Several mosques and a football ground\nLocal cafés and small grocery shops\nDive centre and excursion operators",
+         routes=[
+             dict(mode="speedboat", origin="Velana International Airport (MLE)", duration="1 hr 30 min",
+                  schedule="Shared speedboats several times a day; times vary by operator", price_note="per person one way",
+                  notes="Ask your guest house to book — they coordinate with your flight time."),
+             dict(mode="flight", origin="Velana International Airport (MLE)", via="Maamigili (VAM), then ≈20 min speedboat",
+                  duration="≈25 min flight + 20 min boat", schedule="Daily domestic flights", price_note="per person one way",
+                  notes="Good option for late arrivals or rough seas."),
+             dict(mode="ferry", origin="Malé ferry terminal", operator_name="Public ferry (MTCC / RTL)",
+                  duration="Several hours, multi-stop", schedule="A few days a week; no Friday service. Check the current timetable.",
+                  price_note="low cost, pay locally in MVR", notes="Cheapest but slowest way to reach South Ari."),
+         ],
          expect=None, getting_there="Shared speedboat from the airport (≈1 hr 30 min).",
          best="All year", transfers="speedboat,domestic_flight", km=90, time="≈1 hr 30 min by speedboat", pop=1200, bikini=True,
          activities=["Whale shark excursion", "Scuba diving", "Snorkeling", "Sunset & night fishing"]),
@@ -249,6 +276,28 @@ ISLANDS = [
 ]
 
 
+def default_routes(d):
+    """Indicative routes derived from an island's transfer types. Refine them in the admin."""
+    routes, t = [], d["transfers"]
+    dur = d["time"].replace("≈", "").split(" by ")[0].strip()
+    if "speedboat" in t:
+        routes.append(dict(mode="speedboat", origin="Velana International Airport (MLE)", duration=dur,
+                           schedule="Several departures daily; times vary by operator", price_note="per person one way",
+                           notes="Book through your guest house — they will meet you at the airport."))
+    if "ferry" in t:
+        routes.append(dict(mode="ferry", origin="Malé ferry terminal", operator_name="Public ferry (MTCC / RTL)",
+                           duration="Longer than speedboat", schedule="Usually Saturday–Thursday; no Friday service. Check the current timetable.",
+                           price_note="low cost, pay locally in MVR", notes="Cheapest option, but slow and not timed for flights."))
+    if "domestic_flight" in t:
+        routes.append(dict(mode="flight", origin="Velana International Airport (MLE)", via=d.get("airport", ""),
+                           duration=dur if "flight" in d["time"] else "Short domestic flight",
+                           schedule="Daily flights; times vary by season", price_note="per person one way"))
+    if "road" in t and "ferry" not in t and "speedboat" not in t:
+        routes.append(dict(mode="private", origin="Airport / nearby islands", duration=dur, operator_name="Taxi or bus",
+                           schedule="Any time", notes="Connected by road."))
+    return routes
+
+
 DEMO_LISTINGS = [
     # (island, kind, name, short, price, unit, featured, extras)
     ("Maafushi", "guesthouse", "Coral Breeze Inn", "Bright rooms two minutes from the bikini beach, with daily excursions.", 75, "night", True,
@@ -273,6 +322,19 @@ DEMO_LISTINGS = [
      {"activities": ["Tiger shark dive", "Scuba diving", "Freediving"]}),
     ("Huraa", "transfer", "North Malé Speedboat Transfers", "Scheduled and private speedboat transfers to/from the airport.", 40, "person", False,
      {"activities": ["Island hopping"]}),
+    ("Dhangethi", "guesthouse", "Ari Reef View Guest House", "Sea-facing rooms by the bikini beach, whale shark trips arranged daily.", 70, "night", True,
+     {"room_count": 8, "max_guests": 3, "distance_to_beach_m": 60, "amenities": ["Free WiFi", "Air conditioning", "Breakfast included", "Excursion desk", "Airport transfer arranged"]}),
+    ("Dhangethi", "activity", "Dhangethi Whale Shark Trips", "Small-group whale shark and manta snorkeling tours with local guides.", 60, "person", True,
+     {"activities": ["Whale shark excursion", "Manta ray snorkeling", "Sandbank picnic", "Sunset & night fishing"]}),
+    ("Dhangethi", "restaurant", "Fathuhu Café", "Seafront café serving Maldivian breakfast, fresh tuna and grills.", 8, "person", True,
+     {"cuisine": "Maldivian, seafood, grills", "opening_hours": "Daily 7:00–23:00 (Friday from 14:00)", "breakfast": True, "delivery": True}),
+    ("Dhangethi", "transfer", "South Ari Speed Link", "Shared and private speedboats between Malé airport, Maamigili and South Ari islands.", 65, "person", False,
+     {"routes": [dict(mode="speedboat", origin="Velana International Airport (MLE)", duration="1 hr 30 min", schedule="Daily 10:00, 15:30 and 21:30 from the airport", price_from=65, price_note="per person one way"),
+                 dict(mode="private", origin="Maamigili airport (VAM)", duration="20 min", schedule="Meets every domestic flight", price_from=25, price_note="per person one way")]}),
+    ("Maafushi", "restaurant", "Ocean Grill Maafushi", "Beachfront grill with fresh catch of the day and Asian dishes.", 12, "person", False,
+     {"cuisine": "Seafood, Asian, international", "opening_hours": "Daily 11:00–23:00"}),
+    ("Thoddoo", "restaurant", "Watermelon Juice Corner", "Fresh juices from Thoddoo farms, short eats and Maldivian curries.", 5, "person", False,
+     {"cuisine": "Maldivian, juices, short eats", "opening_hours": "Daily 8:00–22:00", "breakfast": True}),
     ("Thulusdhoo", "guesthouse", "Cokes Surf Camp", "Surf camp with boat trips to Cokes, Chickens and beyond.", 80, "night", False,
      {"room_count": 9, "max_guests": 2, "distance_to_beach_m": 100, "amenities": ["Free WiFi", "Air conditioning", "Breakfast included", "Excursion desk"], "activities": ["Surfing"]}),
 ]
@@ -303,11 +365,19 @@ class Command(BaseCommand):
                     famous_for=d["famous_for"], what_to_expect=expect, getting_there=d["getting_there"],
                     best_time_to_visit=d["best"], transfer_types=d["transfers"], distance_from_airport_km=d["km"],
                     transfer_time=d["time"], population=d["pop"], has_bikini_beach=d.get("bikini", False),
-                    has_atm=d.get("atm", False), has_hospital=d.get("hosp", False), cover_color=d["color"],
+                    has_atm=d.get("atm", False), has_hospital=d.get("hosp", True), cover_color=d["color"],
+                    has_pharmacy=d.get("hosp", True), has_police=d["pop"] >= 1000, has_supermarket=True, has_4g=True,
+                    nearest_airport=d.get("airport", "Velana International (MLE)"),
+                    nearest_airport_km=d.get("airport_km", d["km"]),
+                    local_rules=d.get("rules", "\n".join(STD_RULES)), accessibility=d.get("access", "\n".join(STD_ACCESS)),
+                    facilities_notes=d.get("facilities", ""),
                     is_featured=d.get("featured", False), is_published=True,
                 ),
             )
             island.activities.set([acts[a] for a in d["activities"]])
+            if not island.routes.exists():
+                for i, r in enumerate(d.get("routes") or default_routes(d)):
+                    TransportRoute.objects.create(island=island, order=i, **r)
         self.stdout.write(self.style.SUCCESS(f"Seeded {Atoll.objects.count()} atolls, {Island.objects.count()} islands, {ActivityType.objects.count()} activity types."))
 
         if opts["demo"]:
@@ -338,6 +408,18 @@ class Command(BaseCommand):
                     check_in_time="14:00" if kind in Listing.STAY_KINDS else "", check_out_time="12:00" if kind in Listing.STAY_KINDS else "",
                 ),
             )
+            if kind == "restaurant":
+                listing.cuisine = extra.get("cuisine", "")
+                listing.opening_hours = extra.get("opening_hours", "")
+                listing.serves_breakfast = extra.get("breakfast", False)
+                listing.delivery = extra.get("delivery", False)
+                listing.save()
+            if featured and not listing.verified_at:
+                listing.verified_at = timezone.now()
+                listing.registration_number = "DEMO-0000"
+                listing.save()
+            for i, r in enumerate(extra.get("routes", [])):
+                TransportRoute.objects.get_or_create(operator=listing, island=island, mode=r["mode"], origin=r["origin"], defaults={**r, "order": 10 + i})
             listing.amenities.set([amen[a] for a in extra.get("amenities", [])])
             listing.activity_types.set([acts[a] for a in extra.get("activities", [])])
             if kind in Listing.STAY_KINDS and not listing.rooms.exists():

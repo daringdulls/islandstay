@@ -3,21 +3,22 @@
 {% block content %}
 <section class="page-hero"><div class="container">
   <h1>{{ title }}</h1>
-  <p>{% if mode == 'stays' %}Guest houses, island hotels, villas and resorts — send your request directly to the property.{% else %}Excursions, dive centres, transfers and local services run by islanders.{% endif %}</p>
+  <p>{% if mode == 'stays' %}Guest houses, island hotels, villas and resorts — send your request directly to the property.{% elif mode == 'food' %}Local cafés, restaurants and places to eat on the islands — from Maldivian short eats to fresh seafood.{% else %}Snorkeling, diving, sandbank trips, fishing and other activities run by islanders.{% endif %}</p>
 </div></section>
 <div class="container" style="margin-top:24px">
   <form class="filters">
-    <div><label for="q">Search</label><input id="q" type="search" name="q" value="{{ f.q }}" placeholder="Name or island"></div>
+    <div><label for="q">Search</label><input id="q" type="search" name="q" value="{{ f.q }}" placeholder="{% if mode == 'food' %}Name, island or cuisine{% else %}Name or island{% endif %}"></div>
     <div><label for="atoll">Atoll</label><select id="atoll" name="atoll"><option value="">All atolls</option>{% for a in atolls %}<option value="{{ a.slug }}" {% if a.slug == f.atoll %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></div>
     <div><label for="island">Island</label><select id="island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if i.slug == f.island %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select></div>
-    <div><label for="kind">Type</label><select id="kind" name="kind"><option value="">All types</option>{% for k, label in kind_choices %}<option value="{{ k }}" {% if k == f.kind %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    {% if kind_choices|length > 1 %}<div><label for="kind">Type</label><select id="kind" name="kind"><option value="">All types</option>{% for k, label in kind_choices %}<option value="{{ k }}" {% if k == f.kind %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endif %}
     {% if mode == 'stays' %}
     <div><label for="guests">Guests</label><input id="guests" type="number" min="1" name="guests" value="{{ f.guests }}"></div>
     <div><label for="max_price">Max price (USD)</label><input id="max_price" type="number" min="0" name="max_price" value="{{ f.max_price }}"></div>
     <div><label for="amenity">Must have</label><select id="amenity" name="amenity"><option value="">Any</option>{% for a in amenities %}<option value="{{ a.id }}" {% if a.id|stringformat:'s' == f.amenity %}selected{% endif %}>{{ a.icon }} {{ a.name }}</option>{% endfor %}</select></div>
-    {% else %}
+    {% elif mode == 'experiences' %}
     <div><label for="activity">Activity</label><select id="activity" name="activity"><option value="">Any</option>{% for a in activities %}<option value="{{ a.slug }}" {% if a.slug == f.activity %}selected{% endif %}>{{ a.icon }} {{ a.name }}</option>{% endfor %}</select></div>
     {% endif %}
+    <div class="check-inline"><label><input type="checkbox" name="verified" value="1" {% if request.GET.verified %}checked{% endif %}> ✔ Verified hosts only</label></div>
     <div><label for="sort">Sort</label><select id="sort" name="sort"><option value="">Recommended</option><option value="price" {% if sort == 'price' %}selected{% endif %}>Lowest price</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></div>
     <div><button class="btn btn-block" type="submit">Search</button></div>
   </form>

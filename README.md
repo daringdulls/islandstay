@@ -25,8 +25,20 @@ Run the tests: `python manage.py test`
 
 ## What's included
 
+The site is organised around six things a visitor needs on each island:
+
+| Feature | Where |
+|---|---|
+| **Stays** — guest houses, hotels, villas, resorts | `/stays/`, island page → Stays |
+| **Experiences** — snorkeling, excursions, diving, fishing | `/experiences/`, island page → Experiences |
+| **Transport** — public ferries, speedboats, domestic flights, seaplanes | `/transport/`, island page → Transport |
+| **Food** — restaurants & cafés (cuisine, hours, delivery) | `/food/`, island page → Food |
+| **Island guides** — facilities (ATM, clinic, pharmacy, police, shops, 4G), regulations, accessibility, nearest airport | island page → Island guide |
+| **Verified hosts** — owners upload a licence, admins grant the badge | dashboard → Get verified; admin → Verification filter |
+
 **Public site**
-- Home: island search, featured islands, browse by experience, featured stays & operators, atolls.
+- Home: "Where are you going?" island search that jumps straight to the chosen section of that island
+  (e.g. Dhangethi → Transport), the six feature tiles, featured islands, browse by experience, featured stays & operators, atolls.
 - `/islands/` — all islands, filter by atoll, activity, bikini beach; sort by distance / most stays.
 - `/islands/<island>/` — island guide: overview, *famous for*, *what to expect*, quick facts (transfer time,
   population, bikini beach, ATM, health centre), things to do, places to stay (filter by type),
@@ -42,10 +54,14 @@ Run the tests: `python manage.py test`
 - Dashboard: listings with status, request counts, edit, photo gallery upload.
 - Requests inbox: each request emailed to the owner (Reply-To = guest) and tracked as
   New / Replied / Confirmed / Declined / Closed with private notes; one-click email / WhatsApp reply.
+- Transfer operators add their routes (to any island, with schedule and fare); routes appear in that island's Transport section with a Request button.
+- "Get verified": upload a tourism licence / business registration for the Verified host badge.
 - "Suggest an island" for islands not yet in the system.
 
 **Admin back office (`/admin/`)**
 - Manage atolls, islands (all guide content, activities, facts, cover photo), activity types, amenities.
+- Transport routes per island (public ferry / flight info maintained by admins, or linked to an operator listing).
+- Verification queue: filter listings by "Requested — awaiting review", view the uploaded document, bulk "Mark as Verified host".
 - Moderation queue for listings: bulk **Approve / Reject / Suspend** actions; owners are emailed automatically.
   Mark listings as *verified* or *featured*.
 - View all enquiries, users/business profiles and island suggestions.
@@ -63,6 +79,7 @@ Run the tests: `python manage.py test`
 | `ADMIN_NOTIFY_EMAILS` | Comma-separated emails notified when a new listing is submitted |
 
 ## Notes
-- Island facts in the seed command are a starting point; transfer times are approximate. Review them in the admin.
+- Island facts, facilities and transport routes in the seed command are a starting point: times, schedules and
+  facility flags are approximate. Review them in the admin before launch.
 - Demo listings (Coral Breeze Inn, etc.) are fictional — delete them before launch.
 - For production: PostgreSQL, `collectstatic` behind nginx/WhiteNoise, gunicorn, and media storage (e.g. S3).

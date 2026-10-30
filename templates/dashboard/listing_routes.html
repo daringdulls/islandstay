@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Routes · {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container" style="max-width:1000px">
+  <div class="dash-head"><div><a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a><h1 style="margin:0">Routes for {{ listing.name }}</h1>
+    <p class="muted" style="margin:0">Each route appears in the Transport section of the destination island, with a button to send you a request.</p></div>
+    <a class="btn btn-ghost" href="{{ listing.get_absolute_url }}">View listing</a></div>
+  {% if not listing.is_live %}<div class="notice warn" style="margin-bottom:16px">Routes become public once your listing is approved.</div>{% endif %}
+  <form method="post">{% csrf_token %}
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<ul class="errorlist nonfield">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    {% for rf in formset %}
+    <fieldset><legend>{% if rf.instance.pk %}{{ rf.instance.get_mode_display }} → {{ rf.instance.island.name }}{% else %}New route{% endif %}</legend>
+      {% for hidden in rf.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="form-grid">
+        {% for f in rf.visible_fields %}
+          {% if f.field.widget.input_type == 'checkbox' %}{% if f.name != 'DELETE' or rf.instance.pk %}<div class="check-inline"><label>{{ f }} {% if f.name == 'DELETE' %}Remove this route{% else %}{{ f.label }}{% endif %}</label></div>{% endif %}
+          {% else %}<div><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{% if f.help_text %}<span class="helptext">{{ f.help_text }}</span>{% endif %}{{ f.errors }}</div>{% endif %}
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+    <div class="row"><button class="btn btn-coral">Save routes</button><span class="small muted">Save to add more.</span></div>
+  </form>
+</div>
+{% endblock %}

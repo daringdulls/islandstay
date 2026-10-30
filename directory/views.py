@@ -7,8 +7,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from . import notifications
-from .forms import EnquiryForm, EnquiryUpdateForm, IslandSuggestionForm, ListingForm, PhotoUploadForm, RoomFormSet
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, ListingPhoto
+from django.utils import timezone
+
+from .forms import (
+    EnquiryForm, EnquiryUpdateForm, IslandSuggestionForm, ListingForm, PhotoUploadForm, RoomFormSet, RouteFormSet,
+    VerificationForm,
+)
+from .models import ActivityType, Amenity, Atoll, Enquiry, Island, Listing, ListingPhoto, TransportRoute
 
 APPROVED = Listing.STATUS_APPROVED
 
@@ -19,7 +24,9 @@ def _islands():
         .select_related("atoll")
         .annotate(
             stay_count=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.STAY_KINDS), distinct=True),
-            service_count=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.SERVICE_KINDS), distinct=True),
+            service_count=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.EXPERIENCE_KINDS), distinct=True),
+            food_count=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.FOOD_KINDS), distinct=True),
+            route_count=Count("routes", filter=Q(routes__is_active=True), distinct=True),
             min_price=Min("listings__price_from", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.STAY_KINDS)),
         )
     )
@@ -35,25 +42,33 @@ def home(request):
     return render(request, "directory/home.html", {
         "featured_islands": _islands().filter(is_featured=True)[:6],
         "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:6],
-        "featured_services": _live_listings().filter(kind__in=Listing.SERVICE_KINDS).order_by("-is_featured", "-created_at")[:4],
+        "featured_services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).order_by("-is_featured", "-created_at")[:4],
+        "featured_food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).order_by("-is_featured", "-created_at")[:4],
+        "island_options": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
         "atolls": Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0),
         "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:12],
         "stats": {
             "islands": Island.objects.filter(is_published=True).count(),
             "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(),
-            "services": _live_listings().filter(kind__in=Listing.SERVICE_KINDS).count(),
+            "services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).count(),
+            "food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).count(),
+            "verified": _live_listings().filter(is_verified=True).count(),
         },
     })
 
 
 def search(request):
     """Hero search: jump straight to an island if the name matches, otherwise show island results."""
+    from urllib.parse import urlencode
+
     q = request.GET.get("q", "").strip()
+    section = request.GET.get("section", "")
     if q:
         exact = Island.objects.filter(is_published=True, name__iexact=q).first()
         if exact:
-            return redirect(exact)
-    return redirect(f"/islands/?q={q}")
+            anchor = f"#{section}" if section in ("stays", "experiences", "transport", "food", "guide") else ""
+            return redirect(exact.get_absolute_url() + anchor)
+    return redirect("/islands/?" + urlencode({"q": q}))
 
 
 def island_list(request):
@@ -86,13 +101,16 @@ def island_detail(request, slug):
     listings = _live_listings().filter(island=island).prefetch_related("activity_types")
     kind = request.GET.get("kind", "")
     stays = listings.filter(kind__in=Listing.STAY_KINDS)
-    services = listings.filter(kind__in=Listing.SERVICE_KINDS)
     if kind:
         stays = stays.filter(kind=kind)
     nearby = _islands().filter(atoll=island.atoll).exclude(pk=island.pk)[:4]
     return render(request, "directory/island_detail.html", {
-        "island": island, "stays": stays, "services": services, "nearby": nearby, "kind": kind,
-        "stay_kinds": [c for c in Listing.KIND_CHOICES[0][1]],
+        "island": island, "stays": stays, "kind": kind, "nearby": nearby,
+        "services": listings.filter(kind__in=Listing.EXPERIENCE_KINDS),
+        "food": listings.filter(kind__in=Listing.FOOD_KINDS),
+        "transport": listings.filter(kind__in=Listing.TRANSPORT_KINDS),
+        "routes": island.routes.filter(is_active=True).filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("operator"),
+        "stay_kinds": Listing.KIND_CHOICES[0][1],
     })
 
 
@@ -115,7 +133,7 @@ def _filtered_listings(request, kinds):
     qs = _live_listings().filter(kind__in=kinds)
     f = {k: request.GET.get(k, "") for k in ("q", "island", "atoll", "kind", "max_price", "guests", "activity", "amenity")}
     if f["q"]:
-        qs = qs.filter(Q(name__icontains=f["q"]) | Q(island__name__icontains=f["q"]) | Q(short_description__icontains=f["q"]))
+        qs = qs.filter(Q(name__icontains=f["q"]) | Q(island__name__icontains=f["q"]) | Q(short_description__icontains=f["q"]) | Q(cuisine__icontains=f["q"]))
     if f["island"]:
         qs = qs.filter(island__slug=f["island"])
     if f["atoll"]:
@@ -128,6 +146,8 @@ def _filtered_listings(request, kinds):
         qs = qs.filter(Q(max_guests__gte=int(f["guests"])) | Q(max_guests__isnull=True))
     if f["activity"]:
         qs = qs.filter(activity_types__slug=f["activity"])
+    if request.GET.get("verified"):
+        qs = qs.filter(is_verified=True)
     if f["amenity"].isdigit():
         qs = qs.filter(amenities__id=int(f["amenity"]))
     sort = request.GET.get("sort", "")
@@ -148,11 +168,43 @@ def stay_list(request):
 
 
 def service_list(request):
-    page, f, sort = _filtered_listings(request, Listing.SERVICE_KINDS)
+    page, f, sort = _filtered_listings(request, Listing.EXPERIENCE_KINDS)
     return render(request, "directory/listing_list.html", {
-        "page": page, "f": f, "sort": sort, "mode": "services", "title": "Experiences & services",
+        "page": page, "f": f, "sort": sort, "mode": "experiences", "title": "Experiences",
         "kind_choices": Listing.KIND_CHOICES[1][1], "atolls": Atoll.objects.all(),
         "islands": Island.objects.filter(is_published=True), "activities": ActivityType.objects.all(),
+    })
+
+
+def food_list(request):
+    page, f, sort = _filtered_listings(request, Listing.FOOD_KINDS)
+    return render(request, "directory/listing_list.html", {
+        "page": page, "f": f, "sort": sort, "mode": "food", "title": "Food & restaurants",
+        "kind_choices": [], "atolls": Atoll.objects.all(), "islands": Island.objects.filter(is_published=True),
+    })
+
+
+def transport_list(request):
+    """Getting around: routes to each island plus transfer operators you can contact."""
+    island_slug = request.GET.get("island", "")
+    mode = request.GET.get("mode", "")
+    routes = (
+        TransportRoute.objects.filter(is_active=True, island__is_published=True)
+        .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED))
+        .select_related("island", "island__atoll", "operator")
+        .order_by("island__name", "order")
+    )
+    operators = _live_listings().filter(kind__in=Listing.TRANSPORT_KINDS)
+    island = None
+    if island_slug:
+        island = Island.objects.filter(slug=island_slug).first()
+        routes = routes.filter(island__slug=island_slug)
+        operators = operators.filter(Q(island__slug=island_slug) | Q(routes__island__slug=island_slug)).distinct()
+    if mode:
+        routes = routes.filter(mode=mode)
+    return render(request, "directory/transport_list.html", {
+        "routes": routes, "operators": operators, "island": island, "mode": mode,
+        "modes": TransportRoute.MODE_CHOICES, "islands": Island.objects.filter(is_published=True),
     })
 
 
@@ -269,6 +321,31 @@ def listing_edit(request, pk):
         messages.success(request, "Listing updated.")
         return redirect("directory:dashboard")
     return render(request, "dashboard/listing_form.html", {"form": form, "rooms": rooms, "listing": listing})
+
+
+@login_required
+def listing_routes(request, pk):
+    listing = _own_listing(request, pk)
+    formset = RouteFormSet(request.POST or None, instance=listing, prefix="routes")
+    if request.method == "POST" and formset.is_valid():
+        formset.save()
+        messages.success(request, "Routes saved.")
+        return redirect("directory:listing_routes", pk=listing.pk)
+    return render(request, "dashboard/listing_routes.html", {"listing": listing, "formset": formset})
+
+
+@login_required
+def listing_verify(request, pk):
+    listing = _own_listing(request, pk)
+    form = VerificationForm(request.POST or None, request.FILES or None, instance=listing)
+    if request.method == "POST" and form.is_valid():
+        listing = form.save(commit=False)
+        listing.verification_requested_at = timezone.now()
+        listing.save()
+        notifications.verification_requested(listing, request)
+        messages.success(request, "Thanks! Our team will check your documents and add the Verified host badge.")
+        return redirect("directory:dashboard")
+    return render(request, "dashboard/listing_verify.html", {"listing": listing, "form": form})
 
 
 @login_required

@@ -57,3 +57,14 @@ def listing_status_changed(listing):
     else:
         return
     send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [owner_email], fail_silently=True)
+
+
+def verification_requested(listing, request=None):
+    if not settings.ADMIN_NOTIFY_EMAILS:
+        return
+    send_mail(
+        f"Verification requested: {listing.name} ({listing.island.name})",
+        f"Licence no. {listing.registration_number}. Review the document: "
+        f"{_abs(request, f'/admin/directory/listing/{listing.pk}/change/')}",
+        settings.DEFAULT_FROM_EMAIL, settings.ADMIN_NOTIFY_EMAILS, fail_silently=True,
+    )

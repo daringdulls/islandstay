@@ -4,7 +4,7 @@
 <div class="container" style="max-width:900px">
   <div class="dash-head"><div><a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
     <h1 style="margin:0">{% if creating %}Add your property or service{% else %}Edit {{ listing.name }}{% endif %}</h1>
-    {% if creating %}<p class="muted" style="margin:0">Your listing will be reviewed by our team before it goes live.</p>{% else %}<span class="pill {% if listing.status == 'approved' %}ok{% else %}warn{% endif %}">{{ listing.get_status_display }}</span>{% endif %}
+    {% if creating %}<p class="muted" style="margin:0">Stays, experiences, transport or food — your listing is reviewed by our team before it goes live. Transfer operators can add routes after saving.</p>{% else %}<span class="pill {% if listing.status == 'approved' %}ok{% else %}warn{% endif %}">{{ listing.get_status_display }}</span>{% endif %}
   </div></div>
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -18,8 +18,12 @@
       {% for f in form.stay %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
     </div></fieldset>
 
-    <fieldset><legend>Experiences offered <span class="muted small">(operators only)</span></legend><div class="form-grid">
+    <fieldset><legend>Experiences offered <span class="muted small">(activity &amp; dive operators)</span></legend><div class="form-grid">
       {% include "dashboard/_field.html" with field=form.activity_types %}
+    </div></fieldset>
+
+    <fieldset><legend>Restaurant details <span class="muted small">(food only)</span></legend><div class="form-grid">
+      {% for f in form.food %}{% if f.field.widget.input_type == 'checkbox' %}<div class="check-inline"><label>{{ f }} {{ f.label }}</label></div>{% else %}{% include "dashboard/_field.html" with field=f %}{% endif %}{% endfor %}
     </div></fieldset>
 
     <fieldset><legend>Rooms / packages <span class="muted small">(optional)</span></legend>

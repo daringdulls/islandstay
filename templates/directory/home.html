@@ -5,22 +5,41 @@
     <div class="eyebrow" style="color:#bff6f1">Local island travel · Maldives</div>
     <h1>Discover the real Maldives, one local island at a time.</h1>
     <p class="lead">Explore every inhabited island, see what it's famous for, then send your booking request straight to the guest house, resort or local operator. No booking fees, no middleman.</p>
-    <form class="search-box" action="{% url 'directory:island_list' %}">
-      <input type="search" name="q" placeholder="Search an island — Maafushi, Thoddoo, Dhigurah…" aria-label="Island name">
-      <select name="atoll" aria-label="Atoll">
-        <option value="">Any atoll</option>
-        {% for a in atolls %}<option value="{{ a.slug }}">{{ a.name }}</option>{% endfor %}
+    <form class="search-box" action="{% url 'directory:search' %}">
+      <input type="search" name="q" list="island-names" placeholder="Where are you going? e.g. Dhangethi" aria-label="Island name" required>
+      <datalist id="island-names">{% for i in island_options %}<option value="{{ i.name }}">{{ i.atoll.name }}</option>{% endfor %}</datalist>
+      <select name="section" aria-label="Looking for">
+        <option value="">Everything</option>
+        <option value="stays">Stays</option>
+        <option value="experiences">Experiences</option>
+        <option value="transport">Transport</option>
+        <option value="food">Food</option>
+        <option value="guide">Island guide</option>
       </select>
-      <button class="btn btn-coral" type="submit">Explore</button>
+      <button class="btn btn-coral" type="submit">Explore island</button>
     </form>
     <div class="hero-stats">
       <div><b>{{ stats.islands }}</b><span>local islands</span></div>
       <div><b>{{ stats.stays }}</b><span>places to stay</span></div>
-      <div><b>{{ stats.services }}</b><span>local experiences</span></div>
+      <div><b>{{ stats.services }}</b><span>experiences</span></div>
+      <div><b>{{ stats.verified }}</b><span>verified hosts</span></div>
       <div><b>0%</b><span>booking fees</span></div>
     </div>
   </div>
   <svg class="waves" viewBox="0 0 1440 80" preserveAspectRatio="none"><path fill="#fbfaf7" d="M0 40 C 240 80 480 0 720 30 S 1200 70 1440 30 V80 H0z"/></svg>
+</section>
+
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="feature-grid">
+      <a class="feature" href="{% url 'directory:stay_list' %}"><span class="ico">🏠</span><b>Stays</b><span>Guest houses & accommodation on local islands</span></a>
+      <a class="feature" href="{% url 'directory:service_list' %}"><span class="ico">🤿</span><b>Experiences</b><span>Snorkeling, excursions, diving & fishing</span></a>
+      <a class="feature" href="{% url 'directory:transport_list' %}"><span class="ico">⛴️</span><b>Transport</b><span>Ferries, speedboats & domestic flights</span></a>
+      <a class="feature" href="{% url 'directory:food_list' %}"><span class="ico">🍽️</span><b>Food</b><span>Restaurants, cafés & local dining</span></a>
+      <a class="feature" href="{% url 'directory:island_list' %}"><span class="ico">🧭</span><b>Island guides</b><span>Facilities, regulations & accessibility</span></a>
+      <a class="feature" href="{% url 'directory:list_your_business' %}"><span class="ico">✔</span><b>Verified hosts</b><span>Licensed local businesses, checked by our team</span></a>
+    </div>
+  </div>
 </section>
 
 <section class="section">
@@ -58,10 +77,22 @@
 <section class="section" style="padding-top:0">
   <div class="container">
     <div class="section-head">
-      <div><div class="eyebrow">Book with locals</div><h2>Excursions, diving & transfers</h2></div>
+      <div><div class="eyebrow">Book with locals</div><h2>Excursions, diving & activities</h2></div>
       <a href="{% url 'directory:service_list' %}">All experiences →</a>
     </div>
     <div class="grid">{% for l in featured_services %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+
+{% if featured_food %}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-head">
+      <div><div class="eyebrow">Eat local</div><h2>Restaurants & cafés</h2></div>
+      <a href="{% url 'directory:food_list' %}">All food →</a>
+    </div>
+    <div class="grid">{% for l in featured_food %}{% include "partials/listing_card.html" %}{% endfor %}</div>
   </div>
 </section>
 {% endif %}

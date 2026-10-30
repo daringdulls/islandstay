@@ -114,7 +114,16 @@ class Island(models.Model):
     population = models.PositiveIntegerField(null=True, blank=True)
     has_bikini_beach = models.BooleanField(default=False)
     has_atm = models.BooleanField(default=False)
-    has_hospital = models.BooleanField(default=False, help_text="Health centre or hospital on the island")
+    has_hospital = models.BooleanField("Clinic / health centre", default=False, help_text="Health centre, clinic or hospital on the island")
+    has_pharmacy = models.BooleanField(default=False)
+    has_police = models.BooleanField("Police station", default=False)
+    has_supermarket = models.BooleanField("Shops / supermarket", default=False)
+    has_4g = models.BooleanField("4G mobile data", default=True)
+    nearest_airport = models.CharField(max_length=80, blank=True, help_text="Nearest airport, e.g. Velana International (MLE) or Maamigili (VAM)")
+    nearest_airport_km = models.PositiveIntegerField(null=True, blank=True)
+    facilities_notes = models.TextField(blank=True, help_text="Other facilities: mosques, sports ground, water sports centre… One per line.")
+    local_rules = models.TextField("Local regulations", blank=True, help_text="Rules visitors must follow (dress code, alcohol, drones…). One per line.")
+    accessibility = models.TextField(blank=True, help_text="Accessibility for visitors with reduced mobility, families with prams, etc. One per line.")
     cover_image = models.ImageField(upload_to="islands/", blank=True)
     cover_color = models.CharField(
         max_length=7, default="#0e7c86", help_text="Fallback colour when there is no cover photo"
@@ -150,6 +159,27 @@ class Island(models.Model):
         return [line.strip("-• ").strip() for line in self.what_to_expect.splitlines() if line.strip()]
 
     @property
+    def local_rules_list(self):
+        return [line.strip("-• ").strip() for line in self.local_rules.splitlines() if line.strip()]
+
+    @property
+    def accessibility_list(self):
+        return [line.strip("-• ").strip() for line in self.accessibility.splitlines() if line.strip()]
+
+    @property
+    def facilities_list(self):
+        return [line.strip("-• ").strip() for line in self.facilities_notes.splitlines() if line.strip()]
+
+    @property
+    def facility_flags(self):
+        return [
+            ("🏧", "ATM", self.has_atm), ("🏥", "Clinic / health centre", self.has_hospital),
+            ("💊", "Pharmacy", self.has_pharmacy), ("👮", "Police station", self.has_police),
+            ("🛒", "Shops / supermarket", self.has_supermarket), ("📶", "4G mobile data", self.has_4g),
+            ("👙", "Bikini beach", self.has_bikini_beach),
+        ]
+
+    @property
     def transfer_labels(self):
         labels = dict(self.TRANSFER_CHOICES)
         return [labels.get(t.strip(), t.strip()) for t in self.transfer_types.split(",") if t.strip()]
@@ -171,7 +201,10 @@ class Listing(models.Model):
     KIND_RESTAURANT = "restaurant"
     KIND_OTHER = "other"
     STAY_KINDS = [KIND_GUESTHOUSE, KIND_HOTEL, KIND_RESORT, KIND_VILLA]
-    SERVICE_KINDS = [KIND_ACTIVITY, KIND_DIVE, KIND_TRANSFER, KIND_RESTAURANT, KIND_OTHER]
+    EXPERIENCE_KINDS = [KIND_ACTIVITY, KIND_DIVE, KIND_OTHER]
+    TRANSPORT_KINDS = [KIND_TRANSFER]
+    FOOD_KINDS = [KIND_RESTAURANT]
+    SERVICE_KINDS = EXPERIENCE_KINDS + TRANSPORT_KINDS + FOOD_KINDS
     KIND_CHOICES = [
         ("Places to stay", [
             (KIND_GUESTHOUSE, "Guest house"),
@@ -179,12 +212,16 @@ class Listing(models.Model):
             (KIND_RESORT, "Resort"),
             (KIND_VILLA, "Private villa / home stay"),
         ]),
-        ("Services & experiences", [
+        ("Experiences", [
             (KIND_ACTIVITY, "Excursion / activity operator"),
             (KIND_DIVE, "Dive centre"),
+            (KIND_OTHER, "Other service (spa, photography…)"),
+        ]),
+        ("Transport", [
             (KIND_TRANSFER, "Speedboat / transfer service"),
+        ]),
+        ("Food", [
             (KIND_RESTAURANT, "Restaurant / café"),
-            (KIND_OTHER, "Other service"),
         ]),
     ]
 
@@ -247,11 +284,23 @@ class Listing(models.Model):
         max_length=60, blank=True, help_text="Ministry of Tourism / business registration no. (shown to admins only)"
     )
 
+    # Food
+    cuisine = models.CharField(max_length=120, blank=True, help_text="Restaurants: e.g. Maldivian, seafood, Italian")
+    opening_hours = models.CharField(max_length=120, blank=True, help_text="e.g. Daily 7:00–23:00, closed Friday until 14:00")
+    serves_breakfast = models.BooleanField(default=False)
+    delivery = models.BooleanField("Delivers to guest houses", default=False)
+
     cover_image = models.ImageField(upload_to="listings/", blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     admin_note = models.TextField(blank=True, help_text="Feedback to the owner (e.g. reason for rejection)")
     is_featured = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, help_text="Licence checked by the IslandStay team")
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verification_document = models.FileField(
+        upload_to="verification/", blank=True,
+        help_text="Tourism licence / business registration certificate (PDF or photo). Only visible to admins.",
+    )
+    verification_requested_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -274,6 +323,28 @@ class Listing(models.Model):
         return self.kind in self.STAY_KINDS
 
     @property
+    def is_food(self):
+        return self.kind in self.FOOD_KINDS
+
+    @property
+    def is_transport(self):
+        return self.kind in self.TRANSPORT_KINDS
+
+    @property
+    def section(self):
+        if self.is_stay:
+            return "stays"
+        if self.is_food:
+            return "food"
+        if self.is_transport:
+            return "transport"
+        return "experiences"
+
+    @property
+    def verification_pending(self):
+        return bool(self.verification_requested_at) and not self.is_verified
+
+    @property
     def is_live(self):
         return self.status == self.STATUS_APPROVED
 
@@ -287,6 +358,58 @@ class Listing(models.Model):
             "guesthouse": "🏠", "hotel": "🏨", "resort": "🏝️", "villa": "🏡", "activity": "🚤",
             "dive": "🤿", "transfer": "⛴️", "restaurant": "🍽️", "other": "✨",
         }.get(self.kind, "✨")
+
+
+class TransportRoute(models.Model):
+    """How to reach an island: public ferry, scheduled speedboat, domestic flight or seaplane.
+
+    Routes are either general information maintained by admins (public ferries, flights) or offered by
+    a transfer operator's listing, in which case travellers can send that operator a request.
+    """
+
+    MODE_CHOICES = [
+        ("ferry", "⛴️ Public ferry"),
+        ("speedboat", "🚤 Shared speedboat"),
+        ("private", "🛥️ Private speedboat"),
+        ("flight", "✈️ Domestic flight"),
+        ("seaplane", "🛩️ Seaplane"),
+    ]
+
+    island = models.ForeignKey(Island, on_delete=models.CASCADE, related_name="routes", help_text="Destination island")
+    mode = models.CharField(max_length=10, choices=MODE_CHOICES)
+    origin = models.CharField(max_length=80, default="Velana International Airport (MLE)")
+    via = models.CharField(max_length=80, blank=True, help_text="e.g. 'Maamigili airport, then 20 min speedboat'")
+    operator = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, null=True, blank=True, related_name="routes",
+        limit_choices_to={"kind__in": Listing.TRANSPORT_KINDS}, help_text="Transfer operator listing (optional)",
+    )
+    operator_name = models.CharField(max_length=80, blank=True, help_text="If not a listing, e.g. 'MTCC / RTL public ferry'")
+    duration = models.CharField(max_length=40, help_text="e.g. 1 hr 30 min")
+    schedule = models.CharField(max_length=160, blank=True, help_text="e.g. Daily 10:00 & 16:00 from the airport; no Friday service")
+    price_from = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    currency = models.CharField(max_length=3, choices=[("USD", "USD"), ("MVR", "MVR")], default="USD")
+    price_note = models.CharField(max_length=60, blank=True, help_text="e.g. per person one way")
+    notes = models.CharField(max_length=240, blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "mode"]
+
+    def __str__(self):
+        return f"{self.get_mode_display()} {self.origin} → {self.island.name}"
+
+    @property
+    def mode_icon(self):
+        return self.get_mode_display().split(" ", 1)[0]
+
+    @property
+    def mode_label(self):
+        return self.get_mode_display().split(" ", 1)[1]
+
+    @property
+    def provider(self):
+        return self.operator.name if self.operator_id else self.operator_name
 
 
 class ListingPhoto(models.Model):

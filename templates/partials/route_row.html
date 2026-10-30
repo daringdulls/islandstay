@@ -1,0 +1,15 @@
+<div class="route">
+  <div class="mode" title="{{ r.mode_label }}">{{ r.mode_icon }}</div>
+  <div>
+    <h4>{{ r.mode_label }} · {{ r.origin }} → {% if show_island %}<a href="{{ r.island.get_absolute_url }}#transport">{{ r.island.name }}</a>{% else %}{{ r.island.name }}{% endif %}</h4>
+    <div class="small"><b>{{ r.duration }}</b>{% if r.via %} · via {{ r.via }}{% endif %}</div>
+    {% if r.schedule %}<div class="small muted">🕒 {{ r.schedule }}</div>{% endif %}
+    {% if r.notes %}<div class="small muted">{{ r.notes }}</div>{% endif %}
+    {% if r.provider %}<div class="small" style="margin-top:4px">Operator: {% if r.operator %}<a href="{{ r.operator.get_absolute_url }}">{{ r.operator.name }}</a>{% if r.operator.is_verified %} <span class="verified-badge" style="padding:1px 7px">✔ Verified</span>{% endif %}{% else %}{{ r.operator_name }}{% endif %}</div>{% endif %}
+  </div>
+  <div class="price">
+    {% if r.price_from %}<div>from <b>{% if r.currency == 'USD' %}${% else %}MVR {% endif %}{{ r.price_from|floatformat:0 }}</b></div>{% endif %}
+    {% if r.price_note %}<div class="small muted">{{ r.price_note }}</div>{% endif %}
+    {% if r.operator %}<a class="btn btn-sm" style="margin-top:6px" href="{{ r.operator.get_absolute_url }}#request">Request</a>{% endif %}
+  </div>
+</div>
