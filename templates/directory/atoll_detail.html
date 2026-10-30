@@ -3,11 +3,12 @@
 {% block content %}
 <section class="page-hero"><div class="container">
   <div class="crumbs"><a href="{% url 'directory:atoll_list' %}">Atolls</a></div>
-  <h1>{{ atoll.name }}{% if atoll.official_name and atoll.official_name != atoll.name %} <span style="opacity:.7;font-weight:600">· {{ atoll.official_name }}</span>{% endif %}</h1>
+  <div class="eyebrow">{{ atoll.official_name }}{% if atoll.code %} · {{ atoll.code }}{% endif %} · {{ atoll.get_region_display }}</div>
+  <h1>{{ atoll.name }}</h1>
   <p>{{ atoll.description }}</p>
 </div></section>
 <div class="container section">
   {% if islands %}<div class="grid">{% for island in islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
-  {% else %}<div class="empty">No islands published in this atoll yet. <a href="{% url 'directory:suggest_island' %}">Suggest one →</a></div>{% endif %}
+  {% else %}<div class="empty">No island guides for this atoll yet. <a href="{% url 'directory:suggest_island' %}">Suggest an island.</a></div>{% endif %}
 </div>
 {% endblock %}

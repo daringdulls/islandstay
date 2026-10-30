@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.forms import inlineformset_factory
 
 from .models import Amenity, ActivityType, Enquiry, Island, IslandSuggestion, Listing, RoomType, TransportRoute
@@ -105,23 +106,28 @@ class ListingForm(forms.ModelForm):
 
     def __getattr__(self, name):
         if name in ListingForm.GROUPS:
-            return [self[f] for f in ListingForm.GROUPS[name]]
+            return [self[f] for f in ListingForm.GROUPS[name] if f in self.fields]
         raise AttributeError(name)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not settings.SHOW_PRICES:
+            for f in ListingForm.GROUPS["pricing"]:
+                self.fields.pop(f)
         self.fields["island"].label_from_instance = lambda i: f"{i.name} — {i.atoll.name}"
 
 
 RoomFormSet = inlineformset_factory(
-    Listing, RoomType, fields=["name", "description", "max_guests", "price_from"], extra=2, can_delete=True,
+    Listing, RoomType, fields=["name", "description", "max_guests"] + (["price_from"] if settings.SHOW_PRICES else []),
+    extra=2, can_delete=True,
     labels={"name": "Room / package name", "price_from": "From price"},
 )
 
 
 RouteFormSet = inlineformset_factory(
     Listing, TransportRoute, fk_name="operator",
-    fields=["island", "mode", "origin", "via", "duration", "schedule", "price_from", "currency", "price_note", "notes", "is_active"],
+    fields=["island", "mode", "origin", "via", "duration", "schedule", "notes", "is_active"]
+    + (["price_from", "currency", "price_note"] if settings.SHOW_PRICES else []),
     extra=2, can_delete=True,
     labels={"island": "To island", "origin": "From", "price_from": "Price from"},
 )

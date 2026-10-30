@@ -5,10 +5,10 @@
   <a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
   <div class="panel" style="margin-top:8px">
     <h1 style="font-size:1.7rem">Become a Verified host</h1>
-    <p class="muted">Travellers trust verified businesses more. Upload your Ministry of Tourism licence (guest houses, resorts, dive centres, excursion operators) or your business registration certificate (restaurants, transfer services). We check it and add the <span class="verified-badge">✔ Verified host</span> badge to <b>{{ listing.name }}</b>.</p>
+    <p class="muted">Travellers trust verified businesses more. Upload your Ministry of Tourism licence (guest houses, resorts, dive centres, excursion operators) or your business registration certificate (restaurants, transfer services). We check it and add the <b>Verified host</b> badge to <b>{{ listing.name }}</b>.</p>
     {% if listing.verification_pending %}<div class="notice" style="margin-bottom:14px">You submitted documents on {{ listing.verification_requested_at|date:"j M Y" }}. They're being reviewed — you can upload a newer file below.</div>{% endif %}
     <form method="post" enctype="multipart/form-data">{% csrf_token %}{% include "partials/form_fields.html" %}
-      <button class="btn btn-coral btn-block" style="margin-top:16px">Submit for verification</button></form>
+      <button class="btn btn-accent btn-block" style="margin-top:16px">Submit for verification</button></form>
     <p class="small muted" style="margin-top:12px">Your documents are only visible to the {{ SITE_NAME }} team.</p>
   </div>
 </div>

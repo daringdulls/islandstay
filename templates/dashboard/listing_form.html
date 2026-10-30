@@ -36,16 +36,15 @@
       {% endfor %}
       <p class="small muted" style="margin:8px 0 0">Save to add more rows.</p>
     </fieldset>
-
-    <fieldset><legend>Indicative pricing</legend><p class="small muted">Shown as "from" prices. You confirm the final price with each guest — there's no payment on {{ SITE_NAME }}.</p><div class="form-grid">
+    {% if SHOW_PRICES %}<fieldset><legend>Indicative pricing</legend><p class="small muted">Shown as "from" prices. You confirm the final rate with each guest.</p><div class="form-grid">
       {% for f in form.pricing %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
-    </div></fieldset>
+    </div></fieldset>{% endif %}
 
     <fieldset><legend>Contact details</legend><p class="small muted">Booking requests are emailed to the contact email. Phone and WhatsApp are shown to travellers.</p><div class="form-grid">
       {% for f in form.contact %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
     </div></fieldset>
 
-    <div class="row"><button class="btn btn-coral" type="submit">{% if creating %}Submit for review{% else %}Save changes{% endif %}</button><a class="btn btn-ghost" href="{% url 'directory:dashboard' %}">Cancel</a></div>
+    <div class="row"><button class="btn" type="submit">{% if creating %}Submit for review{% else %}Save changes{% endif %}</button><a class="btn btn-ghost" href="{% url 'directory:dashboard' %}">Cancel</a></div>
   </form>
 </div>
 {% endblock %}

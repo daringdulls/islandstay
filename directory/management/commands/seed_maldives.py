@@ -42,36 +42,36 @@ ATOLLS = [
 ]
 
 ACTIVITIES = [
-    ("Snorkeling", "🐠", "House reefs and boat snorkeling trips"),
-    ("Scuba diving", "🤿", "Fun dives, PADI courses and channel dives"),
-    ("Sandbank picnic", "🏖️", "Half-day trips to a sandbank in the middle of the lagoon"),
-    ("Dolphin cruise", "🐬", "Sunset boat rides to spot spinner dolphins"),
-    ("Sunset & night fishing", "🎣", "Traditional handline fishing, often with a BBQ of your catch"),
-    ("Whale shark excursion", "🦈", "Snorkel with whale sharks along the South Ari MPA"),
-    ("Manta ray snorkeling", "🌊", "Swim with manta rays at cleaning and feeding stations"),
-    ("Nurse sharks & stingrays", "🐟", "Watch nurse sharks and rays in shallow water"),
-    ("Turtle snorkeling", "🐢", "Snorkel with green and hawksbill turtles"),
-    ("Surfing", "🏄", "Reef breaks for all levels, best March–October"),
-    ("Kayaking & SUP", "🛶", "Paddle around the lagoon or through mangroves"),
-    ("Resort day trip", "🏝️", "Enjoy a resort's facilities for the day"),
-    ("Island hopping", "⛵", "Visit neighbouring local and uninhabited islands"),
-    ("Local culture & village walk", "🕌", "Mosques, Bodu Beru drumming and island life"),
-    ("Hammerhead dive", "🔨", "Early-morning dives to see scalloped hammerheads"),
-    ("Tiger shark dive", "🐅", "Advanced dives with tiger sharks"),
-    ("Big game fishing", "🐟", "Deep-sea trolling for tuna, wahoo and sailfish"),
-    ("Water sports", "🚤", "Jet ski, banana boat, parasailing and tubing"),
-    ("Spa & wellness", "💆", "Massage, yoga and wellness"),
-    ("Freediving", "🫧", "Courses and guided freediving sessions"),
-    ("Wreck diving", "⚓", "Dive historic shipwrecks"),
-    ("Bioluminescence", "✨", "Spot glowing plankton on the shore at night (seasonal)"),
+    ("Snorkeling", "fish", "House reefs and boat snorkeling trips"),
+    ("Scuba diving", "anchor", "Fun dives, PADI courses and channel dives"),
+    ("Sandbank picnic", "sun", "Half-day trips to a sandbank in the middle of the lagoon"),
+    ("Dolphin cruise", "waves", "Sunset boat rides to spot spinner dolphins"),
+    ("Sunset & night fishing", "sunset", "Traditional handline fishing, often with a BBQ of your catch"),
+    ("Whale shark excursion", "fish-symbol", "Snorkel with whale sharks along the South Ari MPA"),
+    ("Manta ray snorkeling", "waves", "Swim with manta rays at cleaning and feeding stations"),
+    ("Nurse sharks & stingrays", "fish", "Watch nurse sharks and rays in shallow water"),
+    ("Turtle snorkeling", "turtle", "Snorkel with green and hawksbill turtles"),
+    ("Surfing", "waves", "Reef breaks for all levels, best March–October"),
+    ("Kayaking & SUP", "sailboat", "Paddle around the lagoon or through mangroves"),
+    ("Resort day trip", "tree-palm", "Enjoy a resort's facilities for the day"),
+    ("Island hopping", "compass", "Visit neighbouring local and uninhabited islands"),
+    ("Local culture & village walk", "landmark", "Mosques, Bodu Beru drumming and island life"),
+    ("Hammerhead dive", "anchor", "Early-morning dives to see scalloped hammerheads"),
+    ("Tiger shark dive", "anchor", "Advanced dives with tiger sharks"),
+    ("Big game fishing", "ship-wheel", "Deep-sea trolling for tuna, wahoo and sailfish"),
+    ("Water sports", "life-buoy", "Jet ski, banana boat, parasailing and tubing"),
+    ("Spa & wellness", "flower-2", "Massage, yoga and wellness"),
+    ("Freediving", "droplets", "Courses and guided freediving sessions"),
+    ("Wreck diving", "ship", "Dive historic shipwrecks"),
+    ("Bioluminescence", "sparkles", "Spot glowing plankton on the shore at night (seasonal)"),
 ]
 
 AMENITIES = [
-    ("Free WiFi", "📶"), ("Air conditioning", "❄️"), ("Breakfast included", "🍳"), ("Restaurant", "🍽️"),
-    ("Airport transfer arranged", "🚤"), ("Hot water", "🚿"), ("Sea view", "🌅"), ("Beach access", "🏖️"),
-    ("Rooftop terrace", "🌴"), ("Excursion desk", "🗺️"), ("Snorkel gear", "🤿"), ("Laundry", "🧺"),
-    ("Family rooms", "👨‍👩‍👧"), ("Bicycle rental", "🚲"), ("Dive centre on site", "🐠"), ("Halal food", "🥘"),
-    ("Swimming pool", "🏊"), ("24h reception", "🛎️"), ("Private bathroom", "🛁"), ("Kayak / SUP", "🛶"),
+    ("Free WiFi", "wifi"), ("Air conditioning", "snowflake"), ("Breakfast included", "egg-fried"), ("Restaurant", "utensils"),
+    ("Airport transfer arranged", "plane-landing"), ("Hot water", "shower-head"), ("Sea view", "sunset"), ("Beach access", "umbrella"),
+    ("Rooftop terrace", "sun"), ("Excursion desk", "map"), ("Snorkel gear", "fish"), ("Laundry", "shirt"),
+    ("Family rooms", "users"), ("Bicycle rental", "bike"), ("Dive centre on site", "anchor"), ("Halal food", "soup"),
+    ("Swimming pool", "droplets"), ("24h reception", "concierge-bell"), ("Private bathroom", "bath"), ("Kayak / SUP", "sailboat"),
 ]
 
 STD_RULES = [
@@ -276,6 +276,41 @@ ISLANDS = [
 ]
 
 
+CENSUS = "https://census.gov.mv/2022/wp-content/uploads/2023/07/P5.pdf"
+
+
+def wp(title):
+    return f"https://en.wikipedia.org/wiki/{title}"
+
+
+# Facts gathered from Wikipedia, the 2022 Maldives census (via citypopulation.de) and island council sites.
+# pop = 2022 census residents (including foreign residents); area in km²; km = distance from Malé.
+FACTS = {
+    "Malé": dict(pop=211908, area=8.30, wiki="Malé", note="Malé City recorded 211,908 residents in the 2022 census, about two in five of everyone living in the Maldives."),
+    "Hulhumalé": dict(pop=53193, area=4.0, wiki="Hulhumalé", note="Hulhumalé had 53,193 residents in 2022 and is the fastest-growing part of the capital region."),
+    "Maafushi": dict(pop=4471, area=0.416, km=26, wiki="Maafushi_(Kaafu_Atoll)", note="With 4,471 residents in the 2022 census, Maafushi is one of the most densely built local islands, about 26 km south of Malé."),
+    "Guraidhoo": dict(pop=1743, km=31, wiki="Guraidhoo_(Kaafu_Atoll)", note="Guraidhoo lies about 31 km south of Malé and had 1,743 residents in 2022."),
+    "Gulhi": dict(pop=976, wiki="Gulhi", note="Gulhi, a near neighbour of Maafushi in South Malé Atoll, had 976 residents in the 2022 census."),
+    "Huraa": dict(pop=1654, km=20, wiki="Huraa_(Kaafu_Atoll)", note="Huraa sits about 20 km north-east of Malé. The mangrove swamp at its northern end is a protected nature reserve."),
+    "Thulusdhoo": dict(pop=1801, wiki="Thulusdhoo", note="The island's Coca-Cola plant, run by the Male' Aerated Water Company for more than 30 years, is widely described as the only one in the world that bottles with desalinated seawater."),
+    "Himmafushi": dict(pop=2012, wiki="Himmafushi", note="The 2022 census counted 2,012 people on Himmafushi; the total includes residents of the island's correctional and rehabilitation facilities."),
+    "Dhiffushi": dict(pop=1270, km=37, wiki="Dhiffushi_(Kaafu_Atoll)", note="Dhiffushi is about 37 km north-east of Malé on the eastern rim of North Malé Atoll, with 1,270 residents in 2022."),
+    "Fulidhoo": dict(pop=400, area=0.113, km=56, wiki="Fulidhoo", note="Just 11 hectares in size and home to 400 people (2022), Fulidhoo lies about 56 km south of Malé in Vaavu, the least populated atoll in the country."),
+    "Rasdhoo": dict(pop=1282, km=58, wiki="Rasdhoo", note="Rasdhoo is the only inhabited island on its own small natural atoll, about 58 km west of Malé, with 1,282 residents in 2022."),
+    "Ukulhas": dict(pop=1284, area=1.0, wiki="Ukulhas", note="Ukulhas opened a waste management centre in November 2011 and is often cited as the first island in the Maldives to manage its waste systematically; a UNDP study uses it as a case study."),
+    "Mathiveri": dict(pop=878, km=85, wiki="Mathiveri", note="Mathiveri is about 85 km west of Malé and had 878 residents in the 2022 census."),
+    "Thoddoo": dict(pop=1924, area=1.726, wiki="Thoddoo", note="Thoddoo is the largest watermelon producer in the Maldives, with much of the harvest timed for Ramadan. Archaeologists have found Buddhist remains here from the centuries before the country converted to Islam."),
+    "Dhigurah": dict(pop=761, wiki="Dhigurah_(Alif_Dhaalu_Atoll)", note="About 3.2 km long and less than 300 m wide, Dhigurah is the home base of the Maldives Whale Shark Research Programme. It had 761 residents in 2022."),
+    "Dhangethi": dict(pop=936, area=0.245, km=88, wiki="Dhangethi", note="Dhangethi measures roughly 925 m by 350 m and is the third most populous island of Alif Dhaal Atoll, with 936 residents in the 2022 census."),
+    "Fenfushi": dict(pop=1000, wiki="Fenfushi_(Alif_Dhaal_Atoll)", note="Fenfushi had 1,000 residents in the 2022 census."),
+    "Omadhoo": dict(pop=913, km=74, wiki="Omadhoo_(Alif_Dhaalu_Atoll)", note="Omadhoo lies about 74 km south-west of Malé and is linked to the capital by ferry and scheduled speedboats. Population 913 (2022)."),
+    "Dharavandhoo": dict(pop=997, wiki="Dharavandhoo", note="Dharavandhoo Airport (DRV) opened on 17 October 2012, a few minutes by boat from Hanifaru Bay, where up to a hundred manta rays can gather to feed."),
+    "Hanimaadhoo": dict(pop=2664, wiki="Hanimaadhoo", note="Hanimaadhoo International Airport (HAQ) opened for domestic flights in 1986 and gained international status in 2012; its runway is 2,465 m long. The island had 2,664 residents in 2022."),
+    "Fuvahmulah": dict(pop=9177, area=4.94, wiki="Fuvahmulah", note="Fuvahmulah covers about 4.9 km² — large for the Maldives — and had roughly 9,200 usual residents in the 2022 census."),
+    "Hithadhoo": dict(pop=13759, wiki="Hithadhoo_(Addu)", note="With 13,759 residents in the 2022 census, Hithadhoo is the most populous administrative island in the Maldives after Malé."),
+}
+
+
 def default_routes(d):
     """Indicative routes derived from an island's transfer types. Refine them in the admin."""
     routes, t = [], d["transfers"]
@@ -357,6 +392,10 @@ class Command(BaseCommand):
 
         acts = {a.name: a for a in ActivityType.objects.all()}
         for d in ISLANDS:
+            f = FACTS.get(d["name"], {})
+            d = {**d, "pop": f.get("pop", d["pop"]), "km": f.get("km", d["km"])}
+            if f.get("note"):
+                d["overview"] = d["overview"] + "\n\n" + f["note"]
             expect = d["expect"] or "\n".join(STD_EXPECT)
             island, _ = Island.objects.update_or_create(
                 name=d["name"], atoll=Atoll.objects.get(name=d["atoll"]),
@@ -372,6 +411,8 @@ class Command(BaseCommand):
                     local_rules=d.get("rules", "\n".join(STD_RULES)), accessibility=d.get("access", "\n".join(STD_ACCESS)),
                     facilities_notes=d.get("facilities", ""),
                     is_featured=d.get("featured", False), is_published=True,
+                    area_km2=f.get("area"), population_year=2022, wikipedia_title=f.get("wiki", ""),
+                    sources="\n".join(u for u in [wp(f["wiki"]) if f.get("wiki") else "", CENSUS] if u),
                 ),
             )
             island.activities.set([acts[a] for a in d["activities"]])

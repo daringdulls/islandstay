@@ -1,32 +1,32 @@
 {% extends "base.html" %}
-{% block title %}List your guest house, resort or service{% endblock %}
+{% load ui %}
+{% block title %}List your guest house, experience or restaurant{% endblock %}
 {% block content %}
-<section class="hero"><div class="container" style="padding-bottom:90px">
-  <div class="eyebrow" style="color:#bff6f1">For island businesses</div>
-  <h1>Get booking requests directly from travellers — free.</h1>
-  <p class="lead">List your guest house, hotel, resort, dive centre, excursion or transfer service under your island. Guests contact you directly. No commission, no channel manager, no payment processing.</p>
-  <div class="row" style="margin-top:24px">
-    {% if user.is_authenticated %}<a class="btn btn-coral" href="{% url 'directory:listing_create' %}">Add a listing</a>
-    {% else %}<a class="btn btn-coral" href="{% url 'accounts:signup' %}">Create a free account</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" href="{% url 'accounts:login' %}">I already have an account</a>{% endif %}
+<section class="hero"><div class="hero-media chart"></div><div class="container">
+  <div class="eyebrow">For island businesses</div>
+  <h1>Receive requests from travellers <em>directly</em>.</h1>
+  <p class="lead">List your guest house, hotel, dive centre, excursion, transfer service or restaurant under your island. No commission, no channel manager and no payment processing.</p>
+  <div class="row" style="margin-top:28px">
+    {% if user.is_authenticated %}<a class="btn btn-accent" href="{% url 'directory:listing_create' %}">Add a listing</a>
+    {% else %}<a class="btn btn-accent" href="{% url 'accounts:signup' %}">Create a free account</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="{% url 'accounts:login' %}">Log in</a>{% endif %}
   </div>
-</div>
-<svg class="waves" viewBox="0 0 1440 80" preserveAspectRatio="none"><path fill="#fbfaf7" d="M0 40 C 240 80 480 0 720 30 S 1200 70 1440 30 V80 H0z"/></svg></section>
+</div></section>
 <div class="container section">
-  <h2>How it works</h2>
-  <div class="steps" style="margin-top:16px">
-    <div class="step"><h3>Create your account</h3><p class="muted">Sign up with your email in under a minute.</p></div>
-    <div class="step"><h3>Add your listing</h3><p class="muted">Choose your island, add photos, rooms or packages, prices and contact details.</p></div>
-    <div class="step"><h3>We review it</h3><p class="muted">Our team checks every listing (usually within 1–2 working days) before it goes live.</p></div>
-    <div class="step"><h3>Receive requests</h3><p class="muted">Requests arrive in your email and dashboard. Reply to the guest directly and agree payment your way.</p></div>
+  <div class="section-title"><h2>How listing works</h2></div>
+  <div class="steps light">
+    <div class="step"><h3>Create an account</h3><p>Sign up with your email in under a minute.</p></div>
+    <div class="step"><h3>Add your listing</h3><p>Choose your island and add photos, rooms or packages and contact details.</p></div>
+    <div class="step"><h3>We review it</h3><p>Our team checks every listing, usually within one or two working days.</p></div>
+    <div class="step"><h3>Receive requests</h3><p>Requests arrive by email and in your dashboard. Reply to the guest directly.</p></div>
   </div>
-  <div class="grid-2" style="margin-top:36px">
-    <div class="panel"><h3>🏠 Places to stay</h3><p class="muted" style="margin:0">Guest houses, island hotels, private villas & home stays, and resorts.</p></div>
-    <div class="panel"><h3>🤿 Experiences</h3><p class="muted" style="margin:0">Excursion operators, dive centres, fishing trips and other activities.</p></div>
-    <div class="panel"><h3>⛴️ Transport</h3><p class="muted" style="margin:0">Speedboat and transfer services — add your routes and appear on every island you serve.</p></div>
-    <div class="panel"><h3>🍽️ Food</h3><p class="muted" style="margin:0">Restaurants and cafés — show your cuisine, opening hours and take table requests.</p></div>
-    <div class="panel"><h3>✔ Verified host badge</h3><p class="muted" style="margin:0">Upload your tourism licence or business registration and we'll add a Verified host badge that builds traveller trust.</p></div>
-    <div class="panel"><h3>🏝️ Tied to your island</h3><p class="muted" style="margin:0">Your listing appears on your island's guide page, which travellers use to plan their trip. {{ islands_count }} islands and growing — <a href="{% url 'directory:suggest_island' %}">suggest yours</a>.</p></div>
-    <div class="panel"><h3>📬 You stay in control</h3><p class="muted" style="margin:0">No availability calendar to maintain and no payments through us. You confirm each request yourself.</p></div>
+  <div class="section-title" style="margin-top:48px"><h2>Who can list</h2></div>
+  <div class="grid-2">
+    <div class="panel"><h3>{% icon "house" %} Stays</h3><p class="muted" style="margin:0">Guest houses, island hotels, private villas, home stays and resorts.</p></div>
+    <div class="panel" style="margin-top:0"><h3>{% icon "sailboat" %} Experiences</h3><p class="muted" style="margin:0">Excursion operators, dive centres, fishing trips and other activities.</p></div>
+    <div class="panel" style="margin-top:0"><h3>{% icon "ship" %} Transport</h3><p class="muted" style="margin:0">Speedboat and transfer services. Add your routes and appear on every island you serve.</p></div>
+    <div class="panel" style="margin-top:0"><h3>{% icon "utensils" %} Food</h3><p class="muted" style="margin:0">Restaurants and cafés. Show your cuisine and opening hours and take table requests.</p></div>
+    <div class="panel" style="margin-top:0"><h3>{% icon "badge-check" %} Verified host badge</h3><p class="muted" style="margin:0">Upload your tourism licence or business registration and we add a Verified host badge to your listing.</p></div>
+    <div class="panel" style="margin-top:0"><h3>{% icon "inbox" %} You stay in control</h3><p class="muted" style="margin:0">No availability calendar and no payments through us. You confirm each request yourself. {{ islands_count }} island guides and growing; <a href="{% url 'directory:suggest_island' %}">suggest yours</a>.</p></div>
   </div>
 </div>
 {% endblock %}

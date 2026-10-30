@@ -47,7 +47,19 @@ class IslandRouteInline(admin.TabularInline):
 @admin.register(Island)
 class IslandAdmin(admin.ModelAdmin):
     inlines = [IslandRouteInline]
-    list_display = ("name", "atoll", "island_type", "listing_count", "has_bikini_beach", "is_featured", "is_published")
+    actions = ["fetch_photos"]
+
+    @admin.action(description="Fetch cover photo from Wikimedia Commons")
+    def fetch_photos(self, request, queryset):
+        import io
+
+        from django.core.management import call_command
+
+        out = io.StringIO()
+        for island in queryset:
+            call_command("fetch_island_photos", island=island.slug, force=True, stdout=out, stderr=out)
+        self.message_user(request, out.getvalue().strip()[-900:] or "Done.")
+    list_display = ("name", "atoll", "island_type", "population", "listing_count", "has_photo", "is_featured", "is_published")
     list_editable = ("is_featured", "is_published")
     list_filter = ("atoll", "island_type", "is_published", "is_featured", "has_bikini_beach", "activities")
     search_fields = ("name", "atoll__name", "tagline")
@@ -57,10 +69,11 @@ class IslandAdmin(admin.ModelAdmin):
         (None, {"fields": ("atoll", "name", "slug", "island_type", "tagline", "is_published", "is_featured")}),
         ("About the island", {"fields": ("overview", "famous_for", "what_to_expect", "best_time_to_visit", "activities")}),
         ("Getting there", {"fields": ("getting_there", "transfer_types", "distance_from_airport_km", "transfer_time", "nearest_airport", "nearest_airport_km")}),
-        ("Facilities", {"fields": ("population", "has_bikini_beach", "has_atm", "has_hospital", "has_pharmacy", "has_police", "has_supermarket", "has_4g", "facilities_notes")}),
+        ("Facts & sources", {"fields": ("population", "population_year", "area_km2", "sources", "wikipedia_title")}),
+        ("Facilities", {"fields": ("has_bikini_beach", "has_atm", "has_hospital", "has_pharmacy", "has_police", "has_supermarket", "has_4g", "facilities_notes")}),
         ("Regulations & accessibility", {"fields": ("local_rules", "accessibility")}),
         ("Map", {"classes": ("collapse",), "fields": ("latitude", "longitude")}),
-        ("Appearance", {"fields": ("cover_image", "cover_color")}),
+        ("Cover photo", {"fields": ("cover_image", "cover_credit", "cover_license", "cover_source_url", "cover_color")}),
     )
 
     def get_queryset(self, request):
@@ -69,6 +82,10 @@ class IslandAdmin(admin.ModelAdmin):
     @admin.display(description="Listings", ordering="_n")
     def listing_count(self, obj):
         return obj._n
+
+    @admin.display(description="Photo", boolean=True)
+    def has_photo(self, obj):
+        return bool(obj.cover_image)
 
 
 class PhotoInline(admin.TabularInline):
@@ -160,20 +177,20 @@ class ListingAdmin(admin.ModelAdmin):
             n += 1
         self.message_user(request, f"{n} listing(s) updated and owners notified.", messages.SUCCESS)
 
-    @admin.action(description="✅ Approve selected listings (go live)")
+    @admin.action(description="Approve selected listings (go live)")
     def approve(self, request, queryset):
         self._set_status(request, queryset, Listing.STATUS_APPROVED)
 
-    @admin.action(description="❌ Reject selected listings")
+    @admin.action(description="Reject selected listings")
     def reject(self, request, queryset):
         self._set_status(request, queryset, Listing.STATUS_REJECTED)
 
-    @admin.action(description="✔ Mark selected as Verified host")
+    @admin.action(description="Mark selected as Verified host")
     def verify(self, request, queryset):
         n = queryset.filter(is_verified=False).update(is_verified=True, verified_at=timezone.now())
         self.message_user(request, f"{n} listing(s) marked as verified.", messages.SUCCESS)
 
-    @admin.action(description="⏸ Suspend selected listings")
+    @admin.action(description="Suspend selected listings")
     def suspend(self, request, queryset):
         self._set_status(request, queryset, Listing.STATUS_SUSPENDED)
 

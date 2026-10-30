@@ -1,31 +1,38 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}How it works{% endblock %}
 {% block content %}
-<section class="page-hero"><div class="container"><h1>How {{ SITE_NAME }} works</h1><p>We're a local directory, not a booking engine. We connect you directly with the people who run the guest houses, resorts and tours on each island.</p></div></section>
-<div class="container section" style="max-width:860px">
+<section class="page-hero"><div class="container"><div class="eyebrow">About</div><h1>How {{ SITE_NAME }} works</h1><p>An independent guide, not a booking engine. We connect you directly with the people who run the guest houses, operators and restaurants on each island.</p></div></section>
+<div class="container section" style="max-width:880px">
   <div class="stack">
-    <div class="panel"><h3>For travellers</h3>
-      <ol><li>Explore an island's guide: what it's famous for, what to expect, activities and how to get there.</li>
-      <li>Pick a place to stay or a service on that island.</li>
-      <li>Send a request with your dates, group size and questions. It's emailed straight to the owner, and you get a copy with a reference number.</li>
-      <li>The owner replies to you directly — by email, WhatsApp or phone, whichever you chose — to confirm availability, the final price and how to pay.</li></ol>
-      <p class="muted" style="margin:0">We never take payments or card details, and sending a request doesn't commit you to anything.</p>
+    <div class="panel"><h3>{% icon "users" %} For travellers</h3>
+      <ul class="list-check">
+        <li>Read an island guide: what it's known for, facilities, local rules and how to get there.</li>
+        <li>Choose a place to stay, an experience, a transfer or a restaurant on that island.</li>
+        <li>Send a request with your dates, group size and questions. It is emailed straight to the owner, and you receive a copy with a reference number.</li>
+        <li>The owner replies by email, WhatsApp or phone, as you prefer, to confirm availability, the rate and how to pay.</li>
+      </ul>
+      <p class="muted" style="margin:14px 0 0">We never take payments or card details, and sending a request doesn't commit you to anything.</p>
     </div>
-    <div class="panel"><h3>For businesses</h3>
-      <p>Create a free account, add your listing under your island and wait for our team to approve it. Requests are emailed to you and saved in your dashboard, where you can track each one as replied, confirmed or declined.</p>
-      <a class="btn btn-coral" href="{% url 'directory:list_your_business' %}">List your business</a>
+    <div class="panel"><h3>{% icon "store" %} For businesses</h3>
+      <p>Create a free account, add your listing under your island and wait for our team to approve it. Requests are emailed to you and saved in your dashboard, where you can mark each one as replied, confirmed or declined.</p>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your business</a>
     </div>
-    <div class="panel" id="verified"><h3><span class="verified-badge">✔ Verified host</span></h3>
-      <p style="margin:0">Businesses with this badge have shown our team a valid Ministry of Tourism licence or business registration. Every listing is reviewed before it goes live, but verification is an extra check. As with any travel arrangement, agree prices and payment terms in writing with the host.</p>
+    <div class="panel" id="verified"><h3>{% icon "badge-check" %} Verified hosts</h3>
+      <p style="margin:0">Businesses with this badge have shown our team a valid Ministry of Tourism licence or business registration. Every listing is reviewed before it goes live; verification is an extra check. As with any travel arrangement, agree rates and payment terms in writing with the host.</p>
     </div>
-    <div class="panel" id="local-islands"><h3>Staying on a local island</h3>
+    <div class="panel" id="local-islands"><h3>{% icon "scroll-text" %} Staying on a local island</h3>
       <ul class="list-check expect">
-        <li>Local islands are home to Maldivian communities, and Islam is the state religion. Dress modestly in the village: cover your shoulders and knees.</li>
+        <li>Local islands are home to Maldivian communities, and Islam is the state religion. Dress modestly in the village: cover shoulders and knees.</li>
         <li>Swimwear is fine on designated bikini beaches, on excursions and on resort day trips.</li>
         <li>Alcohol isn't sold on local islands. Resorts, liveaboards and some floating bars serve it.</li>
         <li>Friday is the weekly day of rest: public ferries run less and shops close around midday prayers.</li>
-        <li>Transfers are by speedboat, public ferry, seaplane or domestic flight. Your host can usually arrange them for you.</li>
+        <li>Transfers are by speedboat, public ferry, seaplane or domestic flight. Your host can usually arrange them.</li>
       </ul>
+    </div>
+    <div class="panel" id="sources"><h3>{% icon "book-open" %} Sources and photo credits</h3>
+      <p>Island populations are from the 2022 Maldives Population and Housing Census, as published by the National Bureau of Statistics and summarised on Wikipedia and citypopulation.de. Distances, areas and history come from the Wikipedia article for each island, which is linked at the bottom of every island guide.</p>
+      <p style="margin:0">Island photos come from Wikimedia Commons under free licences. The photographer and licence are shown on each photo. Business photos are supplied by the businesses themselves. Icons are from Lucide (ISC licence).</p>
     </div>
   </div>
 </div>

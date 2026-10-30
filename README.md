@@ -17,6 +17,13 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+Optional, once your network can reach Wikipedia: add a freely licensed cover photo to every island,
+with the photographer and licence recorded and shown on the site:
+
+```bash
+python manage.py fetch_island_photos
+```
+
 - Site: http://localhost:8000
 - Admin back office: http://localhost:8000/admin/
 - Demo owner login: `owner@demo.mv` / `demo12345`
@@ -77,6 +84,21 @@ The site is organised around six things a visitor needs on each island:
 | `DJANGO_EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` to send real email (default prints to console) |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | SMTP settings |
 | `ADMIN_NOTIFY_EMAILS` | Comma-separated emails notified when a new listing is submitted |
+| `SHOW_PRICES` | `1` to show indicative "from" prices. Off by default: prices, price filters and price fields are hidden |
+
+## Design
+
+The look borrows from nautical charts: buff land, pale shoal water, depth contours and monospaced chart
+annotations (atoll code, distance from Malé, census population). Islands without a photo get a drawn chart
+cover instead of a placeholder. Fonts: Instrument Serif, Public Sans and JetBrains Mono (Google Fonts).
+Icons: Lucide (ISC licence), bundled in `static/img/icons.svg` and used with `{% load ui %}{% icon "name" %}`.
+
+## Island facts and photos
+
+Island population figures come from the 2022 Maldives Population and Housing Census, with areas,
+distances and history from each island's Wikipedia article. Every island page lists its sources.
+Island photos come from Wikimedia Commons via `fetch_island_photos` (or the "Fetch cover photo" action in
+the admin); the author, licence and source link are stored and shown with the photo.
 
 ## Notes
 - Island facts, facilities and transport routes in the seed command are a starting point: times, schedules and

@@ -93,3 +93,7 @@ DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "IslandStay Maldives <
 
 SITE_NAME = "IslandStay Maldives"
 ADMIN_NOTIFY_EMAILS = [e for e in os.environ.get("ADMIN_NOTIFY_EMAILS", "").split(",") if e]
+
+# Prices are hidden on the public site by default; owners still confirm rates directly with guests.
+# Set SHOW_PRICES=1 to display the indicative "from" prices again.
+SHOW_PRICES = os.environ.get("SHOW_PRICES", "0") == "1"

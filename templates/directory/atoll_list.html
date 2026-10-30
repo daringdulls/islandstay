@@ -1,17 +1,18 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Atolls of the Maldives{% endblock %}
 {% block content %}
-<section class="page-hero"><div class="container"><h1>Atolls of the Maldives</h1><p>The Maldives is made up of 26 natural atolls grouped into administrative atolls. Browse from the far north to Addu in the south.</p></div></section>
+<section class="page-hero"><div class="container"><div class="eyebrow">Geography</div><h1>Atolls of the Maldives</h1><p>The country's 26 natural atolls are grouped into administrative atolls, each with a letter code used on boats, addresses and island names. Browse from Haa Alif in the north to Addu in the south.</p></div></section>
 <div class="container section">
   {% regroup atolls by get_region_display as regions %}
   {% for r in regions %}
-    <h2 style="margin-top:12px">{{ r.grouper }}</h2>
-    <div class="grid-2" style="margin-bottom:28px">
+    <div class="section-title"><h2>{{ r.grouper }}</h2><span class="label">{{ r.list|length }} atolls</span></div>
+    <div class="grid-2" style="margin-bottom:40px">
       {% for a in r.list %}
       <a class="card" href="{{ a.get_absolute_url }}"><div class="card-body">
-        <div class="row"><h3>{{ a.name }}</h3><span class="spacer"></span>{% if a.code %}<span class="pill info">{{ a.official_name }} · {{ a.code }}</span>{% endif %}</div>
+        <div class="row" style="align-items:baseline"><h3 style="font-size:1.15rem">{{ a.name }}</h3><span class="spacer"></span>{% if a.code %}<span class="data muted">{{ a.official_name|upper }} · {{ a.code|upper }}</span>{% endif %}</div>
         <p class="small muted" style="margin:0">{{ a.description }}</p>
-      </div><div class="card-foot"><span>🏝️ {{ a.n_islands }} island{{ a.n_islands|pluralize }}</span><span>🏠 {{ a.n_listings }} listing{{ a.n_listings|pluralize }}</span></div></a>
+      </div><div class="card-foot"><span>{{ a.n_islands }} island guide{{ a.n_islands|pluralize }} · {{ a.n_listings }} listing{{ a.n_listings|pluralize }}</span><span class="link-arrow">{% icon "arrow-right" %}</span></div></a>
       {% endfor %}
     </div>
   {% endfor %}

@@ -1,5 +1,5 @@
 <div class="{% if field.field.widget.allow_multiple_selected %}full checks{% elif field.field.widget.attrs.rows or field.name == 'short_description' or field.name == 'cover_image' %}full{% endif %}">
-  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color:var(--coral)">*</span>{% endif %}</label>
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="req">*</span>{% endif %}</label>
   {{ field }}
   {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
   {{ field.errors }}

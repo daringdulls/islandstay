@@ -1,19 +1,19 @@
-<a class="card" href="{{ l.get_absolute_url }}">
-  <div class="cover" style="--c: {{ l.island.cover_color }}">
-    {% if l.cover_image %}<img src="{{ l.cover_image.url }}" alt="{{ l.name }}" loading="lazy">{% else %}{% include "partials/island_art.html" with x="120" %}{% endif %}
+{% load ui %}<a class="card" href="{{ l.get_absolute_url }}">
+  {% if l.cover_image %}<div class="cover has-photo"><img src="{{ l.cover_image.url }}" alt="{{ l.name }}" loading="lazy">
+  {% else %}<div class="cover chart" style="{{ l.island.chart_style }}">{% endif %}
     <span class="tag pill white">{{ l.get_kind_display }}</span>
-    <span class="emoji">{{ l.kind_icon }}</span>
+    <span class="kind-mark">{% icon l.kind_icon %}</span>
   </div>
   <div class="card-body">
     <h3>{{ l.name }}</h3>
-    <div class="meta">📍 {{ l.island.name }}, {{ l.island.atoll.name }}</div>
-    {% if l.is_verified %}<div><span class="verified-badge">✔ Verified host</span></div>{% endif %}
-    {% if l.is_food and l.cuisine %}<div class="small"><b>{{ l.cuisine }}</b></div>{% endif %}
+    <div class="meta">{% icon "map-pin" %} {{ l.island.name }}, {{ l.island.atoll.name }}</div>
+    {% if l.is_food and l.cuisine %}<div class="small" style="font-weight:600">{{ l.cuisine }}</div>{% endif %}
     <p class="small muted" style="margin:0">{{ l.short_description|truncatechars:110 }}</p>
   </div>
   <div class="card-foot">
-    {% if l.is_food %}<span class="price">{% if l.price_from %}meals from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b>{% else %}{{ l.opening_hours|truncatechars:28 }}{% endif %}</span>
-    {% elif l.price_from %}<span class="price">from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b> {{ l.get_price_unit_display }}</span>{% else %}<span class="muted">Price on request</span>{% endif %}
-    <span style="font-weight:700;color:var(--ocean)">{% if l.is_food %}View →{% else %}Request →{% endif %}</span>
+    {% if l.is_verified %}<span class="verified-badge">{% icon "badge-check" %} Verified host</span>
+    {% elif SHOW_PRICES and l.price_from %}<span class="price">from <b>{% if l.currency == 'USD' %}${% else %}MVR {% endif %}{{ l.price_from|floatformat:0 }}</b></span>
+    {% else %}<span>{% if l.is_food %}{{ l.opening_hours|truncatechars:30 }}{% else %}Contact the host{% endif %}</span>{% endif %}
+    <span class="link-arrow">{% if l.is_food %}View{% else %}Send request{% endif %} {% icon "arrow-right" %}</span>
   </div>
 </a>

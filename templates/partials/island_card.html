@@ -1,18 +1,11 @@
-<a class="card" href="{{ island.get_absolute_url }}">
-  <div class="cover" style="--c: {{ island.cover_color }}">
-    {% if island.cover_image %}<img src="{{ island.cover_image.url }}" alt="{{ island.name }}" loading="lazy">{% else %}{% include "partials/island_art.html" %}{% endif %}
-    <span class="tag pill white">{{ island.atoll.name }}</span>
-    <span class="label">{{ island.name }}</span>
-  </div>
+{% load ui humanize %}<a class="card" href="{{ island.get_absolute_url }}">
+  {% include "partials/island_cover.html" %}
   <div class="card-body">
-    <p class="meta" style="margin:0">{{ island.tagline }}</p>
-    <div class="pills" style="margin-top:6px">
-      {% if island.has_bikini_beach %}<span class="pill info">👙 Bikini beach</span>{% endif %}
-      {% if island.transfer_time %}<span class="pill">⏱ {{ island.transfer_time }}</span>{% endif %}
-    </div>
+    <p style="margin:0">{{ island.tagline }}</p>
+    <div class="data muted" style="margin-top:4px">{% if island.population %}POP {{ island.population|intcomma }}{% endif %}{% if island.transfer_time %} · {{ island.transfer_time|upper }}{% endif %}</div>
   </div>
   <div class="card-foot">
-    <span>🏠 {{ island.stay_count }} stay{{ island.stay_count|pluralize }} · 🚤 {{ island.service_count }} service{{ island.service_count|pluralize }}</span>
-    {% if island.min_price %}<span class="price">from <b>${{ island.min_price|floatformat:0 }}</b></span>{% endif %}
+    <span>{{ island.stay_count }} stay{{ island.stay_count|pluralize }} · {{ island.service_count }} experience{{ island.service_count|pluralize }}{% if island.has_bikini_beach %} · Bikini beach{% endif %}</span>
+    <span class="link-arrow">{% icon "arrow-right" %}</span>
   </div>
 </a>

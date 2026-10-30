@@ -47,14 +47,14 @@ class ActivityType(models.Model):
 
     name = models.CharField(max_length=60, unique=True)
     slug = models.SlugField(unique=True, blank=True)
-    icon = models.CharField(max_length=8, blank=True, help_text="An emoji shown next to the name")
+    icon = models.CharField(max_length=30, blank=True, default="waves", help_text="Icon name from the site icon set, e.g. fish, sailboat, anchor")
     description = models.CharField(max_length=240, blank=True)
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self):
-        return f"{self.icon} {self.name}".strip()
+        return self.name
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -64,7 +64,7 @@ class ActivityType(models.Model):
 
 class Amenity(models.Model):
     name = models.CharField(max_length=60, unique=True)
-    icon = models.CharField(max_length=8, blank=True)
+    icon = models.CharField(max_length=30, blank=True, default="check", help_text="Icon name from the site icon set")
 
     class Meta:
         ordering = ["name"]
@@ -124,7 +124,17 @@ class Island(models.Model):
     facilities_notes = models.TextField(blank=True, help_text="Other facilities: mosques, sports ground, water sports centre… One per line.")
     local_rules = models.TextField("Local regulations", blank=True, help_text="Rules visitors must follow (dress code, alcohol, drones…). One per line.")
     accessibility = models.TextField(blank=True, help_text="Accessibility for visitors with reduced mobility, families with prams, etc. One per line.")
+    area_km2 = models.DecimalField("Area (km²)", max_digits=7, decimal_places=3, null=True, blank=True)
+    population_year = models.PositiveSmallIntegerField(default=2022, help_text="Census year of the population figure")
+    sources = models.TextField(blank=True, help_text="Where the facts come from. One URL per line; shown on the island page.")
+    wikipedia_title = models.CharField(
+        max_length=120, blank=True,
+        help_text="English Wikipedia article title, e.g. Maafushi_(Kaafu_Atoll). Used by the fetch_island_photos command.",
+    )
     cover_image = models.ImageField(upload_to="islands/", blank=True)
+    cover_credit = models.CharField(max_length=200, blank=True, help_text="Photographer / author of the cover photo")
+    cover_license = models.CharField(max_length=60, blank=True, help_text="e.g. CC BY-SA 4.0")
+    cover_source_url = models.URLField(blank=True, help_text="Where the photo comes from (e.g. its Wikimedia Commons page)")
     cover_color = models.CharField(
         max_length=7, default="#0e7c86", help_text="Fallback colour when there is no cover photo"
     )
@@ -159,6 +169,16 @@ class Island(models.Model):
         return [line.strip("-• ").strip() for line in self.what_to_expect.splitlines() if line.strip()]
 
     @property
+    def sources_list(self):
+        return [line.strip() for line in self.sources.splitlines() if line.strip().startswith("http")]
+
+    @property
+    def chart_style(self):
+        """Deterministic position for the drawn chart cover used when there is no photo."""
+        seed = sum(ord(c) * (i + 1) for i, c in enumerate(self.slug or self.name))
+        return f"--x:{30 + seed % 45}%;--y:{38 + (seed // 7) % 30}%;--rot:{seed % 360}deg"
+
+    @property
     def local_rules_list(self):
         return [line.strip("-• ").strip() for line in self.local_rules.splitlines() if line.strip()]
 
@@ -173,10 +193,10 @@ class Island(models.Model):
     @property
     def facility_flags(self):
         return [
-            ("🏧", "ATM", self.has_atm), ("🏥", "Clinic / health centre", self.has_hospital),
-            ("💊", "Pharmacy", self.has_pharmacy), ("👮", "Police station", self.has_police),
-            ("🛒", "Shops / supermarket", self.has_supermarket), ("📶", "4G mobile data", self.has_4g),
-            ("👙", "Bikini beach", self.has_bikini_beach),
+            ("banknote", "ATM", self.has_atm), ("cross", "Clinic / health centre", self.has_hospital),
+            ("pill", "Pharmacy", self.has_pharmacy), ("siren", "Police station", self.has_police),
+            ("store", "Shops", self.has_supermarket), ("signal", "4G mobile data", self.has_4g),
+            ("umbrella", "Bikini beach", self.has_bikini_beach),
         ]
 
     @property
@@ -355,9 +375,9 @@ class Listing(models.Model):
     @property
     def kind_icon(self):
         return {
-            "guesthouse": "🏠", "hotel": "🏨", "resort": "🏝️", "villa": "🏡", "activity": "🚤",
-            "dive": "🤿", "transfer": "⛴️", "restaurant": "🍽️", "other": "✨",
-        }.get(self.kind, "✨")
+            "guesthouse": "house", "hotel": "hotel", "resort": "tree-palm", "villa": "bed-double", "activity": "sailboat",
+            "dive": "anchor", "transfer": "ship", "restaurant": "utensils", "other": "sparkles",
+        }.get(self.kind, "sparkles")
 
 
 class TransportRoute(models.Model):
@@ -368,12 +388,13 @@ class TransportRoute(models.Model):
     """
 
     MODE_CHOICES = [
-        ("ferry", "⛴️ Public ferry"),
-        ("speedboat", "🚤 Shared speedboat"),
-        ("private", "🛥️ Private speedboat"),
-        ("flight", "✈️ Domestic flight"),
-        ("seaplane", "🛩️ Seaplane"),
+        ("ferry", "Public ferry"),
+        ("speedboat", "Shared speedboat"),
+        ("private", "Private speedboat"),
+        ("flight", "Domestic flight"),
+        ("seaplane", "Seaplane"),
     ]
+    MODE_ICONS = {"ferry": "ship", "speedboat": "sailboat", "private": "ship-wheel", "flight": "plane", "seaplane": "plane-landing"}
 
     island = models.ForeignKey(Island, on_delete=models.CASCADE, related_name="routes", help_text="Destination island")
     mode = models.CharField(max_length=10, choices=MODE_CHOICES)
@@ -401,11 +422,11 @@ class TransportRoute(models.Model):
 
     @property
     def mode_icon(self):
-        return self.get_mode_display().split(" ", 1)[0]
+        return self.MODE_ICONS.get(self.mode, "ship")
 
     @property
     def mode_label(self):
-        return self.get_mode_display().split(" ", 1)[1]
+        return self.get_mode_display()
 
     @property
     def provider(self):

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -40,13 +41,14 @@ def _live_listings():
 
 def home(request):
     return render(request, "directory/home.html", {
-        "featured_islands": _islands().filter(is_featured=True)[:6],
-        "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:6],
+        "featured_islands": _islands().filter(is_featured=True).order_by("-cover_image", "name")[:8],
+        "hero_island": Island.objects.filter(is_published=True, is_featured=True).exclude(cover_image="").order_by("?").first(),
+        "featured_stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-created_at")[:8],
         "featured_services": _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS).order_by("-is_featured", "-created_at")[:4],
         "featured_food": _live_listings().filter(kind__in=Listing.FOOD_KINDS).order_by("-is_featured", "-created_at")[:4],
         "island_options": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
         "atolls": Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0),
-        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:12],
+        "activities": ActivityType.objects.annotate(n=Count("islands")).filter(n__gt=0).order_by("-n")[:8],
         "stats": {
             "islands": Island.objects.filter(is_published=True).count(),
             "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(),
@@ -88,7 +90,7 @@ def island_list(request):
     if request.GET.get("type"):
         qs = qs.filter(island_type=request.GET["type"])
     sort = request.GET.get("sort", "name")
-    qs = qs.order_by({"stays": "-stay_count", "near": "distance_from_airport_km", "atoll": "atoll__order"}.get(sort, "name"))
+    qs = qs.order_by({"stays": "-stay_count", "near": "distance_from_airport_km", "atoll": "atoll__order", "size": "-population"}.get(sort, "name"))
     page = Paginator(qs.distinct(), 18).get_page(request.GET.get("page"))
     return render(request, "directory/island_list.html", {
         "page": page, "atolls": Atoll.objects.all(), "activities": ActivityType.objects.all(),
@@ -140,7 +142,7 @@ def _filtered_listings(request, kinds):
         qs = qs.filter(island__atoll__slug=f["atoll"])
     if f["kind"] in kinds:
         qs = qs.filter(kind=f["kind"])
-    if f["max_price"].isdigit():
+    if settings.SHOW_PRICES and f["max_price"].isdigit():
         qs = qs.filter(price_from__lte=int(f["max_price"]))
     if f["guests"].isdigit():
         qs = qs.filter(Q(max_guests__gte=int(f["guests"])) | Q(max_guests__isnull=True))
@@ -151,7 +153,7 @@ def _filtered_listings(request, kinds):
     if f["amenity"].isdigit():
         qs = qs.filter(amenities__id=int(f["amenity"]))
     sort = request.GET.get("sort", "")
-    if sort == "price":
+    if sort == "price" and settings.SHOW_PRICES:
         qs = qs.order_by("price_from")
     elif sort == "new":
         qs = qs.order_by("-created_at")

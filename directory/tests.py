@@ -26,7 +26,8 @@ class FlowTests(TestCase):
         self.assertNotContains(r, self.pending.name)
         r = self.client.get(reverse("directory:island_detail", args=["maafushi"]))
         self.assertContains(r, "Coral Breeze Inn")
-        self.assertContains(r, "famous for")
+        self.assertContains(r, "Known for")
+        self.assertContains(r, "Pop. 4,471 (2022)")
 
     def test_pending_listing_hidden_from_public_but_visible_to_owner(self):
         url = self.pending.get_absolute_url()
@@ -108,9 +109,19 @@ class FlowTests(TestCase):
         r = self.client.get(reverse("directory:island_list"), {"activity": "whale-shark-excursion"})
         self.assertContains(r, "Dhigurah")
         self.assertNotContains(r, "Thulusdhoo")
+        with self.settings(SHOW_PRICES=True):
+            r = self.client.get(reverse("directory:stay_list"), {"max_price": "80"})
+            self.assertContains(r, "Coral Breeze Inn")
+            self.assertNotContains(r, "Lagoon View Hotel")
+
+    def test_prices_hidden_by_default(self):
         r = self.client.get(reverse("directory:stay_list"), {"max_price": "80"})
-        self.assertContains(r, "Coral Breeze Inn")
-        self.assertNotContains(r, "Lagoon View Hotel")
+        self.assertContains(r, "Lagoon View Hotel")  # the filter is ignored
+        self.assertNotContains(r, "max_price")
+        r = self.client.get(self.listing.get_absolute_url())
+        self.assertNotContains(r, "$75")
+        self.client.force_login(self.owner)
+        self.assertNotContains(self.client.get(reverse("directory:listing_create")), "price_from")
 
 
 class CategoryTests(TestCase):
@@ -183,3 +194,36 @@ class CategoryTests(TestCase):
         self.client.post(reverse("directory:listing_routes", args=[op.pk]), data)
         self.assertEqual(op.routes.count(), before + 1)
         self.assertContains(self.client.get(reverse("directory:island_detail", args=["dhigurah"])), "South Ari Speed Link")
+
+
+class FetchPhotoTests(TestCase):
+    def test_fetch_island_photos_saves_photo_and_credit(self):
+        import shutil
+        import tempfile
+        from unittest import mock
+
+        call_command("seed_maldives", stdout=open("/dev/null", "w"))
+        media = tempfile.mkdtemp()
+        responses = {
+            "en.wikipedia.org": {"query": {"pages": {"1": {"pageimage": "Maafushi_beach.jpg"}}}},
+            "commons.wikimedia.org": {"query": {"pages": {"-1": {"imageinfo": [{
+                "thumburl": "https://upload.wikimedia.org/x/1800px-Maafushi_beach.jpg", "mime": "image/jpeg",
+                "descriptionurl": "https://commons.wikimedia.org/wiki/File:Maafushi_beach.jpg",
+                "extmetadata": {"Artist": {"value": '<a href="#">Jane Doe</a>'}, "LicenseShortName": {"value": "CC BY-SA 4.0"}},
+            }]}}}},
+        }
+
+        def fake_json(url):
+            return next(v for k, v in responses.items() if k in url)
+
+        with self.settings(MEDIA_ROOT=media), \
+                mock.patch("directory.management.commands.fetch_island_photos.get_json", side_effect=fake_json), \
+                mock.patch("directory.management.commands.fetch_island_photos.get_bytes", return_value=b"\xff\xd8jpeg"):
+            call_command("fetch_island_photos", island="maafushi", stdout=open("/dev/null", "w"))
+            island = Island.objects.get(slug="maafushi")
+            self.assertTrue(island.cover_image.name.startswith("islands/maafushi"))
+            self.assertEqual(island.cover_credit, "Jane Doe")
+            self.assertEqual(island.cover_license, "CC BY-SA 4.0")
+            r = self.client.get(island.get_absolute_url())
+            self.assertContains(r, "Photo: <a href=\"https://commons.wikimedia.org/wiki/File:Maafushi_beach.jpg\"")
+        shutil.rmtree(media)

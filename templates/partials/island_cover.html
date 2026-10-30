@@ -1,0 +1,6 @@
+{% load ui %}{% if island.cover_image %}<div class="cover has-photo"><img src="{{ island.cover_image.url }}" alt="{{ island.name }}" loading="lazy"><span class="shade"></span>
+{% else %}<div class="cover chart" style="{{ island.chart_style }}">{% endif %}
+  <span class="tag pill white">{{ island.atoll.name }}</span>
+  {% if island.atoll.code %}<span class="corner">{{ island.atoll.code|upper }}{% if island.distance_from_airport_km %} · {{ island.distance_from_airport_km }} KM{% endif %}</span>{% endif %}
+  <span class="label">{{ island.name }}</span>
+</div>

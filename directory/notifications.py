@@ -49,7 +49,7 @@ def listing_submitted(listing, request=None):
 def listing_status_changed(listing):
     owner_email = listing.owner.email or listing.contact_email
     if listing.status == listing.STATUS_APPROVED:
-        subject = f"🎉 {listing.name} is now live on {settings.SITE_NAME}"
+        subject = f"{listing.name} is now live on {settings.SITE_NAME}"
         body = f"Good news! Your listing '{listing.name}' on {listing.island.name} has been approved and is now visible to travellers.\n\nBooking requests will be emailed to {listing.contact_email} and appear in your dashboard."
     elif listing.status == listing.STATUS_REJECTED:
         subject = f"Your listing {listing.name} needs changes"
