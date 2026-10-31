@@ -44,6 +44,7 @@ def home(request):
     featured = sorted(_islands().filter(is_featured=True).prefetch_related("activities"),
                       key=lambda i: (not i.photo_url, i.name))
     return render(request, "directory/home.html", {
+        "needs": _plan_by_need(featured),
         "atoll_index": atoll_counts,
         "hero_island": featured[0] if featured else None,
         "portraits": featured[:3],
@@ -65,6 +66,71 @@ def home(request):
             "verified": _live_listings().filter(is_verified=True).count(),
         },
     })
+
+
+def _plan_by_need(featured_islands):
+    """The four 'Plan by need' cards on the home page: photo, count, quick links and a short preview."""
+    from django.urls import reverse
+
+    live = _live_listings().select_related("island")
+    island_photos = [i.photo_url for i in featured_islands if i.photo_url]
+    acts = list(ActivityType.objects.exclude(image_url="").annotate(n=Count("islands")).order_by("-n"))
+
+    def photo(listings, fallback_index):
+        for l in listings:
+            if l.has_own_photo:
+                return l.photo_url
+        return island_photos[fallback_index % len(island_photos)] if island_photos else ""
+
+    stays = list(live.filter(kind__in=Listing.STAY_KINDS).order_by("-is_featured", "-is_verified", "-created_at")[:3])
+    exps = list(live.filter(kind__in=Listing.EXPERIENCE_KINDS).order_by("-is_featured", "-is_verified", "-created_at")[:3])
+    food = list(live.filter(kind__in=Listing.FOOD_KINDS).order_by("-is_featured", "-is_verified", "-created_at")[:3])
+    routes_qs = (TransportRoute.objects.filter(is_active=True, island__is_published=True)
+                 .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("island"))
+    routes = list(routes_qs.order_by(F("operator").desc(nulls_last=True), "-island__is_featured", "island__name")[:3])
+    mode_counts = dict(routes_qs.values_list("mode").annotate(n=Count("id")))
+    stay_url, exp_url = reverse("directory:stay_list"), reverse("directory:service_list")
+    food_url, tr_url = reverse("directory:food_list"), reverse("directory:transport_list")
+    n_stays = live.filter(kind__in=Listing.STAY_KINDS).count()
+    n_exps = live.filter(kind__in=Listing.EXPERIENCE_KINDS).count()
+    n_food = live.filter(kind__in=Listing.FOOD_KINDS).count()
+    n_routes = routes_qs.count()
+    exp_photo = next((a.image_url for a in acts), "") or photo(exps, 1)
+
+    def plural(n, one, many):
+        return f"{n} {one if n == 1 else many}"
+
+    return [
+        {"key": "stays", "title": "Stays", "icon": "house", "url": stay_url, "photo": photo(stays, 0),
+         "count": plural(n_stays, "place to stay", "places to stay"), "n": n_stays,
+         "text": "Guest houses and small hotels run by island families, a short walk from the beach.",
+         "chips": [("Guest houses", f"{stay_url}?kind=guesthouse"), ("Island hotels", f"{stay_url}?kind=hotel"),
+                   ("Home stays", f"{stay_url}?kind=villa"), ("Resorts", f"{stay_url}?kind=resort")],
+         "items": [{"name": l.name, "meta": l.island.name + (" · Verified" if l.is_verified else ""), "url": l.get_absolute_url(),
+                    "img": l.photo_url, "icon": l.kind_icon} for l in stays],
+         "empty": "Local guest houses are joining now.", "cta": "All stays"},
+        {"key": "exp", "title": "Experiences", "icon": "sailboat", "url": exp_url, "photo": exp_photo,
+         "count": plural(n_exps, "operator", "operators") if n_exps else f"{len(acts)} activities to choose from", "n": n_exps,
+         "text": "Snorkelling, diving, sandbank trips and fishing with the people who know the reef.",
+         "chips": [(a.name, f"{exp_url}?activity={a.slug}") for a in acts[:4]] or [("Dive centres", f"{exp_url}?kind=dive")],
+         "items": [{"name": l.name, "meta": f"{l.island.name} · {l.get_kind_display()}", "url": l.get_absolute_url(),
+                    "img": l.photo_url, "icon": l.kind_icon} for l in exps],
+         "empty": "Dive centres and excursion operators are joining now.", "cta": "All experiences"},
+        {"key": "transport", "title": "Getting there", "icon": "ship", "url": tr_url, "photo": photo([], 2),
+         "count": plural(n_routes, "route", "routes"), "n": n_routes,
+         "text": "Public ferries, shared speedboats and domestic flights from Malé and Velana Airport.",
+         "chips": [(label, f"{tr_url}?mode={mode}") for mode, label in TransportRoute.MODE_CHOICES if mode_counts.get(mode)][:4],
+         "items": [{"name": f"{r.mode_label} to {r.island.name}", "meta": r.duration + (f" · {r.provider}" if r.provider else ""),
+                    "url": r.island.get_absolute_url() + "#transport", "img": "", "icon": r.mode_icon} for r in routes],
+         "empty": "Routes are being added.", "cta": "Ferries, speedboats and flights"},
+        {"key": "food", "title": "Food", "icon": "utensils", "url": food_url, "photo": photo(food, 3),
+         "count": plural(n_food, "place to eat", "places to eat"), "n": n_food,
+         "text": "Island cafés and family restaurants: mas huni (tuna and coconut) breakfasts, reef fish and fresh juice.",
+         "chips": [],
+         "items": [{"name": l.name, "meta": l.island.name + (f" · {l.cuisine}" if l.cuisine else ""), "url": l.get_absolute_url(),
+                    "img": l.photo_url, "icon": l.kind_icon} for l in food],
+         "empty": "Island cafés and restaurants are joining now.", "cta": "All places to eat"},
+    ]
 
 
 def search(request):

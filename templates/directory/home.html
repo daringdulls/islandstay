@@ -96,31 +96,34 @@
   </div>
 </section>
 
-{# 4 — Plan by need: a typographic directory index #}
+{# 4 — Plan by need: four photo cards #}
 <section class="section band">
   <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">Plan by need</div><h2>Stays, experiences, transport and food</h2></div></div>
-    <div class="need-index">
-      <div class="need reveal" data-delay="0">
-        <a class="need-head" href="{% url 'directory:stay_list' %}">{% icon "house" %}<b>Stays</b><span>{{ stats.stays }}</span></a>
-        <ul>{% for l in featured_stays %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }}{% if l.is_verified %} · Verified{% endif %}</small></a></li>{% empty %}<li class="muted small">Listings appear here once approved.</li>{% endfor %}</ul>
-        <a class="link-arrow" href="{% url 'directory:stay_list' %}">All stays {% icon "arrow-right" %}</a>
-      </div>
-      <div class="need reveal" data-delay="80">
-        <a class="need-head" href="{% url 'directory:service_list' %}">{% icon "sailboat" %}<b>Experiences</b><span>{{ stats.services }}</span></a>
-        <ul>{% for l in featured_services %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }} · {{ l.get_kind_display }}</small></a></li>{% empty %}<li class="muted small">Operators appear here once approved.</li>{% endfor %}</ul>
-        <a class="link-arrow" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a>
-      </div>
-      <div class="need reveal" data-delay="160">
-        <a class="need-head" href="{% url 'directory:transport_list' %}">{% icon "ship" %}<b>Transport</b><span>{{ stats.routes }}</span></a>
-        <ul>{% for r in featured_routes %}<li><a href="{{ r.island.get_absolute_url }}#transport"><span>{{ r.mode_label }} to {{ r.island.name }}</span><small>{{ r.duration }}{% if r.provider %} · {{ r.provider }}{% endif %}</small></a></li>{% empty %}<li class="muted small">Routes appear here soon.</li>{% endfor %}</ul>
-        <a class="link-arrow" href="{% url 'directory:transport_list' %}">Ferries, speedboats, flights {% icon "arrow-right" %}</a>
-      </div>
-      <div class="need reveal" data-delay="240">
-        <a class="need-head" href="{% url 'directory:food_list' %}">{% icon "utensils" %}<b>Food</b><span>{{ stats.food }}</span></a>
-        <ul>{% for l in featured_food %}<li><a href="{{ l.get_absolute_url }}"><span>{{ l.name }}</span><small>{{ l.island.name }}{% if l.cuisine %} · {{ l.cuisine|truncatechars:28 }}{% endif %}</small></a></li>{% empty %}<li class="muted small">Restaurants appear here once approved.</li>{% endfor %}</ul>
-        <a class="link-arrow" href="{% url 'directory:food_list' %}">All places to eat {% icon "arrow-right" %}</a>
-      </div>
+    <div class="section-head reveal"><div><div class="eyebrow">Plan by need</div><h2>Where to stay, what to do, <span class="accent-word">how</span> to get there</h2></div></div>
+    <div class="needs">
+      {% for c in needs %}
+      <article class="need-card reveal need-{{ c.key }}" data-delay="{% widthratio forloop.counter0 1 80 %}">
+        <a class="need-photo" href="{{ c.url }}" aria-label="{{ c.title }}">
+          {% if c.photo %}<img src="{{ c.photo }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
+          <span class="need-count">{% icon c.icon %}{% if c.n or c.key == "exp" %}{{ c.count }}{% else %}Coming soon{% endif %}</span>
+        </a>
+        <div class="need-body">
+          <h3><a href="{{ c.url }}">{{ c.title }}</a></h3>
+          <p class="need-text">{{ c.text }}</p>
+          {% if c.chips %}<div class="need-chips">{% for label, href in c.chips %}<a href="{{ href }}">{{ label }}</a>{% endfor %}</div>{% endif %}
+          {% if c.items %}
+          <ul class="need-items">
+            {% for it in c.items %}<li><a href="{{ it.url }}">
+              <span class="need-thumb">{% if it.img %}<img src="{{ it.img }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}{% icon it.icon %}</span>
+              <span class="need-item-text"><b>{{ it.name }}</b><small>{{ it.meta }}</small></span>{% icon "arrow-right" %}</a></li>{% endfor %}
+          </ul>
+          {% else %}
+          <div class="need-empty">{% icon "sparkles" %}<span>{{ c.empty }} <a href="{% url 'directory:list_your_business' %}">Run one? List it free</a></span></div>
+          {% endif %}
+          <a class="need-cta" href="{{ c.url }}">{{ c.cta }} {% icon "arrow-right" %}</a>
+        </div>
+      </article>
+      {% endfor %}
     </div>
   </div>
 </section>

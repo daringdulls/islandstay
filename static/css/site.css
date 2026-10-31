@@ -801,3 +801,46 @@ a.card:hover .cover img.cowrie { transform: none; }
 .legal table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: 12px 0; }
 .legal th, .legal td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
 .legal th { background: var(--paper); }
+
+/* ===================================================== home: plan by need (photo cards) */
+.needs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+@media (max-width: 860px) { .needs { grid-template-columns: 1fr; } }
+.need-card { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: 0 6px 20px rgba(10, 61, 76, .06); transition: box-shadow .2s, transform .2s; }
+.need-card:hover { box-shadow: 0 12px 32px rgba(10, 61, 76, .14); transform: translateY(-2px); }
+@media (max-width: 560px) { .need-card { grid-template-columns: 1fr; } }
+.need-photo { position: relative; display: block; min-height: 240px; background: var(--sea-2) url("../img/brand/pattern-atoll.svg") center / 180% no-repeat; overflow: hidden; }
+.need-transport .need-photo { background-color: var(--sea); }
+.need-food .need-photo { background-color: #5B3A22; }
+.need-exp .need-photo { background-color: #0B6E8A; }
+.need-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+.need-card:hover .need-photo img { transform: scale(1.05); }
+@media (max-width: 560px) { .need-photo { min-height: 0; aspect-ratio: 16 / 9; } }
+.need-count { position: absolute; left: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 7px; background: #fff; color: var(--sea-2); font-weight: 700; font-size: .8rem; padding: 7px 12px 7px 10px; border-radius: 999px; box-shadow: 0 2px 10px rgba(10, 61, 76, .18); }
+.need-count .i { width: 16px; height: 16px; color: var(--sea); }
+.need-body { padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.need-body h3 { margin: 0; font-size: 1.4rem; }
+.need-body h3 a { color: var(--sea-2); }
+.need-text { margin: 0; color: var(--ink-2); font-size: .92rem; line-height: 1.5; }
+.need-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.need-chips a { font-size: .78rem; font-weight: 600; color: var(--sea-2); border: 1px solid var(--control); border-radius: 999px; padding: 5px 11px; background: #fff; }
+.need-chips a:hover { border-color: var(--sea); background: var(--shoal); text-decoration: none; }
+.need-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.need-items a { display: flex; align-items: center; gap: 12px; padding: 7px 8px; margin: 0 -8px; border-radius: 12px; color: var(--ink); }
+.need-items a:hover { background: var(--paper); text-decoration: none; }
+.need-items a > .i { width: 16px; height: 16px; color: var(--control); margin-left: auto; flex: none; }
+.need-items a:hover > .i { color: var(--sea); }
+.need-thumb { position: relative; flex: none; width: 42px; height: 42px; border-radius: 10px; background: var(--shoal); display: grid; place-items: center; overflow: hidden; }
+.need-thumb .i { width: 18px; height: 18px; color: var(--sea); }
+.need-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.need-item-text { min-width: 0; display: flex; flex-direction: column; }
+.need-item-text b { font-size: .92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.need-item-text small { color: var(--ink-2); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.need-empty { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--paper); border: 1px dashed var(--line); font-size: .86rem; color: var(--ink-2); }
+.need-empty .i { width: 18px; height: 18px; color: var(--sea); flex: none; margin-top: 1px; }
+.need-empty a { font-weight: 600; white-space: nowrap; }
+.need-cta { margin-top: auto; padding-top: 4px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--sea); }
+.need-cta .i { width: 16px; height: 16px; transition: transform .2s; }
+.need-cta:hover .i { transform: translateX(3px); }
+.need-items { grid-template-columns: minmax(0, 1fr); }
+.need-items li { min-width: 0; }
+.need-item-text { flex: 1 1 auto; }
