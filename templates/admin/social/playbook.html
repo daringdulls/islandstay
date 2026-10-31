@@ -1,0 +1,108 @@
+{% extends 'admin/base.html' %}
+{% block title %}Social media playbook{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
+{% block content %}
+{% with active="playbook" %}{% include "admin/social/_nav.html" %}{% endwith %}
+<div class="sd-prose">
+<h1 style="font-size:24px;font-weight:600;margin:0">Social media playbook</h1>
+<p>How Island Stay shows up on social: what we post, when, and how it should look and sound. The calendar's “Draft plan” button follows this plan.</p>
+
+<h2>1. Goal</h2>
+<p>Get travellers to open an island guide and message a local host. Every post points to one island, one host or one experience, and ends with a way to reach it.</p>
+<ul>
+  <li><b>Travellers:</b> independent travellers, divers and surfers, couples and families looking for local-island trips at guest house prices.</li>
+  <li><b>Hosts:</b> guest house owners, dive centres, boat operators and cafés who could list on Island Stay.</li>
+</ul>
+
+<h2>2. Platforms</h2>
+<table>
+  <tr><th>Platform</th><th>Use it for</th><th>Formats</th></tr>
+  <tr><td>Instagram</td><td>Main channel: island spotlights, hosts, experiences, tips</td><td>Portrait 1080 × 1350 for feed, Story 1080 × 1920</td></tr>
+  <tr><td>Facebook</td><td>Same posts as Instagram; host recruitment; Maldivian audience</td><td>Portrait or Square; Landscape for links</td></tr>
+  <tr><td>TikTok / Reels</td><td>Short videos of experiences, with the Story design as the cover</td><td>Story 1080 × 1920</td></tr>
+  <tr><td>X / LinkedIn</td><td>Did you know facts, news, partnerships</td><td>Square or Landscape 1200 × 630</td></tr>
+</table>
+
+<h2>3. Weekly rhythm</h2>
+<table>
+  <tr><th>Day</th><th>Post</th><th>Template</th><th>Format</th></tr>
+  <tr><td>Monday 18:00</td><td>Island spotlight</td><td>Island spotlight</td><td>Portrait</td></tr>
+  <tr><td>Tuesday 19:00</td><td>Travel tip (or an island's local rules every other week)</td><td>Travel tip</td><td>Story</td></tr>
+  <tr><td>Wednesday 18:00</td><td>Experience: diving, surfing, sandbank trips…</td><td>Experience</td><td>Portrait</td></tr>
+  <tr><td>Thursday 18:00</td><td>Did you know: history, Dhivehi words</td><td>Did you know</td><td>Square</td></tr>
+  <tr><td>Friday 17:00</td><td>Host spotlight (a tip until hosts are approved)</td><td>Host spotlight</td><td>Portrait</td></tr>
+  <tr><td>Sunday 10:00</td><td>Island of the week</td><td>Island spotlight</td><td>Story</td></tr>
+</table>
+<p>Times are Maldives time. Adjust them once Instagram Insights shows when your followers are online.</p>
+
+<h2>4. Content pillars</h2>
+<table>
+  <tr><th>Pillar</th><th>Share of posts</th><th>Examples</th></tr>
+  <tr><td>Islands</td><td>30%</td><td>Spotlights, island of the week, getting there</td></tr>
+  <tr><td>Local hosts</td><td>20%</td><td>“Stay with Aishath on Dhangethi”, verified hosts, guest quotes</td></tr>
+  <tr><td>Experiences</td><td>20%</td><td>Whale sharks, mantas, surf breaks, sandbank picnics</td></tr>
+  <tr><td>Practical tips</td><td>15%</td><td>Dress code, ferries, cash, alcohol rules, reef care</td></tr>
+  <tr><td>Culture &amp; story</td><td>10%</td><td>Atholhu, cowries, dhonis, kandu, finolhu</td></tr>
+  <tr><td>News</td><td>5%</td><td>New islands and hosts, site features</td></tr>
+</table>
+
+<h2>5. Design templates</h2>
+<ul>{% for key, label, help in templates %}<li><b>{{ label }}:</b> {{ help }}</li>{% endfor %}</ul>
+<h3>Design rules</h3>
+<ul>
+  <li>Text never sits straight on a photo: it goes on a solid Channel, Sandbank, Lagoon or ivory panel.</li>
+  <li>One accent word per headline, in Lagoon (Shallows on dark backgrounds).</li>
+  <li>Cowrie Gold only on “book / request” calls to action. The plain cowrie only for verified hosts.</li>
+  <li>Use the logo files as they are. Don't retype, recolour or stretch them.</li>
+  <li>Real islands and real hosts. No stock overwater villas.</li>
+</ul>
+<div class="sd-swatches">
+  <div><i style="background:#0B6E8A"></i>Lagoon #0B6E8A</div><div><i style="background:#0A3D4C"></i>Channel #0A3D4C</div>
+  <div><i style="background:#4CC3C7"></i>Shallows #4CC3C7</div><div><i style="background:#EBA62A"></i>Cowrie Gold #EBA62A</div>
+  <div><i style="background:#FFF8EC"></i>Shell Ivory #FFF8EC</div><div><i style="background:#F2E4C9"></i>Sandbank #F2E4C9</div>
+</div>
+<p>Fonts: Outfit for headlines, Plus Jakarta Sans for everything else.</p>
+
+<h2>6. Voice and captions</h2>
+<ul>
+  <li>Warm, direct and practical, like a host on the jetty. “You” for the reader, “we” for Island Stay. Sentence case.</li>
+  <li>Lead with the island or the person. Show the specific thing: “a 3 km sandbank tail”, not “a hidden gem”.</li>
+  <li>Don't use: paradise, hidden gem, luxury escape, unforgettable.</li>
+  <li>Explain a Maldivian word the first time: dhoni (boat), kandu (channel), finolhu (sandbank).</li>
+  <li>At most one emoji per caption. No prices unless the host has agreed.</li>
+</ul>
+<h3>Caption formula</h3>
+<ol>
+  <li><b>Hook:</b> one line about the place or person.</li>
+  <li><b>Detail:</b> one or two useful facts (getting there, what it's known for).</li>
+  <li><b>Next step:</b> “Read the island guide” or “Send a request, no booking fees”, then “Link in bio”.</li>
+  <li><b>Hashtags:</b> 5 to 8. Always #IslandStay #Maldives #LocalIslands, plus the island, the atoll and the activity.</li>
+</ol>
+
+<h2>7. Workflow</h2>
+<ol>
+  <li><b>Draft:</b> press “Draft plan” on the calendar once a month. It drafts six posts a week from the directory.</li>
+  <li><b>Review:</b> open each design, check the facts, swap the photo if a better one exists, edit the caption.</li>
+  <li><b>Ready:</b> mark it ready. Download the PNG and copy the caption.</li>
+  <li><b>Scheduled:</b> schedule it in Meta Business Suite (Instagram + Facebook) or the platform's own scheduler, then mark it scheduled.</li>
+  <li><b>Posted:</b> after it goes out, mark it posted and paste the post link.</li>
+</ol>
+<h3>Before posting</h3>
+<ul>
+  <li>Hosts: ask the owner before featuring them, and use their own photos when possible.</li>
+  <li>Wikimedia photos: credit the photographer in the caption when the licence is CC BY or CC BY-SA (shown on the design page).</li>
+  <li>Check local rules and transfer times against the island guide.</li>
+</ul>
+
+<h2>8. What to measure (monthly)</h2>
+<table>
+  <tr><th>Measure</th><th>Where</th><th>Why</th></tr>
+  <tr><td>Link clicks / profile visits</td><td>Instagram Insights, Meta Business Suite</td><td>Shows posts are sending people to the site</td></tr>
+  <tr><td>Saves and shares</td><td>Instagram Insights</td><td>Tips and island spotlights should be saved</td></tr>
+  <tr><td>Booking requests</td><td>Island Stay dashboard</td><td>The real goal: requests reaching hosts</td></tr>
+  <tr><td>New business sign-ups</td><td>Listings to review</td><td>Host spotlights should bring in new hosts</td></tr>
+</table>
+<p>Once a month, look at the best three posts, make more like them, and drop the format that does worst.</p>
+</div>
+{% endblock %}

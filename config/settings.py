@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "accounts",
     "directory",
+    "social",
 ]
 
 MIDDLEWARE = [
@@ -273,6 +274,15 @@ UNFOLD = {
                     {"title": "Islands", "icon": "landscape", "link": reverse_lazy("admin:directory_island_changelist")},
                     {"title": "Atolls", "icon": "public", "link": reverse_lazy("admin:directory_atoll_changelist")},
                     {"title": "Transport routes", "icon": "directions_boat", "link": reverse_lazy("admin:directory_transportroute_changelist")},
+                ],
+            },
+            {
+                "title": "Social media",
+                "items": [
+                    {"title": "Calendar", "icon": "calendar_month", "link": reverse_lazy("admin:social_calendar")},
+                    {"title": "All posts", "icon": "photo_library", "link": reverse_lazy("admin:social_socialpost_changelist")},
+                    {"title": "Design templates", "icon": "palette", "link": reverse_lazy("admin:social_templates")},
+                    {"title": "Playbook", "icon": "menu_book", "link": reverse_lazy("admin:social_playbook")},
                 ],
             },
             {

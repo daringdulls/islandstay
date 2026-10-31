@@ -20,6 +20,11 @@ class AdminErrorDetailsMiddleware:
         return self.get_response(request)
 
     def process_exception(self, request, exception):
+        from django.core.exceptions import PermissionDenied
+        from django.http import Http404
+
+        if isinstance(exception, (Http404, PermissionDenied)):
+            return None  # not errors: let Django show the normal 404 / 403 page
         user = getattr(request, "user", None)
         if not (user and user.is_authenticated and user.is_superuser):
             return None  # normal 500 page for everyone else

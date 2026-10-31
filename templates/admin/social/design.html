@@ -1,0 +1,68 @@
+{% extends 'admin/base.html' %}
+{% load static %}
+{% block title %}{{ post.title }} | Design{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}
+<script>window.__amd = window.define; window.define = undefined;</script>
+<script src="{% static 'vendor/html-to-image-1.11.11.js' %}"></script>
+<script>window.define = window.__amd;</script>{% endblock %}
+{% block content %}
+{% include "admin/social/_nav.html" %}
+<div class="sd-wrap">
+  <div>
+    <div class="sd-tabs">
+      {% for key, label in formats %}<a class="sd-tab{% if key == post.format %} on{% endif %}" href="?format={{ key }}">{{ label }}</a>{% endfor %}
+    </div>
+    <div class="sd-stage"><div class="sd-frame" data-fit="900" data-fit-h="820"><div class="sd-scale" id="design">{% include "admin/social/_canvas.html" %}</div></div></div>
+    <p style="font-size:12.5px;color:rgb(107 114 128);margin-top:10px">Preview is scaled down. The download is full size ({{ post.size.0 }} × {{ post.size.1 }} px). Switching format here only changes the preview and download; edit the post to change its saved format.</p>
+  </div>
+  <div class="sd-side">
+    <div class="sd-card">
+      <div class="sd-row">
+        <button class="sd-btn primary" id="dl" type="button">Download PNG</button>
+        <a class="sd-btn" href="{% url 'admin:social_socialpost_change' post.pk %}">Edit post</a>
+      </div>
+      <div class="sd-row" style="margin-top:10px">
+        {% if prev_id %}<a class="sd-btn" href="{% url 'admin:social_socialpost_design' prev_id %}">&larr; Previous</a>{% endif %}
+        {% if next_id %}<a class="sd-btn" href="{% url 'admin:social_socialpost_design' next_id %}">Next &rarr;</a>{% endif %}
+      </div>
+      <p id="dl-msg" style="font-size:12.5px;margin:10px 0 0;color:rgb(107 114 128)"></p>
+    </div>
+    <div class="sd-card">
+      <h3>Caption</h3>
+      <div class="sd-caption" id="caption">{{ post.full_caption|default:"No caption yet." }}</div>
+      <div class="sd-row" style="margin-top:12px"><button class="sd-btn" type="button" id="copy">Copy caption</button></div>
+    </div>
+    <div class="sd-card">
+      <dl class="sd-meta">
+        <dt>Status</dt><dd>{{ post.get_status_display }}</dd>
+        <dt>Post on</dt><dd>{{ post.publish_at|date:"D j M Y, H:i"|default:"Not scheduled" }}</dd>
+        <dt>Platforms</dt><dd>{{ post.platform_list|join:", " }}</dd>
+        <dt>Template</dt><dd>{{ post.get_template_display }}</dd>
+        <dt>Pillar</dt><dd>{{ post.get_pillar_display }}</dd>
+        {% if post.island %}<dt>Island</dt><dd><a href="{{ post.island.get_absolute_url }}" target="_blank">{{ post.island.name }}</a></dd>{% endif %}
+        {% if post.photo_credit or post.island.cover_credit %}<dt>Photo</dt><dd>{{ post.photo_credit|default:post.island.cover_credit }}{% if post.island.cover_license and not post.image %}, {{ post.island.cover_license }}{% endif %}<br><small>Credit the photographer in the caption when the licence asks for it (CC BY / BY-SA).</small></dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('copy').onclick = function () {
+  navigator.clipboard.writeText(document.getElementById('caption').innerText).then(() => { this.textContent = 'Copied'; setTimeout(() => this.textContent = 'Copy caption', 1500); });
+};
+document.getElementById('dl').onclick = async function () {
+  var btn = this, msg = document.getElementById('dl-msg'), node = document.querySelector('#design .sp');
+  btn.disabled = true; btn.textContent = 'Preparing…'; msg.textContent = '';
+  try {
+    await document.fonts.ready;
+    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' } };
+    await htmlToImage.toPng(node, opts); // first pass loads fonts and images
+    var url = await htmlToImage.toPng(node, opts);
+    var a = document.createElement('a');
+    a.download = '{{ post.title|slugify }}-{{ post.format }}.png'; a.href = url; a.click();
+    msg.textContent = 'Saved to your downloads.';
+  } catch (e) { msg.textContent = 'Could not create the image: ' + (e && e.message || e) + '. Try again, or take a screenshot of the preview.'; }
+  btn.disabled = false; btn.textContent = 'Download PNG';
+};
+</script>
+{% endblock %}

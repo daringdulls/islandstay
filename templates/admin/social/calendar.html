@@ -1,0 +1,40 @@
+{% extends 'admin/base.html' %}
+{% block title %}Social calendar{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
+{% block content %}
+{% with active="calendar" %}{% include "admin/social/_nav.html" %}{% endwith %}
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a class="sd-btn" href="?month={{ prev_month|date:'Y-m' }}">&larr;</a>
+    <h1 style="font-size:22px;font-weight:600;margin:0;min-width:180px;text-align:center">{{ month|date:"F Y" }}</h1>
+    <a class="sd-btn" href="?month={{ next_month|date:'Y-m' }}">&rarr;</a>
+  </div>
+  <form method="post" style="display:flex;align-items:center;gap:8px">{% csrf_token %}
+    <label for="weeks" style="font-size:13px">Draft the next</label>
+    <select id="weeks" name="weeks" class="sd-btn" style="padding:6px 10px"><option>2</option><option selected>4</option><option>8</option></select>
+    <span style="font-size:13px">weeks</span>
+    <button class="sd-btn primary" type="submit">Draft plan</button>
+  </form>
+</div>
+<div class="sd-legend" style="margin-bottom:10px">
+  {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#94a3b8{% elif key == 'draft' %}#EBA62A{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
+</div>
+{% if overdue %}<p style="color:#B9442C;font-size:13.5px;margin:0 0 8px">{{ overdue|length }} post{{ overdue|length|pluralize }} past their date and not posted yet.</p>{% endif %}
+<div style="overflow-x:auto">
+<table class="sd-cal">
+  <thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+  <tbody>
+  {% for week in weeks %}<tr>
+    {% for day in week %}<td class="{% if not day.in_month %}out{% endif %}{% if day.today %} today{% endif %}">
+      <div class="sd-day">{{ day.date|date:"j" }}</div>
+      {% for p in day.posts %}<a class="sd-chip {{ p.status }}" href="{% url 'admin:social_socialpost_design' p.pk %}" title="{{ p.title }} · {{ p.get_status_display }}">{{ p.publish_at|time:"H:i" }} {{ p.get_template_display }}<small>{{ p.headline }}</small></a>{% endfor %}
+    </td>{% endfor %}
+  </tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% if unscheduled %}<h3 style="font-weight:600;margin:20px 0 8px">Ideas without a date</h3>
+<div class="sd-row">{% for p in unscheduled %}<a class="sd-chip {{ p.status }}" style="display:inline-block" href="{% url 'admin:social_socialpost_change' p.pk %}">{{ p.title }}</a>{% endfor %}</div>{% endif %}
+<p style="font-size:12.5px;color:rgb(107 114 128);margin-top:16px">“Draft plan” adds six posts a week after the last scheduled one, using islands, hosts and activities that haven't been posted about yet. Everything is a draft until you mark it ready.</p>
+{% endblock %}

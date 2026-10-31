@@ -1,0 +1,67 @@
+{% load static social_design %}{% with p=post w=post.size.0 h=post.size.1 parts=post.headline_parts %}
+<div class="sp sp-{{ p.template }} sp-{{ p.format }}{% if not photo %} sp-nophoto{% endif %}" style="width:{{ w }}px;height:{{ h }}px" data-w="{{ w }}" data-h="{{ h }}">
+  {% if p.template == "island" or p.template == "experience" %}
+    <div class="sp-photo">{% if photo %}<img src="{{ photo }}" alt="">{% else %}<div class="sp-rings"></div>{% endif %}
+      {% if p.template == "experience" and p.activity %}<span class="sp-icon">{% inline_icon p.activity.icon %}</span>{% endif %}
+    </div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}
+      {% if p.template == "island" and p.island %}<ul class="sp-chips">
+        {% if p.island.transfer_time %}<li>{{ p.island.transfer_time }}</li>{% endif %}
+        {% if p.island.population %}<li>Pop. {{ p.island.population }}</li>{% endif %}
+        {% if p.island.has_bikini_beach %}<li>Bikini beach</li>{% endif %}
+      </ul>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% if p.template == 'island' %}{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}{% else %}{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}{% endif %}" alt="Island Stay">{% if p.attribution %}<span>{{ p.attribution }}</span>{% endif %}</div>
+    </div>
+
+  {% elif p.template == "host" %}
+    <div class="sp-photo">{% if photo %}<img src="{{ photo }}" alt="">{% else %}<div class="sp-rings"></div>{% endif %}
+      {% if p.listing.is_verified %}<span class="sp-verified"><img src="{% static 'img/brand/islandstay-cowrie-badge.svg' %}" alt="">Verified host</span>{% endif %}
+    </div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="Island Stay"><span class="sp-pill">Message a local</span></div>
+    </div>
+
+  {% elif p.template == "tip" %}
+    <div class="sp-rings sp-rings-corner"></div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      <ol class="sp-list">{% for line in p.body_lines|slice:":5" %}<li><b>{{ forloop.counter }}</b><span>{{ line }}</span></li>{% endfor %}</ol>
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="Island Stay">{% if p.attribution %}<span>{{ p.attribution }}</span>{% endif %}</div>
+    </div>
+
+  {% elif p.template == "fact" %}
+    <div class="sp-cowries"></div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-on-lagoon.svg' %}" alt="Island Stay">{% if p.attribution %}<span>{{ p.attribution }}</span>{% endif %}</div>
+    </div>
+
+  {% elif p.template == "quote" %}
+    <div class="sp-waves"></div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <div class="sp-mark">&ldquo;</div>
+      <blockquote>{{ p.body|default:p.headline }}</blockquote>
+      {% if p.attribution %}<div class="sp-by">{{ p.attribution }}</div>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}" alt="Island Stay"></div>
+    </div>
+
+  {% else %}{# announce #}
+    {% if photo %}<div class="sp-photo"><img src="{{ photo }}" alt=""></div>{% endif %}
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="Island Stay">{% if p.attribution %}<span class="sp-pill sp-gold">{{ p.attribution }}</span>{% endif %}</div>
+    </div>
+  {% endif %}
+</div>{% endwith %}

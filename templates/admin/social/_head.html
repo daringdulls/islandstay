@@ -1,0 +1,20 @@
+{% load static %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Outfit:wght@600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="{% static 'css/social.css' %}">
+<script>
+/* Scale each real-size design to fit its frame. */
+function fitDesigns() {
+  document.querySelectorAll('[data-fit]').forEach(function (frame) {
+    var sp = frame.querySelector('.sp'); if (!sp) return;
+    var w = +sp.dataset.w, h = +sp.dataset.h;
+    var st = getComputedStyle(frame.parentElement);
+    var inner = frame.parentElement.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+    var max = Math.min(inner, +(frame.dataset.fit || 9999));
+    var maxH = +(frame.dataset.fitH || 99999);
+    var s = Math.min(max / w, maxH / h, 1);
+    frame.style.width = (w * s) + 'px'; frame.style.height = (h * s) + 'px';
+    frame.querySelector('.sd-scale').style.transform = 'scale(' + s + ')';
+  });
+}
+addEventListener('load', fitDesigns); addEventListener('resize', fitDesigns); document.addEventListener('DOMContentLoaded', fitDesigns);
+</script>

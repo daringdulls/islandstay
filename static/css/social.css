@@ -1,0 +1,185 @@
+/* Island Stay social design templates. Canvas sizes are real pixels (1080 wide); the preview scales them down. */
+.sp { --lagoon:#0B6E8A; --channel:#0A3D4C; --shallows:#4CC3C7; --gold:#EBA62A; --ivory:#FFF8EC; --sand:#F2E4C9; --mist:#E3EEF0; --ink:#122A31; --muted:#4A6068;
+  position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--ivory); color: var(--ink);
+  font-family: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; box-sizing: border-box; text-align: left; }
+.sp *, .sp *::before, .sp *::after { box-sizing: border-box; }
+.sp h1, .sp blockquote { font-family: "Outfit", "Plus Jakarta Sans", "Noto Sans", sans-serif; font-weight: 600; letter-spacing: -.015em; margin: 0; }
+.sp h1 { font-size: 92px; line-height: 1.02; color: var(--channel); }
+.sp h1 em { font-style: normal; color: var(--lagoon); }
+.sp-eyebrow { font-size: 26px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--lagoon); margin-bottom: 22px; }
+.sp-body { font-size: 36px; line-height: 1.38; margin: 26px 0 0; color: var(--muted); }
+.sp-panel { position: relative; z-index: 2; padding: 64px 72px 60px; display: flex; flex-direction: column; }
+.sp-foot { margin-top: auto; padding-top: 44px; display: flex; align-items: center; justify-content: space-between; gap: 24px; font-size: 26px; font-weight: 600; color: var(--muted); }
+.sp-logo { height: 66px; width: auto; display: block; }
+.sp-photo { position: relative; flex: 1 1 auto; min-height: 0; background: var(--mist); overflow: hidden; }
+.sp-photo > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sp-pill { display: inline-flex; align-items: center; gap: 12px; padding: 16px 30px; border-radius: 999px; background: var(--lagoon); color: #fff; font-size: 26px; font-weight: 600; }
+.sp-gold { background: var(--gold); color: var(--ink); }
+.sp-rings { position: absolute; inset: 0; background: var(--ivory) url("../img/brand/pattern-atoll.svg") center / 140% no-repeat; }
+.sp-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 14px; margin: 30px 0 0; padding: 0; }
+.sp-chips li { font-size: 26px; font-weight: 600; padding: 10px 24px; border-radius: 999px; border: 2px solid rgba(255, 248, 236, .45); color: var(--ivory); }
+
+/* Island spotlight: photo, then a solid Channel panel with ivory text */
+.sp-island .sp-panel { background: var(--channel); color: var(--ivory); flex: 0 0 auto; }
+.sp-island .sp-eyebrow { color: var(--shallows); }
+.sp-island h1 { color: var(--ivory); }
+.sp-island h1 em { color: var(--shallows); }
+.sp-island .sp-body { color: rgba(255, 248, 236, .86); }
+.sp-island .sp-foot { color: rgba(255, 248, 236, .8); }
+
+/* Experience: photo with the activity icon, Sandbank panel */
+.sp-experience .sp-panel { background: var(--sand); flex: 0 0 auto; }
+.sp-icon { position: absolute; left: 72px; bottom: -56px; z-index: 3; width: 112px; height: 112px; border-radius: 50%; background: var(--lagoon); color: #fff; display: grid; place-items: center; border: 8px solid var(--sand); }
+.sp-icon svg { width: 54px; height: 54px; }
+.sp-experience .sp-panel { padding-top: 88px; }
+
+/* Host: inset photo with rounded corners on ivory */
+.sp-host { padding: 56px 56px 0; }
+.sp-host .sp-photo { border-radius: 28px; }
+.sp-host .sp-panel { padding: 52px 16px 56px; flex: 0 0 auto; }
+.sp-verified { position: absolute; left: 28px; top: 28px; display: inline-flex; align-items: center; gap: 12px; background: #fff; color: var(--channel); font-size: 26px; font-weight: 600; padding: 12px 26px 12px 16px; border-radius: 999px; box-shadow: 0 6px 20px rgba(10, 61, 76, .18); }
+.sp-verified img { width: 34px; height: 44px; }
+
+/* Tip: ivory with the atoll chart in one corner, numbered list */
+.sp-tip .sp-rings-corner { inset: auto; width: 760px; height: 760px; right: -300px; top: -300px; background-size: contain; background-color: transparent; }
+.sp-tip .sp-panel { flex: 1; padding-top: 96px; }
+.sp-tip h1 { max-width: 820px; }
+.sp-list { list-style: none; margin: 52px 0 0; padding: 0; display: flex; flex-direction: column; gap: 22px; }
+.sp-list li { display: flex; align-items: center; gap: 28px; background: #fff; border-radius: 28px; padding: 24px 32px; font-size: 34px; line-height: 1.3; font-weight: 600; color: var(--ink); box-shadow: 0 6px 20px rgba(10, 61, 76, .08); }
+.sp-list b { flex: 0 0 64px; height: 64px; border-radius: 50%; background: var(--lagoon); color: #fff; display: grid; place-items: center; font-family: "Outfit", sans-serif; font-size: 32px; }
+
+/* Did you know: Lagoon with a cowrie scatter at the top */
+.sp-fact { background: var(--lagoon); color: var(--ivory); }
+.sp-cowries { position: absolute; left: 0; right: 0; top: 0; height: 30%; opacity: .07;
+  background: url("../img/brand/islandstay-cowrie-badge.svg") 0 0 / 120px auto space; transform: rotate(-6deg) scale(1.2); }
+.sp-fact .sp-panel { flex: 1; }
+.sp-fact .sp-eyebrow { margin-top: auto; }
+.sp-fact .sp-foot { margin-top: 0; padding-top: 56px; }
+.sp-fact .sp-eyebrow { color: var(--shallows); }
+.sp-fact h1 { color: #fff; font-size: 104px; }
+.sp-fact h1 em { color: var(--shallows); }
+.sp-fact .sp-body { color: rgba(255, 255, 255, .9); }
+.sp-fact .sp-foot { color: rgba(255, 255, 255, .85); }
+
+/* Quote: Channel with shoreline waves at the bottom */
+.sp-quote { background: var(--channel); color: var(--ivory); }
+.sp-waves { position: absolute; left: 0; right: 0; bottom: 0; height: 26%; background: url("../img/brand/pattern-waves.svg") center bottom / 100% 100% no-repeat; }
+.sp-quote .sp-panel { flex: 1; justify-content: center; }
+.sp-quote .sp-eyebrow { color: var(--shallows); }
+.sp-mark { font-family: "Outfit", sans-serif; font-size: 220px; line-height: .7; color: var(--shallows); height: 120px; }
+.sp-quote blockquote { font-size: 64px; line-height: 1.18; color: var(--ivory); }
+.sp-by { margin-top: 36px; font-size: 30px; font-weight: 600; color: var(--shallows); }
+.sp-quote .sp-foot { margin-top: 0; padding-top: 80px; }
+
+/* Announcement */
+.sp-announce .sp-photo { flex: 0 0 46%; }
+.sp-announce .sp-panel { flex: 1; }
+.sp-announce:not(.sp-nophoto) { }
+
+/* Format tweaks */
+.sp-square.sp-island .sp-photo, .sp-square.sp-experience .sp-photo { flex-basis: 40%; }
+.sp-square h1 { font-size: 80px; }
+.sp-square .sp-body { font-size: 32px; }
+.sp-square .sp-panel { padding: 52px 64px 48px; }
+.sp-square .sp-list li { font-size: 30px; padding: 18px 28px; }
+.sp-square .sp-list { gap: 16px; margin-top: 38px; }
+.sp-square.sp-tip .sp-panel { padding-top: 64px; }
+.sp-square.sp-quote blockquote { font-size: 56px; }
+.sp-square.sp-host .sp-panel { padding: 40px 12px 44px; }
+.sp-story .sp-panel { padding: 80px 80px 140px; }
+.sp-story h1 { font-size: 112px; }
+.sp-story .sp-body { font-size: 40px; }
+.sp-story.sp-tip .sp-panel { padding-top: 220px; }
+.sp-story .sp-list li { font-size: 38px; padding: 30px 36px; }
+.sp-story.sp-fact h1 { font-size: 124px; }
+.sp-story.sp-host { padding: 80px 64px 0; }
+.sp-story.sp-quote blockquote { font-size: 76px; }
+
+/* Landscape: photo and text side by side */
+.sp-landscape { flex-direction: row; }
+.sp-landscape .sp-photo { flex: 0 0 48%; }
+.sp-landscape .sp-panel { flex: 1; padding: 48px 52px 40px; justify-content: center; }
+.sp-landscape h1 { font-size: 60px; }
+.sp-landscape.sp-fact h1 { font-size: 66px; }
+.sp-landscape .sp-eyebrow { font-size: 20px; margin-bottom: 14px; }
+.sp-landscape .sp-body { font-size: 26px; margin-top: 16px; }
+.sp-landscape .sp-foot { padding-top: 24px; font-size: 20px; }
+.sp-landscape .sp-logo { height: 48px; }
+.sp-landscape .sp-chips { margin-top: 18px; gap: 10px; }
+.sp-landscape .sp-chips li { font-size: 20px; padding: 6px 16px; }
+.sp-landscape .sp-icon { left: auto; right: -50px; bottom: 40px; width: 96px; height: 96px; }
+.sp-landscape.sp-experience .sp-panel { padding-top: 48px; padding-left: 80px; }
+.sp-landscape.sp-host { padding: 36px 0 36px 36px; }
+.sp-landscape.sp-host .sp-panel { padding: 24px 48px; }
+.sp-landscape .sp-list { margin-top: 24px; gap: 10px; }
+.sp-landscape .sp-list li { font-size: 22px; padding: 12px 18px; gap: 16px; border-radius: 20px; }
+.sp-landscape .sp-list b { flex-basis: 40px; height: 40px; font-size: 20px; }
+.sp-landscape.sp-tip .sp-panel { padding-top: 40px; }
+.sp-landscape .sp-rings-corner { width: 520px; height: 520px; right: -200px; top: -200px; }
+.sp-landscape.sp-quote blockquote { font-size: 42px; }
+.sp-landscape .sp-mark { font-size: 140px; height: 70px; }
+.sp-landscape .sp-pill { font-size: 20px; padding: 10px 22px; }
+.sp-landscape .sp-cowries { height: 100%; width: 34%; opacity: .1; }
+.sp-landscape.sp-fact .sp-panel { padding-left: 420px; }
+.sp-landscape.sp-quote .sp-panel, .sp-landscape.sp-tip .sp-panel { padding-left: 64px; }
+.sp-landscape.sp-quote .sp-foot { padding-top: 24px; }
+
+/* ------------------------------------------------------------------ admin pages around the designs */
+.sd-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 28px; align-items: start; }
+@media (max-width: 1100px) { .sd-wrap { grid-template-columns: 1fr; } }
+.sd-stage { background: #E3EEF0; border-radius: 14px; padding: 24px; display: flex; justify-content: center; }
+.dark .sd-stage { background: #0f2a33; }
+.sd-scale { transform-origin: top left; }
+.sd-frame { flex-shrink: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 12px 32px rgba(10, 61, 76, .18); }
+.sd-side { display: flex; flex-direction: column; gap: 16px; }
+.sd-card { border: 1px solid rgb(229 231 235); border-radius: 12px; padding: 18px 20px; background: #fff; }
+.dark .sd-card { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.sd-card h3 { font-weight: 600; margin: 0 0 10px; font-size: 14px; }
+.sd-caption { white-space: pre-wrap; font-size: 13.5px; line-height: 1.55; }
+.sd-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.sd-tab { padding: 6px 14px; border-radius: 999px; border: 1px solid rgb(209 213 219); font-size: 13px; font-weight: 600; }
+.sd-tab.on { background: #0B6E8A; color: #fff; border-color: #0B6E8A; }
+.sd-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 13.5px; border: 1px solid rgb(209 213 219); cursor: pointer; background: #fff; color: #0A3D4C; }
+.sd-btn.primary { background: #0B6E8A; color: #fff; border-color: #0B6E8A; }
+.sd-btn:disabled { opacity: .6; cursor: wait; }
+.sd-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sd-meta { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; }
+.sd-meta dt { color: rgb(107 114 128); }
+.sd-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.sd-gallery .sd-stage { padding: 16px; }
+.sd-tpl > h3 { font-weight: 600; font-size: 15px; margin: 12px 0 4px; }
+.sd-tpl > p { font-size: 13px; color: rgb(107 114 128); margin: 0 0 10px; }
+.sd-cal { width: 100%; border-collapse: separate; border-spacing: 6px; table-layout: fixed; }
+.sd-cal th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: rgb(107 114 128); text-align: left; padding: 0 6px; }
+.sd-cal td { vertical-align: top; height: 130px; border: 1px solid rgb(229 231 235); border-radius: 10px; padding: 6px; background: #fff; }
+.dark .sd-cal td { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.sd-cal td.out { opacity: .45; }
+.sd-cal td.today { border-color: #0B6E8A; box-shadow: inset 0 0 0 1px #0B6E8A; }
+.sd-day { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.sd-chip { display: block; font-size: 12px; line-height: 1.3; padding: 5px 7px; border-radius: 7px; margin-bottom: 4px; border-left: 3px solid; background: rgb(243 244 246); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dark .sd-chip { background: rgb(31 41 55); }
+.sd-chip small { display: block; opacity: .7; }
+.sd-chip.idea { border-color: #94a3b8; } .sd-chip.draft { border-color: #EBA62A; } .sd-chip.ready { border-color: #0B6E8A; }
+.sd-chip.scheduled { border-color: #4CC3C7; } .sd-chip.posted { border-color: #1E7A55; opacity: .75; }
+.sd-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+.sd-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: currentColor; }
+.sd-prose { max-width: 860px; font-size: 14.5px; line-height: 1.65; }
+.sd-prose h2 { font-size: 20px; font-weight: 600; margin: 32px 0 10px; }
+.sd-prose h3 { font-size: 15px; font-weight: 600; margin: 18px 0 6px; }
+.sd-prose ul { list-style: disc; padding-left: 22px; margin: 6px 0; }
+.sd-prose ol { list-style: decimal; padding-left: 22px; }
+.sd-prose table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13.5px; }
+.sd-prose th, .sd-prose td { border: 1px solid rgb(229 231 235); padding: 8px 10px; text-align: left; vertical-align: top; }
+.dark .sd-prose th, .dark .sd-prose td { border-color: rgb(55 65 81); }
+.sd-prose th { background: rgb(249 250 251); }
+.dark .sd-prose th { background: rgb(31 41 55); }
+.sd-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sd-swatches div { width: 120px; font-size: 12px; }
+.sd-swatches i { display: block; height: 44px; border-radius: 10px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,.08); }
+
+/* fixes: let the text panel shrink beside the photo; centre tip lists vertically */
+.sp-landscape .sp-panel { min-width: 0; }
+.sp-tip .sp-eyebrow { margin-top: auto; }
+.sp-tip .sp-list { margin-bottom: auto; }
+.sp-tip .sp-foot { margin-top: 0; }
+.sp-story.sp-tip .sp-panel { padding-top: 140px; }
