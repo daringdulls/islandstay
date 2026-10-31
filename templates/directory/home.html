@@ -1,42 +1,39 @@
 {% extends "base.html" %}
 {% load ui humanize %}
-{% block extra_head %}{% include "partials/map_assets.html" %}{% endblock %}
 {% block content %}
-{{ map|json_script:"map-data" }}
 
-{# 1 — The chart table: headline, search and atoll index beside the interactive map #}
-<section class="chart-table">
-  <div class="chart-table-text">
-    <div class="eyebrow">1,192 islands · 26 atolls · one guide</div>
-    <h1>Find your island, <span class="ink-accent">then</span> the people who live there.</h1>
-    <p class="lead">Tap an atoll on the map to see its local islands. Each guide covers facilities, local rules and how to get there, with guest houses, operators and cafés you can contact directly.</p>
-    <form class="search-inline" action="{% url 'directory:search' %}" role="search">
-      <label for="hero-q" class="sr-only">Island name</label>
-      {% icon "search" %}
-      <input id="hero-q" type="search" name="q" list="island-names" placeholder="Go to an island, e.g. Dhangethi" required>
-      <datalist id="island-names">{% for i in island_options %}<option value="{{ i.name }}">{{ i.atoll.name }}</option>{% endfor %}</datalist>
-      <button class="btn btn-accent btn-sm" type="submit">Go</button>
-    </form>
-
+{# 1 — Opening: headline and search beside a featured island, over the atoll chart pattern #}
+<section class="opening">
+  <div class="container opening-grid">
+    <div class="opening-text">
+      <div class="eyebrow">1,192 islands · 26 atolls · one local guide</div>
+      <h1>Find your <span class="accent-word">island</span>, then the people who live there.</h1>
+      <p class="lead">Island guides with facilities, local rules and how to get there, and the guest houses, operators and cafés on each one. Message the host directly.</p>
+      <form class="search-inline" action="{% url 'directory:search' %}" role="search">
+        <label for="hero-q" class="sr-only">Island name</label>
+        {% icon "search" %}
+        <input id="hero-q" type="search" name="q" list="island-names" placeholder="Go to an island, e.g. Dhangethi" required>
+        <datalist id="island-names">{% for i in island_options %}<option value="{{ i.name }}">{{ i.atoll.name }}</option>{% endfor %}</datalist>
+        <button class="btn btn-accent btn-sm" type="submit">Search</button>
+      </form>
+      <div class="opening-links">
+        <a href="{% url 'directory:stay_list' %}">{% icon "house" %} Stays</a>
+        <a href="{% url 'directory:service_list' %}">{% icon "sailboat" %} Experiences</a>
+        <a href="{% url 'directory:transport_list' %}">{% icon "ship" %} Transport</a>
+        <a href="{% url 'directory:food_list' %}">{% icon "utensils" %} Food</a>
+      </div>
     </div>
-  </div>
-
-  <div class="chart-table-map">
-    <div id="explore-map" class="island-map" data-island-map data-mode="explore" data-panel="#map-panel" aria-label="Interactive map of the Maldives"></div>
-    <aside id="map-panel" class="map-panel" aria-live="polite"></aside>
-    <div class="map-hint">{% icon "navigation" %} Click an atoll to explore its islands</div>
-    <noscript><div class="map-hint">Turn on JavaScript to use the interactive map, or browse the atoll list.</div></noscript>
-  </div>
-
-  <div class="chart-table-index">
-    <div class="atoll-index" aria-label="Atolls from north to south">
-      <div class="atoll-index-head"><span>Atolls, north to south</span><span>Guides</span></div>
-      <ol>
-        {% for a in atoll_index %}
-          <li><a href="{{ a.get_absolute_url }}" data-atoll-link="{{ a.slug }}" class="{% if not a.n %}is-empty{% endif %}">
-            <span class="code">{{ a.code|default:"–" }}</span><span class="name">{{ a.name }}</span><span class="n">{{ a.n }}</span></a></li>
-        {% endfor %}
-      </ol>
+    {% if hero_island %}
+    <a class="opening-card" href="{{ hero_island.get_absolute_url }}">
+      {% if hero_island.photo_url %}<img src="{{ hero_island.photo_url }}" alt="{{ hero_island.name }}, {{ hero_island.atoll.name }}" onerror="this.remove()">{% else %}<div class="chart" style="{{ hero_island.chart_style }}"></div>{% endif %}
+      <span class="opening-card-body">
+        <small>Featured island · {{ hero_island.atoll.name }}</small>
+        <b>{{ hero_island.name }}</b>
+        <span>{{ hero_island.tagline }}</span>
+      </span>
+      {% if hero_island.cover_credit %}<span class="opening-credit">Photo: {{ hero_island.cover_credit|truncatechars:40 }}{% if hero_island.cover_license %}, {{ hero_island.cover_license }}{% endif %}</span>{% endif %}
+    </a>
+    {% endif %}
   </div>
 </section>
 
@@ -48,6 +45,22 @@
     <div><b data-count="{{ stats.services }}">{{ stats.services }}</b><span>experience operators</span></div>
     <div><b data-count="{{ stats.routes }}">{{ stats.routes }}</b><span>transport routes</span></div>
     <div><b data-count="{{ stats.verified }}">{{ stats.verified }}</b><span>verified hosts</span></div>
+  </div>
+</section>
+
+{# Atolls north to south #}
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="section-head reveal"><div><div class="eyebrow">North to south</div><h2>Browse by <span class="accent-word">atoll</span></h2></div>
+      <a class="link-arrow" href="{% url 'directory:atoll_list' %}">About the atolls {% icon "arrow-right" %}</a></div>
+    <div class="atoll-index reveal" aria-label="Atolls from north to south">
+      <ol>
+        {% for a in atoll_index %}
+          <li><a href="{{ a.get_absolute_url }}" class="{% if not a.n %}is-empty{% endif %}">
+            <span class="code">{{ a.code|default:"–" }}</span><span class="name">{{ a.name }}</span><span class="n">{{ a.n }} guide{{ a.n|pluralize }}</span></a></li>
+        {% endfor %}
+      </ol>
+    </div>
   </div>
 </section>
 
@@ -147,11 +160,11 @@
       <div>
         <div class="eyebrow">For island businesses</div>
         <h2>Your island already has a page. Put your business on it.</h2>
-        <a class="btn btn-accent" href="{% url 'directory:list_your_business' %}">List your business free</a>
+        <a class="btn" href="{% url 'directory:list_your_business' %}">List your business free</a>
       </div>
       <ul class="host-cta-list">
         <li>{% icon "inbox" %}<span><b>Requests straight to your inbox</b> and dashboard, no commission</span></li>
-        <li>{% icon "map-pin" %}<span><b>Shown on your island's guide</b> and on the map</span></li>
+        <li>{% icon "map-pin" %}<span><b>Shown on your island's guide</b> and its atoll page</span></li>
         <li>{% cowrie %}<span><b>Verified host badge</b> once we've checked your licence</span></li>
         <li>{% icon "route" %}<span><b>Transfer operators</b> appear on every island they serve</span></li>
       </ul>
@@ -159,4 +172,3 @@
   </div>
 </section>
 {% endblock %}
-{% block extra_js %}{% include "partials/map_scripts.html" %}{% endblock %}

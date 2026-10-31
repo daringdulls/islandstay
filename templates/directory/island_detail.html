@@ -2,10 +2,7 @@
 {% load ui humanize %}
 {% block title %}{{ island.name }}, {{ island.atoll.name }} — island guide{% endblock %}
 {% block meta_description %}{{ island.tagline }}. {{ island.overview|truncatechars:140 }}{% endblock %}
-{% block extra_head %}{% include "partials/map_assets.html" %}{% endblock %}
-{% block extra_js %}{% include "partials/map_scripts.html" %}{% endblock %}
 {% block content %}
-{{ map|json_script:"map-data" }}
 <section class="island-hero {% if not island.photo_url %}no-photo{% endif %}">
   {% if island.photo_url %}<img src="{{ island.photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}">{% else %}<div class="chart" style="{{ island.chart_style }};--x:72%"></div>{% endif %}
   <div class="container">
@@ -126,10 +123,7 @@
     </div>
 
     <aside class="sticky">
-      {% if island.latitude %}
-      <div class="mini-map" aria-label="Map of {{ island.name }} and nearby islands"><div class="island-map" data-island-map data-mode="focus" data-focus-island="{{ island.slug }}" data-focus-atoll="{{ island.atoll.slug }}"></div></div>
-      {% endif %}
-      <div class="panel" style="margin-top:16px">
+      <div class="panel">
         <div class="eyebrow" style="margin-bottom:8px">Plan your trip</div>
         <h3 style="font-size:1.2rem">{{ island.name }} at a glance</h3>
         <ul class="contact-list">

@@ -5,7 +5,7 @@
   <div class="panel">
     <h1 style="font-size:1.7rem">List your business on {{ SITE_NAME }}</h1>
     <p class="muted">Create a free account, then add your guest house, resort or service under your island. Every listing is reviewed before it goes live.</p>
-    <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-accent btn-block" style="margin-top:16px">Create account</button></form>
+    <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:16px">Create account</button></form>
     <p class="small" style="margin-top:16px">Already registered? <a href="{% url 'accounts:login' %}">Log in</a></p>
   </div>
 </div>

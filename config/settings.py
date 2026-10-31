@@ -187,7 +187,7 @@ UNFOLD = {
     "SITE_HEADER": "Island Stay",
     "SITE_SUBHEADER": "Back office",
     "SITE_URL": "/",
-    "SITE_ICON": lambda request: static("img/brand/islandstay-symbol-simple.svg"),
+    "SITE_ICON": lambda request: static("img/brand/islandstay-symbol-simple-light.svg"),
     "SITE_FAVICONS": [{"rel": "icon", "type": "image/svg+xml", "href": lambda request: static("img/brand/favicon.svg")}],
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
@@ -195,7 +195,7 @@ UNFOLD = {
     "ENVIRONMENT": "directory.admin_ui.environment_callback",
     "DASHBOARD_CALLBACK": "directory.admin_ui.dashboard_callback",
     "STYLES": [
-        lambda request: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap",
+        lambda request: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap",
         lambda request: static("css/admin.css"),
     ],
     "COLORS": {
@@ -257,12 +257,6 @@ UNFOLD = {
     },
 }
 
-# Background map tiles for the interactive map. OpenStreetMap's standard tiles are free with attribution
-# for modest traffic; for heavier use switch to a provider such as MapTiler or Stadia (set both values).
-MAP_TILES_URL = os.environ.get("MAP_TILES_URL") or "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-MAP_TILES_ATTRIBUTION = os.environ.get("MAP_TILES_ATTRIBUTION") or (
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-)
 
 
 # Vercel Cron calls /cron/photos/ with this secret to link missing Wikimedia photos.

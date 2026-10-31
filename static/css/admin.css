@@ -1,6 +1,7 @@
-/* Island Stay back office: headings in Plus Jakarta Sans (body text stays in Unfold's Inter). */
+/* Island Stay back office: Outfit headings, Plus Jakarta Sans text (Island Stay brand). */
 :root {
-  --is-heading: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --is-heading: "Outfit", "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif;
   --is-surface: #fff;
   --is-line: var(--color-base-200, #e5e7eb);
   --is-ink: var(--color-base-900, #111827);
@@ -87,3 +88,6 @@ h1, h2, h3, #site-name, .is-title, .is-kpi-value { font-family: var(--is-heading
 .is-tip .material-symbols-outlined { color: var(--is-accent); }
 .is-tip p { margin: 4px 0 0; color: var(--is-muted); }
 .is-tip a { color: var(--is-accent); font-weight: 600; }
+
+body, .font-sans, input, select, textarea, button { font-family: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif !important; }
+.material-symbols-outlined { font-family: "Material Symbols Outlined" !important; }

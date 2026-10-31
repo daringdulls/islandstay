@@ -283,35 +283,23 @@ class BackOfficeTests(TestCase):
         self.assertNotContains(self.client.get(url), "Approve &amp; publish")
 
 
-class MapTests(TestCase):
+class AtollIndexTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         call_command("seed_maldives", stdout=open("/dev/null", "w"))
 
-    def test_every_seeded_island_and_atoll_has_a_map_position(self):
+    def test_every_seeded_island_and_atoll_has_coordinates(self):
         from .models import Atoll
 
         self.assertFalse(Island.objects.filter(latitude__isnull=True).exists())
         self.assertFalse(Atoll.objects.filter(map_lat__isnull=True).exists())
 
-    def test_home_page_ships_map_data_and_atoll_index_north_to_south(self):
-        import json
-        import re
-
+    def test_home_lists_atolls_north_to_south_without_a_map(self):
         r = self.client.get(reverse("directory:home"))
-        data = json.loads(re.search(r'<script id="map-data" type="application/json">(.*?)</script>', r.content.decode(), re.S).group(1))
-        self.assertEqual(len(data["islands"]), Island.objects.count())
-        self.assertEqual(data["atolls"][0]["name"], "Haa Alif")
-        dhangethi = next(i for i in data["islands"] if i["slug"] == "dhangethi")
-        self.assertEqual(dhangethi["atoll"], "south-ari")
         html = r.content.decode()
-        self.assertLess(html.index('data-atoll-link="haa-alif"'), html.index('data-atoll-link="addu"'))
-        self.assertContains(r, "vendor/leaflet/leaflet.js")
-
-    def test_island_page_has_focused_mini_map(self):
-        r = self.client.get(reverse("directory:island_detail", args=["dhangethi"]))
-        self.assertContains(r, 'data-focus-island="dhangethi"')
-        self.assertContains(r, 'data-focus-atoll="south-ari"')
+        self.assertLess(html.index("/atolls/haa-alif/"), html.index("/atolls/addu/"))
+        self.assertNotIn("leaflet", html)
+        self.assertContains(r, "islandstay-horizontal-colour-light.svg")
 
 
 class VercelTests(TestCase):

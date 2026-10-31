@@ -17,4 +17,4 @@ def icon(name, cls=""):
 @register.simple_tag
 def cowrie(cls=""):
     """The Island Stay cowrie, which marks verified local hosts."""
-    return format_html('<img class="cowrie {}" src="{}" alt="" aria-hidden="true">', cls, static("img/brand/islandstay-symbol-simple.svg"))
+    return format_html('<img class="cowrie {}" src="{}" alt="" aria-hidden="true">', cls, static("img/brand/islandstay-cowrie-badge.svg"))

@@ -1,9 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ atoll.name }} Atoll — local islands{% endblock %}
-{% block extra_head %}{% include "partials/map_assets.html" %}{% endblock %}
-{% block extra_js %}{% include "partials/map_scripts.html" %}{% endblock %}
 {% block content %}
-{{ map|json_script:"map-data" }}
 <section class="page-hero"><div class="container">
   <div class="crumbs"><a href="{% url 'directory:atoll_list' %}">Atolls</a></div>
   <div class="eyebrow">{{ atoll.official_name }}{% if atoll.code %} · {{ atoll.code }}{% endif %} · {{ atoll.get_region_display }}</div>
@@ -11,7 +8,6 @@
   <p>{{ atoll.description }}</p>
 </div></section>
 <div class="container section">
-  {% if atoll.map_lat %}<div class="atoll-map" aria-label="Map of {{ atoll.name }}"><div class="island-map" data-island-map data-mode="focus" data-focus-atoll="{{ atoll.slug }}"></div></div>{% endif %}
   {% if islands %}<div class="grid">{% for island in islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
   {% else %}<div class="empty">No island guides for this atoll yet. <a href="{% url 'directory:suggest_island' %}">Suggest an island.</a></div>{% endif %}
 </div>

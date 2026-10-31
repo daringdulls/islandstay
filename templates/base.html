@@ -7,7 +7,7 @@
   <meta name="description" content="{% block meta_description %}A guide to the local islands of the Maldives. Find guest houses, experiences, transport and places to eat, and contact local hosts directly.{% endblock %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <script>if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
   {% block extra_head %}{% endblock %}
@@ -16,7 +16,7 @@
 <body>
 <header class="site-header">
   <div class="container">
-    <a class="brand" href="{% url 'directory:home' %}" aria-label="{{ SITE_NAME }} home"><img class="brand-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="{{ SITE_NAME }}" width="150" height="66"></a>
+    <a class="brand" href="{% url 'directory:home' %}" aria-label="{{ SITE_NAME }} home"><img class="brand-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="{{ SITE_NAME }}" width="151" height="40"></a>
     <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="var n=document.querySelector('.nav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">{% icon "menu" %}</button>
     <nav class="nav" aria-label="Main">
       {% with p=request.path %}
@@ -49,7 +49,7 @@
   <div class="container">
     <div class="footer-grid">
       <div>
-        <a class="brand" href="{% url 'directory:home' %}" aria-label="{{ SITE_NAME }} home"><img class="brand-logo" src="{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}" alt="{{ SITE_NAME }}" width="170" height="75"></a>
+        <a class="brand" href="{% url 'directory:home' %}" aria-label="{{ SITE_NAME }} home"><img class="brand-logo" src="{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}" alt="{{ SITE_NAME }}" width="181" height="48"></a>
         <p class="footer-tagline">Local to you.</p>
         <p style="margin-top:14px;max-width:420px">An independent guide to the inhabited islands of the Maldives. Travellers contact guest houses, operators and restaurants directly, with no booking fees.</p>
       </div>
@@ -78,7 +78,6 @@
     <div class="footer-bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span>Island facts: 2022 Maldives Population and Housing Census and Wikipedia. Icons: Lucide (ISC).</span></div>
   </div>
 </footer>
-{{ MAP_CONFIG|json_script:"map-config" }}
 <script src="{% static 'js/site.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
