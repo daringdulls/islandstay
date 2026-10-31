@@ -120,9 +120,19 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR / "media"))
 # Serve uploaded photos through Django in production (fine for a site of this size).
 SERVE_MEDIA = os.environ.get("SERVE_MEDIA", "1") == "1"
 
+# Vercel Blob's key is BLOB_READ_WRITE_TOKEN, or <PREFIX>_READ_WRITE_TOKEN when connected with a custom prefix.
+BLOB_TOKEN_SOURCE = "BLOB_READ_WRITE_TOKEN" if os.environ.get("BLOB_READ_WRITE_TOKEN") else None
+if not BLOB_TOKEN_SOURCE:
+    for _name in sorted(os.environ):
+        if os.environ[_name].startswith("vercel_blob_rw_"):
+            BLOB_TOKEN_SOURCE = _name
+            os.environ["BLOB_READ_WRITE_TOKEN"] = os.environ[_name]
+            break
+
 STORAGES = {
     # Uploaded photos: Vercel Blob when connected (no permanent disk on Vercel), otherwise the local disk.
     "default": {"BACKEND": "config.blob_storage.VercelBlobStorage" if os.environ.get("BLOB_READ_WRITE_TOKEN")
+                else "config.blob_storage.UploadsNotConfigured" if ON_VERCEL
                 else "django.core.files.storage.FileSystemStorage"},
     # Vercel serves collected static files from its CDN; hashed file names are only used elsewhere.
     "staticfiles": {

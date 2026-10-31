@@ -109,6 +109,27 @@ class VercelBlobStorage(Storage):
             return ContentFile(r.read(), name=name)
 
 
+@deconstructible
+class UploadsNotConfigured(Storage):
+    """Used on Vercel when no Blob store is connected: explain instead of failing on the read-only disk."""
+
+    MESSAGE = ("Photo uploads need a Vercel Blob store connected to this project: in Vercel open Storage, "
+               "click your Blob store, choose Connect Project, pick this project (Production and Preview), "
+               "then redeploy.")
+
+    def _save(self, name, content):
+        raise OSError(self.MESSAGE)
+
+    def url(self, name):
+        return "/media/" + urllib.parse.quote(name or "", safe="/")
+
+    def exists(self, name):
+        return False
+
+    def delete(self, name):
+        pass
+
+
 def blob_proxy(request, path):
     """Serve a file from a private Vercel Blob store (photos must be viewable by visitors)."""
     from django.core.files.storage import default_storage

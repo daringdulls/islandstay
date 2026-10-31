@@ -22,12 +22,14 @@ def diagnostics():
     """Which deployment this is and which settings it can see (names only, never values)."""
     env = os.environ
     db_vars = sorted(k for k in env if "DATABASE_URL" in k or "POSTGRES_URL" in k)
+    blob_vars = sorted(k for k in env if env[k].startswith("vercel_blob_rw_"))
     rows = [
         ("Vercel environment", env.get("VERCEL_ENV", "not on Vercel")),
         ("Deployment address", env.get("VERCEL_URL", "–")),
         ("Production address", env.get("VERCEL_PROJECT_PRODUCTION_URL", "–")),
         ("Code version", (env.get("VERCEL_GIT_COMMIT_SHA") or "–")[:7]),
         ("Database variables found", ", ".join(db_vars) or "none"),
+        ("Photo storage key found", ", ".join(blob_vars) or "none"),
     ] + [(name, "set" if env.get(name) else "missing")
          for name in ("DJANGO_SECRET_KEY", "BLOB_READ_WRITE_TOKEN", "ADMIN_EMAIL", "ADMIN_PASSWORD", "CRON_SECRET")]
     return "".join(f"<tr><td style='padding:3px 16px 3px 0;color:#4a6068'>{escape(k)}</td><td><b>{escape(v)}</b></td></tr>"
