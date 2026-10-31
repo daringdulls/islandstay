@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Cookie policy{% endblock %}
+{% block content %}
+<div class="container section legal">
+  <div class="eyebrow">Legal</div>
+  <h1>Cookie policy</h1>
+  <p class="muted">Last updated {% now "j F Y" %}</p>
+  <p>Cookies are small files a website stores in your browser. {{ SITE_NAME }} uses only its own cookies: no advertising cookies and no third-party trackers.</p>
+  <p><button type="button" class="btn btn-sm" data-cookie-settings>Change my cookie settings</button></p>
+
+  <h2>Essential cookies (always on)</h2>
+  <table>
+    <tr><th>Name</th><th>Purpose</th><th>Lasts</th></tr>
+    <tr><td>csrftoken</td><td>Protects forms, such as the request form, against forgery.</td><td>1 year</td></tr>
+    <tr><td>sessionid</td><td>Keeps you signed in, and shows you the request you just sent.</td><td>2 weeks</td></tr>
+    <tr><td>is_consent</td><td>Remembers your cookie choice.</td><td>6 months</td></tr>
+  </table>
+
+  <h2>Analytics cookies (only if you choose “Accept all”)</h2>
+  <table>
+    <tr><th>Name</th><th>Purpose</th><th>Lasts</th></tr>
+    <tr><td>is_vid</td><td>A random ID that lets us recognise a returning browser, so we can see which pages and islands people visit, what they search for and click, and where they leave. It doesn't contain your name or contact details.</td><td>13 months</td></tr>
+    <tr><td>is_sid (browser storage)</td><td>Groups the pages you view in one visit; a new visit starts after 30 minutes without activity.</td><td>Until cleared</td></tr>
+  </table>
+  <p>If you choose “Essential only”, we count page views anonymously, without any ID.</p>
+
+  <h2>Changing your mind</h2>
+  <p>Use <a href="#" data-cookie-settings>Cookie settings</a> at any time, or delete cookies in your browser settings. Withdrawing consent stops analytics from then on.</p>
+  <p>More detail is in our <a href="{% url 'directory:privacy' %}">privacy policy</a>.</p>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from django.conf import settings
 def site(request):
     ctx = {
         "SITE_NAME": settings.SITE_NAME, "SHOW_PRICES": settings.SHOW_PRICES,
+        "CONTACT_EMAIL": getattr(settings, "CONTACT_EMAIL", ""),
     }
     if request.user.is_authenticated:
         from .models import Enquiry

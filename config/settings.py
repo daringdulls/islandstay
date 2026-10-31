@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "accounts",
     "directory",
     "social",
+    "analytics",
 ]
 
 MIDDLEWARE = [
@@ -204,6 +205,8 @@ if EMAIL_HOST and "DJANGO_EMAIL_BACKEND" not in os.environ:
 EMAIL_CONFIGURED = EMAIL_BACKEND.endswith("smtp.EmailBackend") and bool(EMAIL_HOST)
 
 SITE_NAME = "Island Stay"
+# Shown on the privacy and cookie pages as the address for data requests.
+CONTACT_EMAIL = env("CONTACT_EMAIL")
 ADMIN_NOTIFY_EMAILS = [e.strip() for e in env("ADMIN_NOTIFY_EMAILS").split(",") if e.strip()]
 
 # Prices are hidden on the public site by default; owners still confirm rates directly with guests.
@@ -281,6 +284,13 @@ UNFOLD = {
                     {"title": "Islands", "icon": "landscape", "link": reverse_lazy("admin:directory_island_changelist")},
                     {"title": "Atolls", "icon": "public", "link": reverse_lazy("admin:directory_atoll_changelist")},
                     {"title": "Transport routes", "icon": "directions_boat", "link": reverse_lazy("admin:directory_transportroute_changelist")},
+                ],
+            },
+            {
+                "title": "Insights",
+                "items": [
+                    {"title": "Analytics", "icon": "insights", "link": reverse_lazy("admin:analytics_dashboard")},
+                    {"title": "Visitors", "icon": "person_search", "link": reverse_lazy("admin:analytics_visitor_changelist")},
                 ],
             },
             {

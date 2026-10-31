@@ -1,0 +1,21 @@
+{% if journey is not None %}
+<div class="an-journey">
+  <h2>Journey</h2>
+  <p class="an-sub">{{ original.visits }} visit{{ original.visits|pluralize }} · {{ original.pageviews }} page view{{ original.pageviews|pluralize }}{% if country_label %} · {{ original.city }}{% if original.city %}, {% endif %}{{ country_label }}{% endif %}</p>
+  {% if visitor_enquiries %}<div class="an-req">{% for e in visitor_enquiries %}<a href="{% url 'admin:directory_enquiry_change' e.pk %}"><span class="material-symbols-outlined">mark_email_unread</span>Booking request {{ e.reference }} to {{ e.listing.name }} · {{ e.created_at|date:"d M Y H:i" }}{% if e.sent_via %} · sent via {{ e.get_sent_via_display }}{% endif %}</a>{% endfor %}</div>{% endif %}
+  {% for item in journey %}{% with v=item.visit %}
+  <div class="an-visit">
+    <div class="an-visit-head"><b>{{ v.started_at|date:"D d M Y, H:i" }}</b><span>{{ v.source }}{% if v.campaign %} · {{ v.campaign }}{% endif %} · {{ v.pageviews }} page{{ v.pageviews|pluralize }} · {{ v.seconds }}s</span></div>
+    <ol class="an-steps">
+      {% for e in item.events %}<li class="t-{{ e.type }}"><time>{{ e.ts|date:"H:i:s" }}</time><span class="an-type">{{ e.get_type_display }}</span>
+        <span class="an-what">{% if e.type == "pageview" %}<a href="{{ e.path }}{{ e.value }}" target="_blank">{{ e.path }}{{ e.value }}</a>{% if e.label %} <small>{{ e.label|truncatechars:60 }}</small>{% endif %}
+        {% elif e.type == "leave" %}after {{ e.label }} on the page, scrolled {{ e.value }}%
+        {% elif e.type == "search" or e.type == "filter" %}“{{ e.value }}”
+        {% elif e.type == "send_to_host" %}{{ e.label }} · {{ e.value }}
+        {% else %}{{ e.label|truncatechars:80 }}{% if e.value %} <small>{{ e.value|truncatechars:60 }}</small>{% endif %}{% endif %}</span></li>
+      {% empty %}<li>No events</li>{% endfor %}
+    </ol>
+  </div>
+  {% endwith %}{% endfor %}
+</div>
+{% endif %}

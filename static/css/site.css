@@ -788,3 +788,16 @@ a.card:hover .cover img.cowrie { transform: none; }
 .send-preview { white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: .88rem; line-height: 1.55; max-height: 280px; overflow: auto; margin: 0; font-family: inherit; }
 .rq-date-val { font-size: 1.15rem; }
 .rq-date-sub { grid-column: 1 / -1; font-size: .74rem; color: var(--ink-2); min-height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* cookie banner */
+.cookie-banner { position: fixed; z-index: 90; left: 16px; right: 16px; bottom: 16px; max-width: 760px; margin: 0 auto; display: flex; gap: 18px; align-items: center; padding: 18px 20px; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 32px rgba(10, 61, 76, .18); }
+.cookie-banner[hidden] { display: none; }
+.cookie-banner b { font-family: var(--font-display, "Outfit"), sans-serif; color: var(--sea-2); }
+.cookie-banner p { margin: 4px 0 0; font-size: .86rem; color: var(--ink-2); line-height: 1.5; }
+.cookie-actions { display: flex; gap: 8px; flex: none; }
+@media (max-width: 640px) { .cookie-banner { flex-direction: column; align-items: stretch; } .cookie-actions > * { flex: 1; } }
+.legal { max-width: 780px; }
+.legal h2 { margin-top: 36px; font-size: 1.35rem; }
+.legal table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: 12px 0; }
+.legal th, .legal td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.legal th { background: var(--paper); }

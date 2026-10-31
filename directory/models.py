@@ -557,6 +557,21 @@ class Enquiry(models.Model):
     needs_transfer = models.BooleanField(default=False, help_text="Guest would like help arranging a transfer")
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_NEW)
+    SENT_VIA_CHOICES = [("whatsapp", "WhatsApp"), ("viber", "Viber"), ("email", "Email"), ("call", "Phone call"), ("copy", "Copied the message")]
+    sent_via = models.CharField("Sent to host via", max_length=10, choices=SENT_VIA_CHOICES, blank=True,
+                                help_text="Which button the guest pressed after saving the request")
+    sent_at = models.DateTimeField("Sent to host at", null=True, blank=True)
+    # Where the guest came from and what they used (recorded when the request is made)
+    visitor = models.ForeignKey("analytics.Visitor", on_delete=models.SET_NULL, null=True, blank=True, related_name="enquiry_set")
+    source = models.CharField("Found us via", max_length=60, blank=True)
+    campaign = models.CharField(max_length=100, blank=True)
+    landing_path = models.CharField("First page seen", max_length=300, blank=True)
+    country = models.CharField(max_length=2, blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    device = models.CharField(max_length=10, blank=True)
+    browser = models.CharField(max_length=30, blank=True)
+    os = models.CharField("Operating system", max_length=20, blank=True)
+    language = models.CharField(max_length=20, blank=True)
     owner_notes = models.TextField(blank=True, help_text="Private notes for the owner")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -587,6 +602,17 @@ class Enquiry(models.Model):
         if self.check_in and self.check_out and self.check_out > self.check_in:
             return (self.check_out - self.check_in).days
         return None
+
+    @property
+    def lead_days(self):
+        """Days between sending the request and arrival."""
+        if self.check_in and self.created_at:
+            return (self.check_in - self.created_at.date()).days
+        return None
+
+    @property
+    def guests(self):
+        return (self.adults or 0) + (self.children or 0)
 
     def as_message(self):
         """The request written out, for the guest to send to the host by WhatsApp, Viber or email."""

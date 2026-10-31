@@ -400,23 +400,83 @@ class ListingAdmin(BaseAdmin):
 
 @admin.register(Enquiry)
 class EnquiryAdmin(BaseAdmin):
-    list_display = ("reference_col", "guest", "listing", "dates", "party", "status_label")
+    list_display = ("reference_col", "guest", "listing", "dates", "party", "origin", "sent_label", "status_label")
     list_display_links = ("reference_col",)
-    list_filter = (("status", ChoicesDropdownFilter), ("listing__kind", ChoicesDropdownFilter),
-                   ("listing__island", RelatedDropdownFilter), "created_at")
-    search_fields = ("reference", "guest_name", "guest_email", "listing__name")
-    readonly_fields = ("reference", "created_at", "updated_at", "ip_address")
+    list_filter = (("status", ChoicesDropdownFilter), ("sent_via", ChoicesDropdownFilter), ("listing__kind", ChoicesDropdownFilter),
+                   ("listing__island", RelatedDropdownFilter), "needs_transfer", "device", "source", "created_at")
+    search_fields = ("reference", "guest_name", "guest_email", "guest_phone", "listing__name", "listing__island__name")
+    readonly_fields = ("reference", "created_at", "updated_at", "sent_via", "sent_at", "visitor_link", "source", "campaign",
+                       "landing_path", "country", "city", "device", "browser", "os", "language", "nights_col", "lead_col")
     autocomplete_fields = ("listing",)
-    actions = ["mark_closed"]
+    date_hierarchy = "created_at"
+    actions = ["mark_closed", "export_csv"]
+    actions_list = ["open_analytics"]
     fieldsets = (
         ("Request", {"classes": ["tab"], "fields": (
-            ("reference", "status"), "listing", ("check_in", "check_out"), ("adults", "children", "rooms"),
-            "room_type", "needs_transfer", "message", "owner_notes")}),
+            ("reference", "status"), "listing", ("check_in", "check_out"), ("nights_col", "lead_col"),
+            ("adults", "children", "rooms"), "room_type", "needs_transfer", "message", "owner_notes")}),
         ("Guest", {"classes": ["tab"], "fields": (
-            ("guest_name", "guest_email"), ("guest_phone", "guest_country"), "preferred_contact")}),
-        ("System", {"classes": ["tab"], "fields": (("created_at", "updated_at"), "ip_address")}),
+            ("guest_name", "guest_email"), ("guest_phone", "guest_country"), "preferred_contact", ("sent_via", "sent_at"))}),
+        ("Source & device", {"classes": ["tab"], "fields": (
+            "visitor_link", ("source", "campaign"), "landing_path", ("country", "city", "language"), ("device", "browser", "os"),
+            ("created_at", "updated_at"))}),
     )
 
+    @display(description="Guest journey")
+    def visitor_link(self, obj):
+        if not obj.visitor_id:
+            return "Not available: the guest didn't accept analytics cookies"
+        url = reverse("admin:analytics_visitor_change", args=[obj.visitor_id])
+        return format_html('<a class="text-primary-600 font-semibold" href="{}">See every page and click before this request</a>', url)
+
+    @display(description="Nights")
+    def nights_col(self, obj):
+        return obj.nights or "–"
+
+    @display(description="Days before arrival")
+    def lead_col(self, obj):
+        return obj.lead_days if obj.lead_days is not None else "–"
+
+    @display(description="From", header=True)
+    def origin(self, obj):
+        from analytics.utils import country_name
+
+        place = ", ".join(x for x in (obj.city, country_name(obj.country) if obj.country else "") if x)
+        return [place or obj.guest_country or "–", " · ".join(x for x in (obj.source, obj.device) if x)]
+
+    @display(description="Sent to host", label={"Not yet": "warning", "WhatsApp": "success", "Viber": "success",
+                                                 "Email": "success", "Phone call": "success", "Copied the message": "info"})
+    def sent_label(self, obj):
+        return obj.get_sent_via_display() or "Not yet"
+
+    @action(description="Analytics", icon="insights", url_path="go-analytics")
+    def open_analytics(self, request):
+        return redirect("admin:analytics_dashboard")
+
+    @admin.action(description="Export selected to CSV (Excel)")
+    def export_csv(self, request, queryset):
+        import csv
+
+        from django.http import HttpResponse
+
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = f'attachment; filename="booking-requests-{timezone.localdate()}.csv"'
+        resp.write("\ufeff")
+        w = csv.writer(resp)
+        cols = ["Reference", "Received", "Status", "Listing", "Type", "Island", "Atoll", "Check-in", "Check-out", "Nights",
+                "Days before arrival", "Adults", "Children", "Rooms", "Room / package", "Transfer", "Guest", "Email", "Phone",
+                "Guest country", "Reply by", "Sent to host via", "Sent at", "Found us via", "Campaign", "First page",
+                "Country (detected)", "City", "Device", "Browser", "OS", "Language", "Message"]
+        w.writerow(cols)
+        for e in queryset.select_related("listing", "listing__island", "listing__island__atoll"):
+            w.writerow([e.reference, timezone.localtime(e.created_at).strftime("%Y-%m-%d %H:%M"), e.get_status_display(),
+                        e.listing.name, e.listing.get_kind_display(), e.listing.island.name, e.listing.island.atoll.name,
+                        e.check_in or "", e.check_out or "", e.nights or "", e.lead_days if e.lead_days is not None else "",
+                        e.adults, e.children, e.rooms or "", e.room_type, "Yes" if e.needs_transfer else "No", e.guest_name,
+                        e.guest_email, e.guest_phone, e.guest_country, e.get_preferred_contact_display(), e.get_sent_via_display(),
+                        timezone.localtime(e.sent_at).strftime("%Y-%m-%d %H:%M") if e.sent_at else "", e.source, e.campaign,
+                        e.landing_path, e.country, e.city, e.device, e.browser, e.os, e.language, e.message])
+        return resp
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("listing", "listing__island")

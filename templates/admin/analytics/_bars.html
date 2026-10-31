@@ -1,0 +1,1 @@
+<ul class="an-bars">{% for r in rows %}<li><span class="an-bar-label" title="{{ r.label }}">{{ r.label }}</span><span class="an-bar"><i style="width:{{ r.pct }}%"></i></span><b>{{ r.n }}</b><small>{{ r.pct }}%</small></li>{% empty %}<li class="an-empty">No data yet</li>{% endfor %}</ul>

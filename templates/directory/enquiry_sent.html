@@ -9,19 +9,19 @@
     <p class="muted" style="margin:0">Your request is written out below. Pick how you'd like to send it; it opens in your own app, ready to go. {{ l.name }} also sees it in their Island Stay inbox.</p>
 
     <div class="send-options">
-      {% if l.whatsapp_digits %}<a class="send-btn wa" target="_blank" rel="noopener" href="https://wa.me/{{ l.whatsapp_digits }}?text={{ msg|urlencode:'' }}">
+      {% if l.whatsapp_digits %}<a class="send-btn wa" data-send="whatsapp" data-ref="{{ e.reference }}" data-via-url="{% url 'directory:enquiry_sent_via' e.reference %}" target="_blank" rel="noopener" href="https://wa.me/{{ l.whatsapp_digits }}?text={{ msg|urlencode:'' }}">
         <span class="send-ico">{% icon "message-circle" %}</span><span><b>Send on WhatsApp</b><small>{{ l.whatsapp }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
-      {% if l.viber_digits %}<a class="send-btn viber" href="viber://chat?number=%2B{{ l.viber_digits }}&draft={{ msg|urlencode:'' }}">
+      {% if l.viber_digits %}<a class="send-btn viber" data-send="viber" data-ref="{{ e.reference }}" data-via-url="{% url 'directory:enquiry_sent_via' e.reference %}" href="viber://chat?number=%2B{{ l.viber_digits }}&draft={{ msg|urlencode:'' }}">
         <span class="send-ico">{% icon "message-circle" %}</span><span><b>Send on Viber</b><small>{{ l.viber }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
-      {% if l.contact_email %}<a class="send-btn" href="mailto:{{ l.contact_email }}?subject={{ subject|urlencode:'' }}&body={{ msg|urlencode:'' }}">
+      {% if l.contact_email %}<a class="send-btn" data-send="email" data-ref="{{ e.reference }}" data-via-url="{% url 'directory:enquiry_sent_via' e.reference %}" href="mailto:{{ l.contact_email }}?subject={{ subject|urlencode:'' }}&body={{ msg|urlencode:'' }}">
         <span class="send-ico">{% icon "mail" %}</span><span><b>Send by email</b><small>{{ l.contact_email }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
-      {% if l.contact_phone %}<a class="send-btn" href="tel:{{ l.contact_phone }}">
+      {% if l.contact_phone %}<a class="send-btn" data-send="call" data-ref="{{ e.reference }}" data-via-url="{% url 'directory:enquiry_sent_via' e.reference %}" href="tel:{{ l.contact_phone }}">
         <span class="send-ico">{% icon "phone" %}</span><span><b>Call</b><small>{{ l.contact_phone }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">
       <b>Your message</b>
-      <button class="btn btn-ghost btn-sm" type="button" id="copy-msg">{% icon "check" %} Copy</button>
+      <button class="btn btn-ghost btn-sm" type="button" id="copy-msg" data-send="copy" data-ref="{{ e.reference }}" data-via-url="{% url 'directory:enquiry_sent_via' e.reference %}">{% icon "check" %} Copy</button>
     </div>
     <pre class="send-preview" id="msg">{{ msg }}</pre>
 

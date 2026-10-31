@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Min, Q
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -232,10 +232,17 @@ def listing_detail(request, slug):
         if not listing.is_live:
             messages.error(request, "This listing isn't live yet, so it can't receive requests.")
         elif form.is_valid():
+            from analytics.utils import request_snapshot
+
             enquiry = form.save(commit=False)
             enquiry.listing = listing
-            enquiry.ip_address = request.META.get("REMOTE_ADDR")
+            enquiry.ip_address = None  # not stored (privacy policy)
+            for field, value in request_snapshot(request).items():
+                setattr(enquiry, field, value)
             enquiry.save()
+            if enquiry.visitor_id:
+                from analytics.models import Visitor
+                Visitor.objects.filter(pk=enquiry.visitor_id).update(enquiries=F("enquiries") + 1)
             notifications.enquiry_created(enquiry, request)
             request.session["last_enquiry"] = enquiry.reference
             return redirect("directory:enquiry_sent", ref=enquiry.reference)
@@ -253,8 +260,26 @@ def enquiry_sent(request, ref):
     })
 
 
+@require_POST
+def enquiry_sent_via(request, ref):
+    """Records which button the guest used to send their saved request to the host."""
+    channel = request.POST.get("channel", "")
+    if request.session.get("last_enquiry") == ref and channel in dict(Enquiry.SENT_VIA_CHOICES):
+        Enquiry.objects.filter(reference=ref).update(sent_via=channel)
+        Enquiry.objects.filter(reference=ref, sent_at__isnull=True).update(sent_at=timezone.now())
+    return HttpResponse(status=204)
+
+
 def list_your_business(request):
     return render(request, "directory/list_your_business.html", {"islands_count": Island.objects.filter(is_published=True).count()})
+
+
+def privacy(request):
+    return render(request, "directory/privacy.html")
+
+
+def cookies(request):
+    return render(request, "directory/cookies.html")
 
 
 def photo_credits(request):
@@ -430,4 +455,7 @@ def cron_photos(request):
         return HttpResponseForbidden("Forbidden")
     out = io.StringIO()
     call_command("fetch_island_photos", max_seconds=40, stdout=out, stderr=out)
+    from analytics.views import purge
+
+    purge()  # analytics older than about 13 months
     return JsonResponse({"log": out.getvalue().splitlines()[-30:]})

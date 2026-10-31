@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Privacy policy{% endblock %}
+{% block content %}
+<div class="container section legal">
+  <div class="eyebrow">Legal</div>
+  <h1>Privacy policy</h1>
+  <p class="muted">Last updated {% now "j F Y" %}</p>
+  <p>{{ SITE_NAME }} is a guide to the local islands of the Maldives. Travellers find guest houses, experiences, transport and places to eat, and contact the local business directly. This page explains what personal information we collect, why, and the choices you have.</p>
+
+  <h2>Who we are</h2>
+  <p>{{ SITE_NAME }} runs this website and decides how the information described here is used. For any privacy question or request, contact us at {% if CONTACT_EMAIL %}<a href="mailto:{{ CONTACT_EMAIL }}">{{ CONTACT_EMAIL }}</a>{% else %}the email address on our <a href="{% url 'directory:list_your_business' %}">List your business</a> page{% endif %}.</p>
+
+  <h2>What we collect</h2>
+  <table>
+    <tr><th>When</th><th>What</th><th>Why</th></tr>
+    <tr><td>You send a booking or service request</td><td>Your name, email, phone or WhatsApp number, country, dates, group size, your message and your preferred way to be contacted. Also your device type, browser, approximate location (country and city) and, if you accepted analytics cookies, how you found the site.</td><td>To pass your request to the business you chose, so they can reply. The business sees your request in their Island Stay dashboard. We use the device and location details to keep the service working and to understand which countries our guests come from.</td></tr>
+    <tr><td>You browse the site and accept analytics cookies</td><td>The pages you view, links and buttons you click, searches and filters, how far you scroll and how long you stay, the website or campaign that sent you, your device, browser, language and approximate location (country and city).</td><td>To understand which islands and businesses people look for and where the site is hard to use, so we can improve it.</td></tr>
+    <tr><td>You browse and choose essential cookies only</td><td>An anonymous count of pages viewed, with no identifier.</td><td>To know how many people use each page.</td></tr>
+    <tr><td>You list a business</td><td>Your account email, name, business details, contact details, photos and licence documents.</td><td>To publish your listing, verify your licence and let guests contact you.</td></tr>
+  </table>
+  <p>We do not store IP addresses for analytics. Approximate location comes from our hosting provider's network, at country and city level only. We don't collect payment details: you agree prices and payment directly with the business.</p>
+
+  <h2>Our legal basis</h2>
+  <ul>
+    <li><b>Your request:</b> to take the steps you asked for before a possible booking.</li>
+    <li><b>Analytics cookies:</b> your consent, which you can withdraw at any time using <a href="#" data-cookie-settings>Cookie settings</a>.</li>
+    <li><b>Business accounts:</b> our agreement with you to list your business.</li>
+    <li><b>Security and fraud prevention:</b> our legitimate interest in keeping the service safe.</li>
+  </ul>
+
+  <h2>Who we share it with</h2>
+  <ul>
+    <li><b>The business you contact</b> receives your request. When you send it on WhatsApp, Viber, email or phone, that service's own privacy terms apply.</li>
+    <li><b>Service providers</b> that run the website for us: hosting and database (Vercel, Neon) and file storage (Vercel Blob). They process data only on our instructions.</li>
+  </ul>
+  <p>We don't sell personal information or use it for advertising, and we don't use third-party trackers.</p>
+
+  <h2>How long we keep it</h2>
+  <ul>
+    <li>Booking requests: up to 2 years, so you and the business can refer back to them.</li>
+    <li>Analytics: deleted automatically after 13 months.</li>
+    <li>Business accounts: while the account is open, then up to 1 year.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>You can ask to see, correct, delete or receive a copy of your information, object to how we use it, or withdraw consent. Contact us using the address above and include your request reference if you have one. You can also complain to your local data protection authority.</p>
+
+  <h2>International transfers</h2>
+  <p>Our providers may store data outside your country, including in the United States and the European Union, under appropriate safeguards such as standard contractual clauses.</p>
+
+  <h2>Children</h2>
+  <p>The site is not meant for children under 16, and we don't knowingly collect their information.</p>
+
+  <h2>Changes</h2>
+  <p>We'll update this page if anything changes and show the new date at the top.</p>
+  <p>See also our <a href="{% url 'directory:cookies' %}">cookie policy</a>.</p>
+</div>
+{% endblock %}
