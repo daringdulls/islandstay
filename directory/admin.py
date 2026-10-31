@@ -257,7 +257,7 @@ class VerificationFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(BaseAdmin):
-    list_display = ("business", "kind_label", "island_name", "status_label", "verified_label", "enquiry_count", "submitted")
+    list_display = ("business", "kind_label", "island_name", "status_label", "verified_label", "is_featured", "enquiry_count", "submitted")
     list_display_links = ("business",)
     list_filter = (
         ("status", ChoicesDropdownFilter), VerificationFilter, ("kind", ChoicesDropdownFilter),

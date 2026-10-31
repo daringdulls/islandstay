@@ -347,7 +347,8 @@ class Listing(models.Model):
     cover_image = models.ImageField(upload_to="listings/", blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     admin_note = models.TextField(blank=True, help_text="Feedback to the owner (e.g. reason for rejection)")
-    is_featured = models.BooleanField(default=False)
+    is_featured = models.BooleanField("Recommended", default=False,
+                                      help_text="Shows a Recommended badge and lists this business first")
     is_verified = models.BooleanField(default=False, help_text="Licence checked by the Island Stay team")
     verified_at = models.DateTimeField(null=True, blank=True)
     verification_document = models.FileField(

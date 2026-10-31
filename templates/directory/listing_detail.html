@@ -13,6 +13,7 @@
       <div class="row" style="gap:16px">
         <a class="meta" href="{{ listing.island.get_absolute_url }}" style="display:inline-flex;gap:6px;align-items:center">{% icon "map-pin" %} {{ listing.island.name }}, {{ listing.island.atoll.name }}</a>
         {% if listing.is_verified %}<span class="verified-badge" title="Licence checked by our team{% if listing.verified_at %} on {{ listing.verified_at|date:'j M Y' }}{% endif %}">{% cowrie %} Verified host</span>{% endif %}
+        {% if listing.is_featured %}<span class="badge badge-rec" title="Recommended by the Island Stay team">{% icon "star" %}Recommended</span>{% endif %}
         {% if listing.star_rating %}<span class="data muted">{{ listing.star_rating }}-STAR</span>{% endif %}
       </div>
     </div>
