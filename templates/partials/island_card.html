@@ -1,12 +1,15 @@
-{% load ui humanize %}<a class="photo-card" href="{{ island.get_absolute_url }}">
-  {% if island.photo_url %}<img src="{{ island.card_photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}" loading="lazy">{% else %}<div class="chart" style="{{ island.chart_style }}"></div>{% endif %}
-  <span class="photo-card-tag">{{ island.atoll.name }}</span>
-  <div class="photo-card-body">
-    <div>
-      <h3>{{ island.name }}</h3>
-      <p>{{ island.tagline }}</p>
-      <div class="photo-card-meta">{% if island.population %}<span>Pop. {{ island.population|intcomma }}</span>{% endif %}{% if island.transfer_time %}<span>{{ island.transfer_time }}</span>{% endif %}{% if island.has_bikini_beach %}<span>Bikini beach</span>{% endif %}</div>
-    </div>
-    <span class="round-arrow">{% icon "arrow-up-right" %}</span>
+{% load ui humanize %}<a class="island-card" href="{{ island.get_absolute_url }}">
+  <div class="island-card-photo">
+    {% if island.photo_url %}<img src="{{ island.card_photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}" loading="lazy" onerror="this.remove()">{% else %}<div class="chart" style="{{ island.chart_style }}"></div>{% endif %}
+    <span class="island-card-tag">{{ island.atoll.name }}</span>
+  </div>
+  <div class="island-card-body">
+    <div class="island-card-title"><h3>{{ island.name }}</h3><span class="round-arrow">{% icon "arrow-up-right" %}</span></div>
+    <p>{{ island.tagline }}</p>
+    <ul class="island-card-facts">
+      {% if island.population %}<li>{% icon "users" %}Pop. {{ island.population|intcomma }}</li>{% endif %}
+      {% if island.transfer_time %}<li>{% icon "ship" %}{{ island.transfer_time }}</li>{% endif %}
+      {% if island.has_bikini_beach %}<li>{% icon "umbrella" %}Bikini beach</li>{% endif %}
+    </ul>
   </div>
 </a>
