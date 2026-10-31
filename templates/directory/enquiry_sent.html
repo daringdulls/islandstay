@@ -6,7 +6,8 @@
   <div class="panel">
     <div class="eyebrow" style="display:flex;gap:8px;align-items:center;color:var(--verified)">{% icon "check" %} Request sent</div>
     <h1 style="font-size:2.2rem;margin-top:8px">Your request is with {{ e.listing.name }}</h1>
-    <p>We've emailed your request to the host on {{ e.listing.island.name }} and sent a copy to <b>{{ e.guest_email }}</b>.</p>
+    {% if e.email_status|slice:":4" == "Sent" %}<p>We've emailed your request to the host on {{ e.listing.island.name }}{% if "Guest copy" not in e.email_status %} and sent a copy to <b>{{ e.guest_email }}</b>{% endif %}.</p>
+    {% else %}<p>Your request has reached the host's Island Stay inbox on {{ e.listing.island.name }}. They'll reply to <b>{{ e.guest_email }}</b>{% if e.guest_phone %} or {{ e.guest_phone }}{% endif %}.</p>{% endif %}
     <dl class="kv" style="margin:24px 0">
       <dt>Reference</dt><dd class="data" style="font-size:.95rem">{{ e.reference }}</dd>
       {% if e.check_in %}<dt>Date{% if e.check_out %}s{% endif %}</dt><dd>{{ e.check_in|date:"j M Y" }}{% if e.check_out %} to {{ e.check_out|date:"j M Y" }} ({{ e.nights }} night{{ e.nights|pluralize }}){% endif %}</dd>{% endif %}

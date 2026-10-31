@@ -1,7 +1,30 @@
 """Outgoing emails. Every booking request goes straight to the property / service owner."""
+import logging
+
 from django.conf import settings
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+
+log = logging.getLogger(__name__)
+NOT_CONFIGURED = "Not sent: email isn't set up (see Settings, Email in the back office)"
+
+
+def deliver(message):
+    """Send one email. Returns None when it went out, or a short reason when it didn't."""
+    if not getattr(settings, "EMAIL_CONFIGURED", False):
+        log.warning("Email not configured; not delivered: %s -> %s", message.subject, message.to)
+        message.send(fail_silently=True)  # still written to the log by the console backend
+        return NOT_CONFIGURED
+    try:
+        message.send()
+        return None
+    except Exception as exc:  # network, login or provider errors
+        log.exception("Email failed: %s -> %s", message.subject, message.to)
+        return f"Failed: {type(exc).__name__}: {exc}"[:240]
+
+
+def send_mail(subject, body, from_email, to, fail_silently=True):
+    return deliver(EmailMessage(subject=subject, body=body, from_email=from_email, to=to))
 
 
 def _abs(request, path):
@@ -16,21 +39,29 @@ def enquiry_created(enquiry, request=None):
         "listing_url": _abs(request, listing.get_absolute_url()),
     }
     # To the owner, with Reply-To set to the guest so they can answer directly.
-    EmailMessage(
+    owner_error = deliver(EmailMessage(
         subject=f"New booking request {enquiry.reference} — {listing.name}",
         body=render_to_string("emails/enquiry_owner.txt", ctx),
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[listing.contact_email],
         reply_to=[enquiry.guest_email],
-    ).send(fail_silently=True)
+    ))
     # Confirmation to the guest, with Reply-To set to the owner.
-    EmailMessage(
+    guest_error = deliver(EmailMessage(
         subject=f"Your request to {listing.name} was sent ({enquiry.reference})",
         body=render_to_string("emails/enquiry_guest.txt", ctx),
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[enquiry.guest_email],
         reply_to=[listing.contact_email],
-    ).send(fail_silently=True)
+    ))
+    if owner_error:
+        status = f"Owner: {owner_error}"
+    elif guest_error:
+        status = f"Sent to owner ({listing.contact_email}). Guest copy: {guest_error}"
+    else:
+        status = f"Sent to owner ({listing.contact_email}) and guest"
+    type(enquiry).objects.filter(pk=enquiry.pk).update(email_status=status[:255])
+    enquiry.email_status = status[:255]
 
 
 def listing_submitted(listing, request=None):

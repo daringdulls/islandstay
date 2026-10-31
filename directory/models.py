@@ -554,6 +554,7 @@ class Enquiry(models.Model):
     message = models.TextField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_NEW)
     owner_notes = models.TextField(blank=True, help_text="Private notes for the owner")
+    email_status = models.CharField(max_length=255, blank=True, help_text="Whether the emails to the owner and guest went out")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)

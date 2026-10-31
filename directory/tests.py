@@ -498,3 +498,57 @@ class OidcBlobTests(TestCase):
         mw(RequestFactory().get("/", HTTP_X_VERCEL_OIDC_TOKEN="tok-123"))
         self.assertEqual(captured["t"], "tok-123")
         self.assertIsNone(current_oidc_token())
+
+
+from django.core import mail
+from django.test import override_settings
+
+from directory.models import Enquiry
+
+
+class EmailDeliveryTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def _post(self):
+        listing = Listing.objects.filter(status=Listing.STATUS_APPROVED, kind__in=Listing.STAY_KINDS).first()
+        return listing, self.client.post(listing.get_absolute_url(), {
+            "guest_name": "Ana", "guest_email": "ana@example.com", "preferred_contact": "email",
+            "adults": 2, "children": 0, "message": "Hello", "website": ""})
+
+    @override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_request_emails_owner_and_guest_and_records_it(self):
+        listing, r = self._post()
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].to, [listing.contact_email])
+        self.assertEqual(mail.outbox[0].reply_to, ["ana@example.com"])
+        self.assertTrue(Enquiry.objects.latest("id").email_status.startswith("Sent to owner"))
+
+    @override_settings(EMAIL_CONFIGURED=False)
+    def test_unconfigured_email_is_recorded_not_hidden(self):
+        self._post()
+        self.assertIn("isn't set up", Enquiry.objects.latest("id").email_status)
+
+    @override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="directory.tests.BrokenBackend")
+    def test_mail_server_error_is_recorded(self):
+        _, r = self._post()
+        self.assertEqual(r.status_code, 302)  # the guest's request is still saved
+        self.assertIn("Failed", Enquiry.objects.latest("id").email_status)
+
+    def test_email_page_and_test_button(self):
+        admin_user = User.objects.create_superuser("root@x.mv", "root@x.mv", "pw")
+        self.client.force_login(admin_user)
+        self.assertContains(self.client.get("/admin/email/"), "Emails are not being sent")
+        with override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
+            self.client.post("/admin/email/", {"to": "me@example.com"})
+            self.assertEqual(mail.outbox[-1].to, ["me@example.com"])
+
+
+from django.core.mail.backends.base import BaseEmailBackend  # noqa: E402
+
+
+class BrokenBackend(BaseEmailBackend):
+    def send_messages(self, messages):
+        raise ConnectionRefusedError("SMTP login failed")

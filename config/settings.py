@@ -189,12 +189,19 @@ EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", "django.core.mail.backends.console.E
 EMAIL_HOST = env("EMAIL_HOST")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Island Stay <no-reply@islandstay.mv>")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD").replace(" ", "")  # Gmail shows app passwords in groups of four
+EMAIL_USE_SSL = EMAIL_PORT == 465
+EMAIL_USE_TLS = not EMAIL_USE_SSL
+EMAIL_TIMEOUT = 15
+# Gmail and most providers only send "from" the signed-in address, so default to it.
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL") or (
+    f"Island Stay <{EMAIL_HOST_USER}>" if "@" in EMAIL_HOST_USER else "Island Stay <no-reply@islandstay.mv>")
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # With SMTP details filled in, send real email even if DJANGO_EMAIL_BACKEND wasn't set.
 if EMAIL_HOST and "DJANGO_EMAIL_BACKEND" not in os.environ:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# False means emails are only written to the server log, not delivered.
+EMAIL_CONFIGURED = EMAIL_BACKEND.endswith("smtp.EmailBackend") and bool(EMAIL_HOST)
 
 SITE_NAME = "Island Stay"
 ADMIN_NOTIFY_EMAILS = [e.strip() for e in env("ADMIN_NOTIFY_EMAILS").split(",") if e.strip()]
@@ -291,6 +298,7 @@ UNFOLD = {
                 "items": [
                     {"title": "Activity types", "icon": "scuba_diving", "link": reverse_lazy("admin:directory_activitytype_changelist")},
                     {"title": "Amenities", "icon": "checklist", "link": reverse_lazy("admin:directory_amenity_changelist")},
+                    {"title": "Email", "icon": "mail", "link": reverse_lazy("email_setup")},
                     {"title": "Users & businesses", "icon": "group", "link": reverse_lazy("admin:auth_user_changelist")},
                     {"title": "Staff groups", "icon": "admin_panel_settings", "link": reverse_lazy("admin:auth_group_changelist")},
                 ],

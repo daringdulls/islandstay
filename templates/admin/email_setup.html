@@ -1,0 +1,50 @@
+{% extends 'admin/base.html' %}
+{% block title %}Email | {{ site_title }}{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block content %}
+<div class="is-email">
+  <h1 class="is-title" style="margin-bottom:6px">Email</h1>
+  <p class="is-sub">Booking requests are emailed to the host and a copy goes to the guest. Owners also get emails when their listing is approved.</p>
+
+  <div class="is-email-status {% if configured %}ok{% else %}bad{% endif %}">
+    <span class="material-symbols-outlined">{% if configured %}check_circle{% else %}error{% endif %}</span>
+    <div>
+      {% if configured %}<b>Email is set up.</b> Emails are sent through {{ host }}. Send a test below to make sure the login works.
+      {% else %}<b>Emails are not being sent.</b> No mail server is set up, so booking requests are only saved here and in the host's dashboard. Follow the steps below.{% endif %}
+    </div>
+  </div>
+
+  <table class="is-email-table">
+    <tr><th>Mail server</th><td>{{ host|default:"Not set" }}{% if host %}, port {{ port }}{% endif %}</td></tr>
+    <tr><th>Login</th><td>{{ user|default:"Not set" }}{% if user %} · password {% if has_password %}set{% else %}<b>missing</b>{% endif %}{% endif %}</td></tr>
+    <tr><th>Sent from</th><td>{{ from_email }}</td></tr>
+    <tr><th>Team alerts go to</th><td>{{ admin_emails|join:", "|default:"Nobody (set ADMIN_NOTIFY_EMAILS)" }}</td></tr>
+  </table>
+
+  <form method="post" class="is-email-test">{% csrf_token %}
+    <label for="to"><b>Send a test email</b></label>
+    <div><input id="to" name="to" type="email" value="{{ request.user.email }}" required>
+    <button type="submit">Send test</button></div>
+    <small>Any error from the mail server is shown here, word for word.</small>
+  </form>
+
+  <h2>How to set it up (about 5 minutes)</h2>
+  <h3>Option A: Gmail (simplest)</h3>
+  <ol>
+    <li>On the Google account that should send the emails, turn on 2-Step Verification (myaccount.google.com, Security).</li>
+    <li>Open <b>myaccount.google.com/apppasswords</b>, create an app password named “Island Stay” and copy the 16 letters.</li>
+    <li>In Vercel open your project, <b>Settings, Environment Variables</b>, and add:
+      <table class="is-email-table env">
+        <tr><th>EMAIL_HOST</th><td>smtp.gmail.com</td></tr>
+        <tr><th>EMAIL_PORT</th><td>587</td></tr>
+        <tr><th>EMAIL_HOST_USER</th><td>the Gmail address</td></tr>
+        <tr><th>EMAIL_HOST_PASSWORD</th><td>the 16-letter app password</td></tr>
+        <tr><th>ADMIN_NOTIFY_EMAILS</th><td>where new-listing alerts should go (optional)</td></tr>
+      </table></li>
+    <li>Redeploy (Deployments, the latest one, Redeploy), then come back here and send a test.</li>
+  </ol>
+  <p class="is-note">Gmail sends up to about 500 emails a day and they come from the Gmail address. Guests' replies still go to the host, because each email's reply-to is set to the other person.</p>
+  <h3>Option B: your own domain (for example bookings@islandstay.mv)</h3>
+  <p>Use an email service such as Resend, Brevo or Postmark. Verify your domain with them, then set EMAIL_HOST, EMAIL_PORT, EMAIL_HOST_USER and EMAIL_HOST_PASSWORD from their SMTP settings, plus DEFAULT_FROM_EMAIL, for example <code>Island Stay &lt;bookings@islandstay.mv&gt;</code>. For Resend: host smtp.resend.com, port 587, user <code>resend</code>, password your API key.</p>
+</div>
+{% endblock %}

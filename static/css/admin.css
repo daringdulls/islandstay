@@ -91,3 +91,26 @@ h1, h2, h3, #site-name, .is-title, .is-kpi-value { font-family: var(--is-heading
 
 body, .font-sans, input, select, textarea, button { font-family: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif !important; }
 .material-symbols-outlined { font-family: "Material Symbols Outlined" !important; }
+
+/* Email setup page */
+.is-email { max-width: 820px; font-size: 14.5px; line-height: 1.6; }
+.is-email h2 { font-size: 18px; font-weight: 600; margin: 32px 0 8px; }
+.is-email h3 { font-size: 15px; font-weight: 600; margin: 18px 0 6px; }
+.is-email ol { list-style: decimal; padding-left: 22px; }
+.is-email ol li { margin-bottom: 8px; }
+.is-email code { background: rgba(11, 110, 138, .08); padding: 1px 6px; border-radius: 6px; }
+.is-email-status { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 12px; margin: 18px 0; }
+.is-email-status.ok { background: #e4f2ec; color: #1d5a40; }
+.is-email-status.bad { background: #fdecea; color: #8a2e1d; }
+.is-email-table { border-collapse: collapse; margin: 10px 0; font-size: 13.5px; }
+.is-email-table th, .is-email-table td { text-align: left; padding: 7px 12px; border: 1px solid rgb(229 231 235); }
+.dark .is-email-table th, .dark .is-email-table td { border-color: rgb(55 65 81); }
+.is-email-table th { font-weight: 600; white-space: nowrap; }
+.is-email-table.env th { font-family: ui-monospace, monospace; font-size: 12.5px; }
+.is-email-test { border: 1px solid rgb(229 231 235); border-radius: 12px; padding: 16px; margin: 18px 0; display: grid; gap: 8px; }
+.is-email-test div { display: flex; gap: 8px; flex-wrap: wrap; }
+.is-email-test input { flex: 1; min-width: 220px; border: 1px solid rgb(209 213 219); border-radius: 8px; padding: 8px 12px; background: transparent; }
+.is-email-test button { background: #0B6E8A; color: #fff; border-radius: 999px; padding: 8px 18px; font-weight: 600; }
+.is-email-test small, .is-note { color: rgb(107 114 128); font-size: 13px; }
+.is-alert-bar { display: flex; gap: 12px; align-items: center; padding: 12px 16px; border-radius: 12px; background: #fdecea; color: #8a2e1d; margin-bottom: 18px; font-size: 14px; }
+.is-alert-bar a { margin-left: auto; font-weight: 600; text-decoration: underline; white-space: nowrap; }

@@ -22,6 +22,7 @@
     </div>
   </div>
 
+  {% if not email_configured %}<div class="is-alert-bar"><span class="material-symbols-outlined">mail_off</span><span><b>Booking request emails are not being sent.</b> Requests are saved, but hosts and guests aren't emailed until email is set up.</span><a href="{% url 'email_setup' %}">Set up email</a></div>{% endif %}
   <div class="is-kpis">
     {% for k in kpis %}
       <a class="is-kpi {% if k.alert and k.value %}is-kpi-alert{% endif %}" href="{{ k.href }}">
