@@ -45,6 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.setup_check.SetupCheckMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -123,8 +124,14 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    if SECRET_KEY.startswith("dev-only"):
-        raise RuntimeError("Set DJANGO_SECRET_KEY in production.")
+
+# Settings a hosted site can't run without. Builds still succeed without them (Vercel builds as soon as a
+# project is imported), but every page shows a setup checklist until they are added. See config/setup_check.py.
+SETUP_MISSING = []
+if not DEBUG and SECRET_KEY.startswith("dev-only"):
+    SETUP_MISSING.append(("DJANGO_SECRET_KEY", "Settings → Environment Variables: add DJANGO_SECRET_KEY with a long random value."))
+if ON_VERCEL and not os.environ.get("DATABASE_URL"):
+    SETUP_MISSING.append(("Database", "Storage → Create → Neon (Postgres), then connect it to this project."))
 
 LOGGING = {
     "version": 1,

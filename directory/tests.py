@@ -374,3 +374,12 @@ class VercelTests(TestCase):
             self.assertEqual(self.client.get("/cron/photos/", HTTP_AUTHORIZATION="Bearer wrong").status_code, 403)
             r = self.client.get("/cron/photos/", HTTP_AUTHORIZATION="Bearer s3cret")
         self.assertEqual(r.status_code, 200)
+
+
+class SetupCheckTests(TestCase):
+    def test_missing_settings_show_checklist(self):
+        with self.settings(SETUP_MISSING=[("DJANGO_SECRET_KEY", "Add it under Environment Variables.")]):
+            r = self.client.get("/")
+        self.assertEqual(r.status_code, 503)
+        self.assertContains(r, "DJANGO_SECRET_KEY", status_code=503)
+        self.assertEqual(self.client.get("/").status_code, 200)

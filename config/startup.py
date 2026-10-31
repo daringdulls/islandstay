@@ -23,6 +23,10 @@ def pending_migrations():
 def run():
     if os.environ.get("AUTO_SETUP", "1") != "1":
         return
+    from django.conf import settings
+
+    if settings.SETUP_MISSING:
+        return  # the setup checklist page explains what to add first
     from django.core.management import call_command
     from django.db import connection
 
