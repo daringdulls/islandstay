@@ -134,11 +134,14 @@ class Island(models.Model):
     population = models.PositiveIntegerField(null=True, blank=True)
     has_bikini_beach = models.BooleanField(default=False)
     has_atm = models.BooleanField(default=False)
-    has_hospital = models.BooleanField("Clinic / health centre", default=False, help_text="Health centre, clinic or hospital on the island")
+    has_hospital = models.BooleanField("Clinic / health centre", default=False, help_text="Health centre or clinic on the island")
+    has_full_hospital = models.BooleanField("Hospital", default=False,
+                                            help_text="A hospital (atoll, regional or city hospital), not just a health centre")
     has_pharmacy = models.BooleanField(default=False)
     has_police = models.BooleanField("Police station", default=False)
     has_supermarket = models.BooleanField("Shops / supermarket", default=False)
     has_4g = models.BooleanField("4G mobile data", default=True)
+    has_5g = models.BooleanField("5G mobile data", default=False, help_text="5G from Dhiraagu or Ooredoo on this island")
     nearest_airport = models.CharField(max_length=80, blank=True, help_text="Nearest airport, e.g. Velana International (MLE) or Maamigili (VAM)")
     nearest_airport_km = models.PositiveIntegerField(null=True, blank=True)
     facilities_notes = models.TextField(blank=True, help_text="Other facilities: mosques, sports ground, water sports centre… One per line.")
@@ -227,11 +230,22 @@ class Island(models.Model):
     @property
     def facility_flags(self):
         return [
-            ("banknote", "ATM", self.has_atm), ("cross", "Clinic / health centre", self.has_hospital),
+            ("banknote", "ATM", self.has_atm),
+            ("cross", "Hospital", True) if self.has_full_hospital else ("cross", "Clinic / health centre", self.has_hospital),
             ("pill", "Pharmacy", self.has_pharmacy), ("siren", "Police station", self.has_police),
-            ("store", "Shops", self.has_supermarket), ("signal", "4G mobile data", self.has_4g),
+            ("store", "Shops", self.has_supermarket), ("signal", "5G mobile data", True) if self.has_5g else ("signal", "4G mobile data", self.has_4g),
             ("umbrella", "Bikini beach", self.has_bikini_beach),
         ]
+
+    @property
+    def mobile_data_label(self):
+        return "5G" if self.has_5g else ("4G" if self.has_4g else "Limited")
+
+    @property
+    def healthcare_label(self):
+        if self.has_full_hospital:
+            return "Hospital"
+        return "Health centre" if self.has_hospital else "No"
 
     @property
     def transfer_labels(self):

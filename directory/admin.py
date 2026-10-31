@@ -192,7 +192,7 @@ class IslandAdmin(BaseAdmin):
         ("Getting there", {"classes": ["tab"], "fields": (
             "getting_there", "transfer_types", ("distance_from_airport_km", "transfer_time"), ("nearest_airport", "nearest_airport_km"))}),
         ("Facilities & rules", {"classes": ["tab"], "fields": (
-            ("has_bikini_beach", "has_atm", "has_hospital", "has_pharmacy"), ("has_police", "has_supermarket", "has_4g"),
+            ("has_bikini_beach", "has_atm", "has_hospital", "has_full_hospital"), ("has_pharmacy", "has_police", "has_supermarket"), ("has_4g", "has_5g"),
             "facilities_notes", "local_rules", "accessibility")}),
         ("Facts & sources", {"classes": ["tab"], "fields": (
             ("population", "population_year", "area_km2"), "sources", "wikipedia_title", ("latitude", "longitude"))}),

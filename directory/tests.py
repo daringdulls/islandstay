@@ -701,3 +701,19 @@ class ActivitySuggestionTests(TestCase):
         self.assertIn('data-autogrow="1"', page)
         page = self.client.get(reverse("admin:directory_listing_add")).content.decode()
         self.assertIn('type="checkbox" name="activity_types"', page)
+
+
+class HealthcareAndMobileTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", stdout=open("/dev/null", "w"))
+
+    def test_hospital_and_5g_shown(self):
+        male = Island.objects.get(name="Malé")
+        self.assertTrue(male.has_full_hospital and male.has_5g)
+        page = self.client.get(male.get_absolute_url())
+        self.assertContains(page, "Hospital")
+        self.assertContains(page, "5G")
+        thoddoo = Island.objects.get(slug="thoddoo")
+        self.assertEqual(thoddoo.healthcare_label, "Health centre")
+        self.assertEqual(thoddoo.mobile_data_label, "4G")

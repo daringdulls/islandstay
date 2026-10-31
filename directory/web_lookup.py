@@ -129,7 +129,8 @@ out tags center 200;"""
     mosques = sum(1 for t in tags if t.get("amenity") == "place_of_worship")
     return {
         "has_atm": "yes" if any(a in ("atm",) or (a == "bank" and t.get("atm") == "yes") for a, t in zip(amen, tags)) else "unknown",
-        "has_pharmacy": has("pharmacy"), "has_police": has("police"), "has_hospital": has("hospital", "clinic", "doctors"),
+        "has_pharmacy": has("pharmacy"), "has_police": has("police"),
+        "has_hospital": has("clinic", "doctors", "hospital"), "has_full_hospital": has("hospital"),
         "has_supermarket": "yes" if any(t.get("shop") for t in tags) else "unknown",
         "mosques": mosques, "stays": stays, "food": food, "dive": dive,
     }
@@ -183,7 +184,7 @@ def lookup_island(name, context=""):
             if osm["dive"]:
                 fields["facilities_notes"] = "Dive centre: " + ", ".join(osm["dive"][:3])
             sources.append(f"https://www.openstreetmap.org/#map=16/{lat:.5f}/{lon:.5f}")
-            for k in ("has_atm", "has_pharmacy", "has_police", "has_hospital", "has_supermarket"):
+            for k in ("has_atm", "has_pharmacy", "has_police", "has_hospital", "has_full_hospital", "has_supermarket"):
                 fields[k] = osm[k]
             extra = []
             if osm["mosques"]:
@@ -204,6 +205,19 @@ def lookup_island(name, context=""):
             notes.append("OpenStreetMap could not be reached, so facilities weren't checked.")
         notes.append("Distances are straight-line estimates; transfer time, local rules and bikini beach aren't "
                      "available from these sources, so add them yourself.")
+    text = (wiki["extract"] if wiki else "").lower()
+    if re.search(r"\b(regional|atoll|city|general)? ?hospital\b", text) and "health centre" not in text.split("hospital")[0][-40:]:
+        fields["has_full_hospital"] = "yes"
+        fields["has_hospital"] = "yes"
+    elif re.search(r"health (centre|center|post)|clinic", text):
+        fields.setdefault("has_hospital", "yes")
+    if wiki or lat is not None:
+        # Dhiraagu and Ooredoo provide 4G on inhabited islands; marked as a suggestion to confirm.
+        fields["has_4g"] = "yes"
+        if "5g" in text:
+            fields["has_5g"] = "yes"
+        notes.append("Mobile data: Dhiraagu and Ooredoo cover inhabited islands with 4G, and 5G on some islands; "
+                     "check their coverage maps to confirm 5G.")
     signals = [fields.get("overview", ""), fields.get("facilities_notes", "")]
     if wiki:
         signals.append(wiki["extract"])

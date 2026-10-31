@@ -26,7 +26,8 @@
     <div class="fact"><span>Population</span><b>{% if island.population %}{{ island.population|intcomma }}{% else %}–{% endif %}</b></div>
     <div class="fact"><span>Bikini beach</span><b>{{ island.has_bikini_beach|yesno:"Yes,No" }}</b></div>
     <div class="fact"><span>ATM</span><b>{{ island.has_atm|yesno:"Yes,No" }}</b></div>
-    <div class="fact"><span>Clinic</span><b>{{ island.has_hospital|yesno:"Yes,No" }}</b></div>
+    <div class="fact"><span>Healthcare</span><b>{{ island.healthcare_label }}</b></div>
+    <div class="fact"><span>Mobile data</span><b>{{ island.mobile_data_label }}</b></div>
   </div>
 
   <nav class="anchor-nav" aria-label="On this page">

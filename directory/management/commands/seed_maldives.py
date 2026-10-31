@@ -438,6 +438,8 @@ class Command(BaseCommand):
                     transfer_time=d["time"], population=d["pop"], has_bikini_beach=d.get("bikini", False),
                     has_atm=d.get("atm", False), has_hospital=d.get("hosp", True), cover_color=d["color"],
                     has_pharmacy=d.get("hosp", True), has_police=d["pop"] >= 1000, has_supermarket=True, has_4g=True,
+                    has_full_hospital=d["name"] in ("Malé", "Hulhumalé", "Fuvahmulah", "Hithadhoo"),
+                    has_5g=d["name"] in ("Malé", "Hulhumalé"),
                     nearest_airport=d.get("airport", "Velana International (MLE)"),
                     nearest_airport_km=d.get("airport_km", d["km"]),
                     local_rules=d.get("rules", "\n".join(STD_RULES)), accessibility=d.get("access", "\n".join(STD_ACCESS)),
