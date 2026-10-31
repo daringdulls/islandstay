@@ -1,0 +1,98 @@
+<div class="ai-box" id="ai-box" data-kind="{{ kind }}" data-url="{% url 'ai_assist' %}">
+  <div class="ai-head">
+    <span class="material-symbols-outlined">auto_awesome</span>
+    <div><b>AI assist</b><p>Type the {% if kind == "island" %}island{% else %}business{% endif %} name, then let AI research it on the web and draft the details. You review every suggestion before it goes into the form; nothing is saved until you press Save.</p></div>
+  </div>
+  <div class="ai-row">
+    <input type="text" id="ai-name" placeholder="{% if kind == 'island' %}e.g. Gaafaru{% else %}e.g. Cozy Nest Fuvahmulah{% endif %}">
+    <button type="button" id="ai-go" class="ai-btn"><span class="material-symbols-outlined">travel_explore</span>Research with AI</button>
+  </div>
+  <p class="ai-status" id="ai-status" hidden></p>
+  <div id="ai-result" hidden>
+    <div class="ai-tools"><label><input type="checkbox" id="ai-all" checked> Select all</label><span>Only fields with a suggestion are shown. Empty fields in the form are ticked; fields you've already filled are not.</span></div>
+    <table class="ai-table"><thead><tr><th></th><th>Field</th><th>Suggestion (you can edit it)</th><th>Now in the form</th></tr></thead><tbody id="ai-rows"></tbody></table>
+    <div class="ai-notes" id="ai-notes" hidden></div>
+    <div class="ai-sources" id="ai-sources"></div>
+    <div class="ai-row"><button type="button" class="ai-btn" id="ai-apply"><span class="material-symbols-outlined">done_all</span>Apply selected to the form</button><span class="ai-hint">Then check the form and press Save.</span></div>
+  </div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('ai-box'), kind = box.dataset.kind;
+  var nameInput = document.getElementById('ai-name'), go = document.getElementById('ai-go'), status = document.getElementById('ai-status');
+  function syncName() { var f = document.querySelector('form [name=name]'); if (f && f.value && !nameInput.dataset.touched) nameInput.value = f.value; }
+  document.addEventListener('DOMContentLoaded', function () {
+    var f = document.querySelector('form [name=name]'); syncName(); if (f) f.addEventListener('input', syncName);
+  });
+  document.addEventListener('input', function (e) { if (e.target && e.target.name === 'name') syncName(); });
+  nameInput.addEventListener('input', function () { nameInput.dataset.touched = '1'; });
+  function csrf() { var m = document.cookie.match(/csrftoken=([^;]+)/); var i = document.querySelector('[name=csrfmiddlewaretoken]'); return i ? i.value : (m ? m[1] : ''); }
+  function field(n) { return document.querySelector('form [name="' + n + '"]'); }
+  function label(n) { var l = document.querySelector('label[for="id_' + n + '"]'); return l ? l.textContent.replace('*', '').trim() : n.replace(/_/g, ' '); }
+  function current(n) {
+    var el = field(n); if (!el) return n === 'island_name' ? (function(){ var i = field('island'); return i && i.selectedIndex > 0 ? i.options[i.selectedIndex].text : ''; })() : '';
+    if (el.type === 'checkbox') return el.checked ? 'yes' : 'no';
+    if (el.tagName === 'SELECT') return el.selectedIndex > 0 ? el.options[el.selectedIndex].text : '';
+    return el.value;
+  }
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  var timer;
+  go.addEventListener('click', function () {
+    syncName(); var name = nameInput.value.trim();
+    if (name.length < 2) { status.hidden = false; status.className = 'ai-status err'; status.textContent = 'Type a name first.'; return; }
+    var t0 = Date.now(); go.disabled = true; status.hidden = false; status.className = 'ai-status';
+    clearInterval(timer); timer = setInterval(function () { status.textContent = 'Searching the web and reading sources… ' + Math.round((Date.now() - t0) / 1000) + 's (usually under 2 minutes)'; }, 1000);
+    var fd = new FormData(); fd.append('kind', kind); fd.append('name', name); fd.append('context', (window.aiAssistContext && window.aiAssistContext()) || '');
+    fetch(box.dataset.url, { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrf() }, credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return { error: 'The request took too long or failed (' + r.status + '). Try again.' }; }); })
+      .then(function (data) {
+        clearInterval(timer); go.disabled = false;
+        if (data.error) { status.className = 'ai-status err'; status.textContent = data.error; return; }
+        status.className = 'ai-status ok'; status.textContent = 'Done in ' + Math.round((Date.now() - t0) / 1000) + 's. Review the suggestions below.';
+        render(data);
+      })
+      .catch(function () { clearInterval(timer); go.disabled = false; status.className = 'ai-status err'; status.textContent = 'Network error. Try again.'; });
+  });
+  function render(data) {
+    var rows = document.getElementById('ai-rows'); rows.innerHTML = '';
+    Object.keys(data.fields).forEach(function (n) {
+      var v = (data.fields[n] || '').trim(); if (!v || v === 'unknown') return;
+      var cur = current(n), empty = !cur || cur === 'no' && v === 'yes';
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><input type="checkbox" class="ai-use"' + (empty || !cur ? ' checked' : '') + '></td><td><b>' + esc(label(n)) + '</b></td>' +
+        '<td><textarea class="ai-val" rows="' + Math.min(8, Math.max(1, Math.ceil(v.length / 70) + (v.match(/\n/g) || []).length)) + '">' + esc(v) + '</textarea></td><td class="ai-cur">' + esc(cur || '–') + '</td>';
+      tr.dataset.field = n; rows.appendChild(tr);
+    });
+    var notes = document.getElementById('ai-notes'); notes.hidden = !data.notes; notes.innerHTML = data.notes ? '<b>Check:</b> ' + esc(data.notes) : '';
+    var src = document.getElementById('ai-sources');
+    src.innerHTML = (data.sources || []).length ? '<b>Sources</b><ul>' + data.sources.map(function (u) { return '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>'; }).join('') + '</ul>' : '';
+    box.dataset.sources = (data.sources || []).join('\n');
+    document.getElementById('ai-result').hidden = false;
+  }
+  document.getElementById('ai-all').addEventListener('change', function () { var c = this.checked; document.querySelectorAll('.ai-use').forEach(function (b) { b.checked = c; }); });
+  document.getElementById('ai-apply').addEventListener('click', function () {
+    var applied = 0, missing = [];
+    document.querySelectorAll('#ai-rows tr').forEach(function (tr) {
+      if (!tr.querySelector('.ai-use').checked) return;
+      var n = tr.dataset.field, v = tr.querySelector('.ai-val').value.trim();
+      if (n === 'island_name') {
+        var sel = field('island'); if (!sel) return;
+        var match = Array.prototype.find.call(sel.options, function (o) { return o.text.toLowerCase().indexOf(v.toLowerCase()) === 0; });
+        if (match) { sel.value = match.value; sel.dispatchEvent(new Event('change', { bubbles: true })); applied++; } else missing.push('island “' + v + '” (pick it from the list)');
+        return;
+      }
+      var el = field(n); if (!el) return;
+      if (el.type === 'checkbox') el.checked = v === 'yes';
+      else if (el.tagName === 'SELECT') { var o = Array.prototype.find.call(el.options, function (o) { return o.value === v || o.text === v; }); if (o) el.value = o.value; }
+      else el.value = v;
+      el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }));
+      tr.querySelector('.ai-cur').textContent = v; applied++;
+    });
+    var sources = field('sources');
+    if (sources && box.dataset.sources) { var have = sources.value; box.dataset.sources.split('\n').forEach(function (u) { if (u && have.indexOf(u) < 0) have += (have ? '\n' : '') + u; }); sources.value = have; }
+    status.className = 'ai-status ok';
+    status.textContent = 'Applied ' + applied + ' field' + (applied === 1 ? '' : 's') + ' to the form' + (missing.length ? '. Not applied: ' + missing.join(', ') : '') + '. Check the tabs, then press Save.';
+    status.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+})();
+</script>

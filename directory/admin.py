@@ -143,6 +143,7 @@ def _fetch_photos(admin_obj, request, islands):
 
 @admin.register(Island)
 class IslandAdmin(BaseAdmin):
+    change_form_before_template = "admin/ai_assist_island.html"
     inlines = [IslandPhotoInline, IslandRouteInline]
     list_display = ("island", "atoll", "island_type", "population", "listing_count", "has_photo", "is_featured", "is_published")
     list_display_links = ("island",)
@@ -257,6 +258,7 @@ class VerificationFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(BaseAdmin):
+    change_form_before_template = "admin/ai_assist_listing.html"
     list_display = ("business", "kind_label", "island_name", "status_label", "verified_label", "is_featured", "enquiry_count", "submitted")
     list_display_links = ("business",)
     list_filter = (

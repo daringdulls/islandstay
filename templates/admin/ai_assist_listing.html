@@ -1,0 +1,2 @@
+{% include "admin/_ai_assist.html" with kind="listing" %}
+<script>window.aiAssistContext = (function(){var k=document.querySelector('[name=kind]'),i=document.querySelector('[name=island]');var parts=[];if(k&&k.value)parts.push(k.options[k.selectedIndex].text);if(i&&i.selectedIndex>0)parts.push('on '+i.options[i.selectedIndex].text);return parts.join(' ');});</script>

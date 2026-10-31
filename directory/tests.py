@@ -509,3 +509,63 @@ from django.core import mail
 
 
 
+
+
+class AIAssistTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser("ai@x.mv", "ai@x.mv", "pw")
+        self.client.force_login(self.admin)
+
+    def _fake_client(self, responses):
+        from types import SimpleNamespace as NS
+        from unittest import mock
+
+        calls = []
+
+        def create(**kwargs):
+            calls.append(kwargs)
+            return responses.pop(0)
+
+        client = NS(beta=NS(messages=NS(create=create)))
+        return mock.patch("anthropic.Anthropic", return_value=client), calls
+
+    def test_research_returns_fields_after_pause(self):
+        import os
+        from types import SimpleNamespace as NS
+        from unittest import mock
+
+        submit = NS(type="tool_use", name="submit_details", input={
+            "tagline": "Surf breaks and a quiet harbour", "population": "1200", "has_atm": "yes",
+            "sources": ["https://en.wikipedia.org/wiki/Gaafaru"], "notes": "Check ferry days"})
+        patch, calls = self._fake_client([
+            NS(stop_reason="pause_turn", content=[NS(type="server_tool_use", name="web_search")]),
+            NS(stop_reason="tool_use", content=[NS(type="text", text="Done"), submit]),
+        ])
+        with patch, mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test"}):
+            r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru", "context": "North Malé atoll"})
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data["fields"]["tagline"], "Surf breaks and a quiet harbour")
+        self.assertEqual(data["fields"]["overview"], "")  # missing keys come back empty
+        self.assertEqual(data["sources"], ["https://en.wikipedia.org/wiki/Gaafaru"])
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[1]["messages"][-1]["role"], "assistant")  # resumed, no extra user turn
+        self.assertTrue(calls[0]["tools"][-1]["strict"])
+        self.assertIn("Gaafaru", calls[0]["messages"][0]["content"])
+
+    def test_missing_key_and_errors_are_explained(self):
+        import os
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": ""}):
+            r = self.client.post("/admin/ai-assist/", {"kind": "listing", "name": "Cozy Nest"})
+        self.assertEqual(r.status_code, 502)
+        self.assertIn("ANTHROPIC_API_KEY", r.json()["error"])
+        self.assertEqual(self.client.post("/admin/ai-assist/", {"kind": "island", "name": ""}).status_code, 400)
+
+    def test_staff_only_and_panel_shown(self):
+        self.assertContains(self.client.get(reverse("admin:directory_island_add")), "Research with AI")
+        self.assertContains(self.client.get(reverse("admin:directory_listing_add")), "Research with AI")
+        self.client.logout()
+        r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru"})
+        self.assertEqual(r.status_code, 302)  # sent to the admin login

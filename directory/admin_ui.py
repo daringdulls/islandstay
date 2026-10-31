@@ -89,3 +89,25 @@ def dashboard_callback(request, context):
         ],
     })
     return context
+
+
+
+def ai_assist_view(request):
+    """POST name (+ context) -> drafted fields as JSON for the editor to review. Staff only (via admin_view)."""
+    import json as _json
+
+    from django.http import JsonResponse
+
+    from .ai_assist import AssistError, research
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    kind = request.POST.get("kind")
+    name = request.POST.get("name", "").strip()[:120]
+    if kind not in ("island", "listing") or len(name) < 2:
+        return JsonResponse({"error": "Type a name first."}, status=400)
+    try:
+        result = research(kind, name, request.POST.get("context", "").strip()[:200])
+    except AssistError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+    return JsonResponse(result)
