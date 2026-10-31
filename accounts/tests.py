@@ -14,3 +14,14 @@ class AdminSetupTests(TestCase):
         User = get_user_model()
         self.assertEqual(User.objects.filter(is_superuser=True).count(), 1)
         self.assertTrue(self.client.login(username="OWNER@example.com", password="Secret-pass-123"))
+
+
+    def test_reset_switch_sets_new_password(self):
+        with mock.patch.dict(os.environ, {"ADMIN_EMAIL": "owner@example.com", "ADMIN_PASSWORD": "Old-pass-123"}):
+            call_command("ensure_admin", stdout=open(os.devnull, "w"))
+        with mock.patch.dict(os.environ, {"ADMIN_EMAIL": "owner@example.com", "ADMIN_PASSWORD": "New-pass-456"}):
+            call_command("ensure_admin", stdout=open(os.devnull, "w"))  # no switch: unchanged
+            self.assertTrue(self.client.login(username="owner@example.com", password="Old-pass-123"))
+            with mock.patch.dict(os.environ, {"ADMIN_RESET_PASSWORD": "1"}):
+                call_command("ensure_admin", stdout=open(os.devnull, "w"))
+        self.assertTrue(self.client.login(username="owner@example.com", password="New-pass-456"))
