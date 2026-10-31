@@ -119,20 +119,42 @@ def research(kind, name, context=""):
              {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 4}, submit]
 
     nudged = False
-    for _ in range(6):
+    plain = False  # switched on if the account rejects the optional fallback beta or strict tools
+    for _ in range(7):
         try:
-            response = client.beta.messages.create(
-                model=MODEL, max_tokens=16000, system=SYSTEM, messages=messages, tools=tools,
-                tool_choice={"type": "auto"}, output_config={"effort": "medium"},
-                betas=["server-side-fallback-2026-07-01"], fallbacks="default",
-            )
+            if plain:
+                response = client.messages.create(
+                    model=MODEL, max_tokens=16000, system=SYSTEM, messages=messages, tools=tools,
+                    tool_choice={"type": "auto"}, output_config={"effort": "medium"})
+            else:
+                response = client.beta.messages.create(
+                    model=MODEL, max_tokens=16000, system=SYSTEM, messages=messages, tools=tools,
+                    tool_choice={"type": "auto"}, output_config={"effort": "medium"},
+                    betas=["server-side-fallback-2026-07-01"], fallbacks="default",
+                )
         except anthropic.AuthenticationError:
-            raise AssistError("The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in Vercel.")
+            raise AssistError("The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in Vercel (no spaces, starts with sk-ant-).")
+        except anthropic.PermissionDeniedError as exc:
+            raise AssistError(f"The Anthropic account isn't allowed to do this: {_api_message(exc)}")
         except anthropic.RateLimitError:
             raise AssistError("The AI service is busy (rate limit). Try again in a minute.")
+        except anthropic.BadRequestError as exc:
+            msg = _api_message(exc)
+            log.warning("AI assist 400: %s", msg)
+            low = msg.lower()
+            if "credit" in low or "billing" in low or "balance" in low:
+                raise AssistError("Your Anthropic account has no credit. Add credit at platform.claude.com, "
+                                  "Settings, Billing, then try again (it can take a few minutes to activate).")
+            if not plain:
+                # Optional features (fallback beta, strict tools) may not be enabled for this account: retry without them.
+                plain = True
+                tools = [dict(t, strict=False) if t.get("name") == "submit_details" else t for t in tools]
+                tools[-1].pop("strict", None)
+                continue
+            raise AssistError(f"The AI service rejected the request: {msg}")
         except anthropic.APIStatusError as exc:
             log.exception("AI assist failed")
-            raise AssistError(f"The AI service returned an error ({exc.status_code}). Try again shortly.")
+            raise AssistError(f"The AI service returned an error ({exc.status_code}): {_api_message(exc)}")
         except anthropic.APIConnectionError:
             raise AssistError("Couldn't reach the AI service. Try again shortly.")
 
@@ -141,7 +163,7 @@ def research(kind, name, context=""):
         for block in response.content:
             if block.type == "tool_use" and block.name == "submit_details":
                 data = dict(block.input)
-                return {"fields": {k: data.get(k, "") for k in fields}, "sources": data.get("sources") or [],
+                return {"fields": {k: str(data.get(k, "") or "") for k in fields}, "sources": data.get("sources") or [],
                         "notes": data.get("notes", "")}
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason == "pause_turn":
@@ -151,3 +173,13 @@ def research(kind, name, context=""):
         messages.append({"role": "user", "content": "Please call submit_details now with what you found."})
         nudged = True
     raise AssistError("The AI couldn't finish the research. Try again, or add more detail to the name.")
+
+
+def _api_message(exc):
+    """The human-readable reason from an Anthropic API error."""
+    body = getattr(exc, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error") if isinstance(body.get("error"), dict) else body
+        if err.get("message"):
+            return str(err["message"])[:300]
+    return str(getattr(exc, "message", exc))[:300]

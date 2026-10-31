@@ -569,3 +569,49 @@ class AIAssistTests(TestCase):
         self.client.logout()
         r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru"})
         self.assertEqual(r.status_code, 302)  # sent to the admin login
+
+
+class AIAssistErrorTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("ai2@x.mv", "ai2@x.mv", "pw"))
+
+    def _err(self, msg):
+        import anthropic
+        import httpx2
+
+        req = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+        return anthropic.BadRequestError(msg, response=httpx2.Response(400, request=req),
+                                         body={"type": "error", "error": {"type": "invalid_request_error", "message": msg}})
+
+    def _run(self, beta_effects, plain_effects=()):
+        import os
+        from types import SimpleNamespace as NS
+        from unittest import mock
+
+        beta, plain = list(beta_effects), list(plain_effects)
+
+        def pop(queue):
+            def create(**kwargs):
+                item = queue.pop(0)
+                if isinstance(item, Exception):
+                    raise item
+                return item
+            return create
+
+        fake = NS(beta=NS(messages=NS(create=pop(beta))), messages=NS(create=pop(plain)))
+        with mock.patch("anthropic.Anthropic", return_value=fake), mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "k"}):
+            return self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru"})
+
+    def test_retries_without_optional_features(self):
+        from types import SimpleNamespace as NS
+
+        ok = NS(stop_reason="tool_use", content=[NS(type="tool_use", name="submit_details", input={"tagline": "Hi", "sources": []})])
+        r = self._run([self._err("fallbacks: not available for this organization")], [ok])
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["fields"]["tagline"], "Hi")
+
+    def test_credit_and_real_reason_are_shown(self):
+        r = self._run([self._err("Your credit balance is too low to access the Anthropic API.")])
+        self.assertIn("no credit", r.json()["error"])
+        r = self._run([self._err("first")], [self._err("tools.0: something specific")])
+        self.assertIn("something specific", r.json()["error"])
