@@ -678,3 +678,26 @@ class QuickLookupTests(TestCase):
             r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Zzzz", "mode": "quick"})
         self.assertEqual(r.status_code, 404)
         self.assertIn("No Wikipedia article", r.json()["error"])
+
+
+class ActivitySuggestionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", stdout=open("/dev/null", "w"))
+
+    def test_suggests_existing_activities_from_text(self):
+        from directory.web_lookup import suggest_activities
+
+        found = suggest_activities("Closest island to Hanifaru Bay, where manta rays feed. Several dive centres and a sandbank nearby.")
+        self.assertIn("Manta ray snorkeling", found)
+        self.assertIn("Scuba diving", found)
+        self.assertIn("Sandbank picnic", found)
+        self.assertNotIn("Surfing", found)
+
+    def test_activities_are_tick_boxes(self):
+        self.client.force_login(User.objects.create_superuser("cb@x.mv", "cb@x.mv", "pw"))
+        page = self.client.get(reverse("admin:directory_island_add")).content.decode()
+        self.assertIn('type="checkbox" name="activities"', page)
+        self.assertIn('data-autogrow="1"', page)
+        page = self.client.get(reverse("admin:directory_listing_add")).content.decode()
+        self.assertIn('type="checkbox" name="activity_types"', page)

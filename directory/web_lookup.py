@@ -180,6 +180,8 @@ def lookup_island(name, context=""):
             fields["transfer_types"] = "domestic_flight, speedboat"
         try:
             osm = _osm_facilities(lat, lon)
+            if osm["dive"]:
+                fields["facilities_notes"] = "Dive centre: " + ", ".join(osm["dive"][:3])
             sources.append(f"https://www.openstreetmap.org/#map=16/{lat:.5f}/{lon:.5f}")
             for k in ("has_atm", "has_pharmacy", "has_police", "has_hospital", "has_supermarket"):
                 fields[k] = osm[k]
@@ -202,6 +204,12 @@ def lookup_island(name, context=""):
             notes.append("OpenStreetMap could not be reached, so facilities weren't checked.")
         notes.append("Distances are straight-line estimates; transfer time, local rules and bikini beach aren't "
                      "available from these sources, so add them yourself.")
+    signals = [fields.get("overview", ""), fields.get("facilities_notes", "")]
+    if wiki:
+        signals.append(wiki["extract"])
+    acts = suggest_activities(*signals)
+    if acts:
+        fields["activities"] = "\n".join(acts)
     return {"fields": fields, "sources": sources, "notes": " ".join(notes)}
 
 
@@ -227,12 +235,13 @@ def _meta(page, *names):
 
 def _website(url):
     page = _get(url, accept="text/html,*/*", timeout=15)
-    out = {}
+    out = {"_text": ""}
     desc = _meta(page, "og:description", "description", "twitter:description")
     if desc:
         out["short_description"] = desc[:180]
     text = html.unescape(re.sub(r"(?s)<(script|style).*?</\1>|<[^>]+>", " ", page))
     text = re.sub(r"\s+", " ", text)
+    out["_text"] = text[:20000]
     emails = [e for e in re.findall(r"[\w.+-]+@[\w-]+\.[\w.-]+", page) if not e.lower().endswith((".png", ".jpg", ".webp", ".svg"))]
     if emails:
         out["contact_email"] = emails[0]
@@ -290,8 +299,13 @@ def lookup_listing(name, context="", url=""):
         site = "https://" + site
     if site and "facebook.com" not in site and "instagram.com" not in site:
         try:
-            for k, v in _website(site).items():
+            site_data = _website(site)
+            site_text = site_data.pop("_text", "")
+            for k, v in site_data.items():
                 fields.setdefault(k, v)
+            acts = suggest_activities(site_text, fields.get("short_description", ""))
+            if acts:
+                fields["activity_types"] = "\n".join(acts)
             sources.append(site)
             fields.setdefault("website", site)
         except Exception as exc:
@@ -304,3 +318,45 @@ def lookup_listing(name, context="", url=""):
         notes.append("Paste the business's website link in the second box for more details.")
     notes.append("Descriptions, rooms and house rules usually need the owner's input; check every contact detail before publishing.")
     return {"fields": fields, "sources": sources, "notes": " ".join(notes)}
+
+
+# ------------------------------------------------------------------ activities
+ACTIVITY_KEYWORDS = {
+    "scuba-diving": ["dive", "diving", "scuba", "dive centre", "dive center", "padi"],
+    "snorkeling": ["snorkel", "house reef", "coral reef", "reef"],
+    "manta-ray-snorkeling": ["manta"],
+    "whale-shark-excursion": ["whale shark"],
+    "turtle-snorkeling": ["turtle"],
+    "hammerhead-dive": ["hammerhead"],
+    "tiger-shark-dive": ["tiger shark"],
+    "nurse-sharks-stingrays": ["nurse shark", "stingray"],
+    "wreck-diving": ["wreck", "shipwreck"],
+    "dolphin-cruise": ["dolphin"],
+    "sandbank-picnic": ["sandbank", "sand bank", "finolhu", "picnic island"],
+    "surfing": ["surf"],
+    "big-game-fishing": ["big game", "game fishing", "tuna fishing"],
+    "sunset-night-fishing": ["night fishing", "sunset fishing", "fishing trip"],
+    "bioluminescence": ["bioluminescen", "glowing", "sea of stars"],
+    "freediving": ["freediv", "free diving", "free-diving"],
+    "kayaking-sup": ["kayak", "paddle", "stand-up", "sup "],
+    "island-hopping": ["island hopping", "nearby islands", "excursion"],
+    "resort-day-trip": ["resort day", "day pass", "nearby resort"],
+    "local-culture-village-walk": ["village", "mosque", "traditional", "boat building", "handicraft", "culture"],
+    "spa-wellness": ["spa", "massage", "wellness"],
+    "water-sports": ["water sports", "jet ski", "parasail", "watersport"],
+}
+
+
+def suggest_activities(*texts):
+    """Names of existing activity types that the given text mentions."""
+    from .models import ActivityType
+
+    blob = " ".join(t for t in texts if t).lower()
+    if not blob:
+        return []
+    found = []
+    for a in ActivityType.objects.order_by("name"):
+        words = ACTIVITY_KEYWORDS.get(a.slug) or [a.name.lower().split()[0]]
+        if any(w in blob for w in words):
+            found.append(a.name)
+    return found

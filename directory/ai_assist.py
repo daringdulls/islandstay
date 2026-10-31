@@ -107,7 +107,12 @@ def research(kind, name, context=""):
     if not os.environ.get("ANTHROPIC_API_KEY"):
         raise AssistError("AI assist needs an Anthropic API key. In Vercel add ANTHROPIC_API_KEY under Settings, "
                           "Environment Variables, then redeploy.")
-    fields = ISLAND_FIELDS if kind == "island" else LISTING_FIELDS
+    from .models import ActivityType
+
+    fields = dict(ISLAND_FIELDS if kind == "island" else LISTING_FIELDS)
+    names = ", ".join(ActivityType.objects.order_by("name").values_list("name", flat=True))
+    fields["activities" if kind == "island" else "activity_types"] = (
+        "lines", f"Activities possible on or around it, one per line, chosen only from this list: {names}.")
     submit = {"name": "submit_details", "description": "Submit the researched details for the editor to review.",
               "strict": True, "input_schema": _schema(fields)}
     what = "the local island" if kind == "island" else "the business (guest house, hotel, excursion operator, dive centre, transfer service or restaurant)"

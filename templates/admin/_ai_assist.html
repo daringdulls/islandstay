@@ -11,7 +11,7 @@
   </div>
   <p class="ai-status" id="ai-status" hidden></p>
   <div id="ai-result" hidden>
-    <div class="ai-tools"><label><input type="checkbox" id="ai-all" checked> Select all</label><span>Only fields with a suggestion are shown. Empty fields in the form are ticked; fields you've already filled are not.</span></div>
+    <div class="ai-tools"><label><input type="checkbox" id="ai-all"> Select all</label><span id="ai-summary"></span></div>
     <table class="ai-table"><thead><tr><th></th><th>Field</th><th>Suggestion (you can edit it)</th><th>Now in the form</th></tr></thead><tbody id="ai-rows"></tbody></table>
     <div class="ai-notes" id="ai-notes" hidden></div>
     <div class="ai-sources" id="ai-sources"></div>
@@ -37,6 +37,13 @@
     if (el.tagName === 'SELECT') return el.selectedIndex > 0 ? el.options[el.selectedIndex].text : '';
     return el.value;
   }
+  function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+  function checkboxGroup(n) {
+    return Array.prototype.map.call(document.querySelectorAll('form input[type=checkbox][name="' + n + '"]'), function (b) {
+      var l = b.closest('label') || document.querySelector('label[for="' + b.id + '"]');
+      return { el: b, checked: b.checked, label: (l ? l.textContent : '').trim() };
+    });
+  }
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   var timer, buttons = [go, document.getElementById('ai-quick')];
   buttons.forEach(function (btn) { btn.addEventListener('click', function () { run(btn.dataset.mode); }); });
@@ -61,14 +68,32 @@
   }
   function render(data) {
     var rows = document.getElementById('ai-rows'); rows.innerHTML = '';
+    var diffs = 0;
     Object.keys(data.fields).forEach(function (n) {
       var v = (data.fields[n] || '').trim(); if (!v || v === 'unknown') return;
-      var cur = current(n), empty = !cur || cur === 'no' && v === 'yes';
-      var tr = document.createElement('tr');
-      tr.innerHTML = '<td><input type="checkbox" class="ai-use"' + (empty || !cur ? ' checked' : '') + '></td><td><b>' + esc(label(n)) + '</b></td>' +
+      var tr = document.createElement('tr'); tr.dataset.field = n;
+      if (n === 'activities' || n === 'activity_types') {
+        var boxes = checkboxGroup(n), have = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.label; });
+        var chips = v.split('\n').map(function (s) { return s.trim(); }).filter(Boolean).map(function (name) {
+          var match = boxes.find(function (b) { return b.label.toLowerCase() === name.toLowerCase(); });
+          if (!match) return '';
+          var on = have.indexOf(match.label) >= 0;
+          return '<label class="ai-chip' + (on ? ' on' : '') + '"><input type="checkbox" class="ai-act" value="' + esc(match.label) + '"' + (on ? ' checked disabled' : ' checked') + '> ' + esc(match.label) + (on ? ' (already ticked)' : '') + '</label>';
+        }).join('');
+        if (!chips) return;
+        tr.innerHTML = '<td><input type="checkbox" class="ai-use" checked></td><td><b>Activities</b><small class="ai-sub">Suggested from the sources</small></td><td colspan="2"><div class="ai-chips">' + chips + '</div></td>';
+        rows.appendChild(tr); return;
+      }
+      var cur = current(n), same = cur && norm(cur) === norm(v), differs = cur && cur !== '–' && !same && !(cur === 'no' && v === 'yes');
+      if (same) return;  // nothing to change
+      if (differs) diffs++;
+      tr.className = differs ? 'ai-differs' : '';
+      tr.innerHTML = '<td><input type="checkbox" class="ai-use"' + (!differs ? ' checked' : '') + '></td><td><b>' + esc(label(n)) + '</b>' + (differs ? '<small class="ai-flag">Different from saved</small>' : '') + '</td>' +
         '<td><textarea class="ai-val" rows="' + Math.min(8, Math.max(1, Math.ceil(v.length / 70) + (v.match(/\n/g) || []).length)) + '">' + esc(v) + '</textarea></td><td class="ai-cur">' + esc(cur || '–') + '</td>';
-      tr.dataset.field = n; rows.appendChild(tr);
+      rows.appendChild(tr);
     });
+    var summary = document.getElementById('ai-summary');
+    summary.textContent = rows.children.length ? (diffs ? diffs + ' value' + (diffs === 1 ? '' : 's') + ' differ from what is saved (highlighted, not ticked): check which is right.' : 'New values are ticked.') : 'Everything found already matches the form.';
     var notes = document.getElementById('ai-notes'); notes.hidden = !data.notes; notes.innerHTML = data.notes ? '<b>Notes:</b> ' + esc(data.notes) : '';
     var src = document.getElementById('ai-sources');
     src.innerHTML = (data.sources || []).length ? '<b>Sources</b><ul>' + data.sources.map(function (u) { return '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>'; }).join('') + '</ul>' : '';
@@ -80,7 +105,15 @@
     var applied = 0, missing = [];
     document.querySelectorAll('#ai-rows tr').forEach(function (tr) {
       if (!tr.querySelector('.ai-use').checked) return;
-      var n = tr.dataset.field, v = tr.querySelector('.ai-val').value.trim();
+      var n = tr.dataset.field;
+      if (n === 'activities' || n === 'activity_types') {
+        var boxes = checkboxGroup(n);
+        tr.querySelectorAll('.ai-act:checked:not(:disabled)').forEach(function (c) {
+          var b = boxes.find(function (x) { return x.label === c.value; }); if (b && !b.el.checked) { b.el.checked = true; b.el.dispatchEvent(new Event('change', { bubbles: true })); applied++; }
+        });
+        return;
+      }
+      var v = tr.querySelector('.ai-val').value.trim();
       if (n === 'island_name') {
         var sel = field('island'); if (!sel) return;
         var match = Array.prototype.find.call(sel.options, function (o) { return o.text.toLowerCase().indexOf(v.toLowerCase()) === 0; });

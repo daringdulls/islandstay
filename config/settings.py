@@ -241,6 +241,9 @@ UNFOLD = {
         lambda request: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap",
         lambda request: static("css/admin.css"),
     ],
+    "SCRIPTS": [
+        lambda request: static("js/admin.js"),
+    ],
     "COLORS": {
         "primary": {
             "50": "oklch(98.4% .019 200.873)", "100": "oklch(95.6% .045 203.388)", "200": "oklch(91.7% .08 205.041)",

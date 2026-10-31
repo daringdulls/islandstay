@@ -22,6 +22,25 @@ ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "succ
 class BaseAdmin(ModelAdmin):
     """Shared back-office behaviour: compact forms, filters applied with a button, unsaved-changes warning."""
 
+    # Many-to-many fields shown as tick boxes (one click per activity / amenity) instead of the two-box picker.
+    checkbox_m2m = ()
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name in self.checkbox_m2m:
+            from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget
+
+            kwargs["widget"] = UnfoldAdminCheckboxSelectMultipleWidget(attrs={"class": "is-chip-checks"})
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        # Text areas start short and grow with their content (see admin.css / auto-grow script).
+        from django import forms as dj_forms
+
+        if field is not None and isinstance(field.widget, dj_forms.Textarea):
+            field.widget.attrs.update({"rows": 3, "data-autogrow": "1"})
+        return field
+
     compressed_fields = True
     warn_unsaved_form = True
     list_filter_submit = True
@@ -154,7 +173,7 @@ class IslandAdmin(BaseAdmin):
     )
     search_fields = ("name", "atoll__name", "tagline")
     prepopulated_fields = {"slug": ("name",)}
-    filter_horizontal = ("activities",)
+    checkbox_m2m = ("activities",)
     actions = ["fetch_photos"]
     actions_detail = ["fetch_photo_detail"]
     actions_list = ["fetch_missing_photos"]
@@ -267,7 +286,7 @@ class ListingAdmin(BaseAdmin):
     )
     search_fields = ("name", "island__name", "owner__email", "contact_email", "registration_number")
     autocomplete_fields = ("island", "owner")
-    filter_horizontal = ("amenities", "activity_types")
+    checkbox_m2m = ("amenities", "activity_types")
     inlines = [RoomInline, PhotoInline, OperatorRouteInline]
     actions = ["approve", "reject", "suspend", "verify"]
     actions_row = ["approve_row"]
