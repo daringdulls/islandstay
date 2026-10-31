@@ -444,3 +444,57 @@ class ErrorDetailsTests(TestCase):
 
         req.user = AnonymousUser()
         self.assertIsNone(AdminErrorDetailsMiddleware(lambda r: None).process_exception(req, RuntimeError("x")))
+
+
+class OidcBlobTests(TestCase):
+    def test_store_id_with_request_oidc_token(self):
+        import io
+        import json
+        from unittest import mock
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from config.blob_storage import VercelBlobStorage
+        from config.request_context import vercel_oidc_token
+
+        class Resp(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        seen = []
+
+        def fake_urlopen(req, timeout=None):
+            seen.append(req)
+            return Resp(json.dumps({"pathname": "islands/a-X1.jpg",
+                                    "url": "https://abcdef.public.blob.vercel-storage.com/islands/a-X1.jpg"}).encode())
+
+        VercelBlobStorage.access = None
+        storage = VercelBlobStorage(token="", store_id="store_AbCdEf")
+        # Without a token from Vercel the error explains what to switch on.
+        with self.assertRaisesMessage(OSError, "OIDC"):
+            storage.save("islands/a.jpg", SimpleUploadedFile("a.jpg", b"img", content_type="image/jpeg"))
+        reset = vercel_oidc_token.set("oidc-abc")
+        try:
+            with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+                name = storage.save("islands/a.jpg", SimpleUploadedFile("a.jpg", b"img", content_type="image/jpeg"))
+        finally:
+            vercel_oidc_token.reset(reset)
+        self.assertEqual(name, "islands/a-X1.jpg")
+        self.assertEqual(storage.url(name), "https://abcdef.public.blob.vercel-storage.com/islands/a-X1.jpg")
+        self.assertEqual(seen[0].get_header("Authorization"), "Bearer oidc-abc")
+        self.assertEqual(seen[0].get_header("X-vercel-blob-store-id"), "AbCdEf")
+        VercelBlobStorage.access = None
+
+    def test_middleware_passes_vercel_header_to_context(self):
+        from django.test import RequestFactory
+
+        from config.request_context import RequestContextMiddleware, current_oidc_token
+
+        captured = {}
+        mw = RequestContextMiddleware(lambda r: captured.setdefault("t", current_oidc_token()))
+        mw(RequestFactory().get("/", HTTP_X_VERCEL_OIDC_TOKEN="tok-123"))
+        self.assertEqual(captured["t"], "tok-123")
+        self.assertIsNone(current_oidc_token())

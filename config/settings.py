@@ -45,6 +45,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.request_context.RequestContextMiddleware",
     "config.setup_check.SetupCheckMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -128,10 +129,17 @@ if not BLOB_TOKEN_SOURCE:
             BLOB_TOKEN_SOURCE = _name
             os.environ["BLOB_READ_WRITE_TOKEN"] = os.environ[_name]
             break
+# Newer Blob connections give BLOB_STORE_ID (or <PREFIX>_STORE_ID) and sign requests with Vercel OIDC instead.
+if not BLOB_TOKEN_SOURCE:
+    for _name in ["BLOB_STORE_ID"] + sorted(k for k in os.environ if k.endswith("_STORE_ID")):
+        if os.environ.get(_name, "").startswith("store_"):
+            BLOB_TOKEN_SOURCE = _name
+            os.environ["BLOB_STORE_ID"] = os.environ[_name]
+            break
 
 STORAGES = {
     # Uploaded photos: Vercel Blob when connected (no permanent disk on Vercel), otherwise the local disk.
-    "default": {"BACKEND": "config.blob_storage.VercelBlobStorage" if os.environ.get("BLOB_READ_WRITE_TOKEN")
+    "default": {"BACKEND": "config.blob_storage.VercelBlobStorage" if BLOB_TOKEN_SOURCE
                 else "config.blob_storage.UploadsNotConfigured" if ON_VERCEL
                 else "django.core.files.storage.FileSystemStorage"},
     # Vercel serves collected static files from its CDN; hashed file names are only used elsewhere.

@@ -22,7 +22,7 @@ def diagnostics():
     """Which deployment this is and which settings it can see (names only, never values)."""
     env = os.environ
     db_vars = sorted(k for k in env if "DATABASE_URL" in k or "POSTGRES_URL" in k)
-    blob_vars = sorted(k for k in env if env[k].startswith("vercel_blob_rw_"))
+    blob_vars = sorted(k for k in env if env[k].startswith(("vercel_blob_rw_", "store_")))
     rows = [
         ("Vercel environment", env.get("VERCEL_ENV", "not on Vercel")),
         ("Deployment address", env.get("VERCEL_URL", "–")),

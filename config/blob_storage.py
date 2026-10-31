@@ -1,6 +1,8 @@
 """Django file storage on Vercel Blob, for hosts without a permanent disk (Vercel).
 
-Enabled automatically when BLOB_READ_WRITE_TOKEN is set (Vercel adds it when you connect a Blob store).
+Enabled automatically when a Blob store is connected. Newer stores give the project BLOB_STORE_ID and sign each
+request with a short-lived Vercel OIDC token (x-vercel-oidc-token header); older ones give BLOB_READ_WRITE_TOKEN.
+Both are supported.
 Works with both public and private stores (detected on the first upload, or set BLOB_ACCESS=public|private).
 Public files are linked directly; private files are stored with a "~p/" marker in their name and served
 through the site at /media/blob/<path> (see blob_proxy). Names get a random suffix so links can't be guessed. Uses Vercel's Blob HTTP API
@@ -23,21 +25,40 @@ PRIVATE_MARK = "~p/"
 
 @deconstructible
 class VercelBlobStorage(Storage):
-    def __init__(self, token=None):
+    def __init__(self, token=None, store_id=None):
         self.token = token or os.environ.get("BLOB_READ_WRITE_TOKEN", "")
-        if not self.token.startswith(TOKEN_PREFIX):
-            raise ValueError("BLOB_READ_WRITE_TOKEN is missing or not a Vercel Blob read-write token.")
-        # Token format: vercel_blob_rw_<storeId>_<secret>
-        self.store_id = self.token[len(TOKEN_PREFIX):].split("_", 1)[0].lower()
-        self.base_url = f"https://{self.store_id}.public.blob.vercel-storage.com/"
-        self.private_base_url = f"https://{self.store_id}.private.blob.vercel-storage.com/"
+        if self.token.startswith(TOKEN_PREFIX):
+            # Read-write token format: vercel_blob_rw_<storeId>_<secret>
+            self.store_id = self.token[len(TOKEN_PREFIX):].split("_", 1)[0]
+            self.oidc = False
+        else:
+            raw = (store_id or os.environ.get("BLOB_STORE_ID", "")).strip()
+            if not raw:
+                raise ValueError("No Vercel Blob credentials: set BLOB_READ_WRITE_TOKEN or BLOB_STORE_ID.")
+            self.store_id = raw.removeprefix("store_")
+            self.oidc = True
+        host_id = self.store_id.lower()
+        self.base_url = f"https://{host_id}.public.blob.vercel-storage.com/"
+        self.private_base_url = f"https://{host_id}.private.blob.vercel-storage.com/"
+
+    def _auth_headers(self):
+        if not self.oidc:
+            return {"authorization": f"Bearer {self.token}", "x-api-version": API_VERSION}
+        from config.request_context import current_oidc_token
+
+        oidc_token = current_oidc_token()
+        if not oidc_token:
+            raise OSError("Vercel did not provide a sign-in (OIDC) token for this request, so the photo "
+                          "can't be stored. In Vercel: Settings, Security, make sure Secure backend access "
+                          "with OIDC federation is enabled, then redeploy.")
+        return {"authorization": f"Bearer {oidc_token}", "x-api-version": API_VERSION,
+                "x-vercel-blob-store-id": self.store_id}
 
     # The store's access level; shared by all instances once known.
     access = os.environ.get("BLOB_ACCESS", "").lower() or None
 
     def _request(self, method, url, data=None, headers=None):
-        req = urllib.request.Request(url, data=data, method=method, headers={
-            "authorization": f"Bearer {self.token}", "x-api-version": API_VERSION, **(headers or {})})
+        req = urllib.request.Request(url, data=data, method=method, headers={**self._auth_headers(), **(headers or {})})
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
                 body = r.read()
@@ -86,8 +107,8 @@ class VercelBlobStorage(Storage):
 
     def fetch_private(self, path):
         """Download a private blob with the store token. Returns (bytes, content_type)."""
-        req = urllib.request.Request(self.private_base_url + urllib.parse.quote(path, safe="/"), headers={
-            "authorization": f"Bearer {self.token}", "x-api-version": API_VERSION})
+        req = urllib.request.Request(self.private_base_url + urllib.parse.quote(path, safe="/"),
+                                     headers=self._auth_headers())
         with urllib.request.urlopen(req, timeout=60) as r:
             return r.read(), r.headers.get("content-type", "application/octet-stream")
 
