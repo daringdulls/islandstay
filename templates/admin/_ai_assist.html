@@ -1,11 +1,13 @@
 <div class="ai-box" id="ai-box" data-kind="{{ kind }}" data-url="{% url 'ai_assist' %}">
   <div class="ai-head">
     <span class="material-symbols-outlined">auto_awesome</span>
-    <div><b>AI assist</b><p>Type the {% if kind == "island" %}island{% else %}business{% endif %} name, then let AI research it on the web and draft the details. You review every suggestion before it goes into the form; nothing is saved until you press Save.</p></div>
+    <div><b>Fill from the web</b><p><b>Quick lookup</b> (free, a few seconds) reads {% if kind == "island" %}Wikipedia, Wikidata and OpenStreetMap{% else %}OpenStreetMap and the business's own website{% endif %}. <b>Deep research with AI</b> searches the whole web and writes fuller text (needs an Anthropic API key with credit). You review every suggestion; nothing is saved until you press Save.</p></div>
   </div>
   <div class="ai-row">
     <input type="text" id="ai-name" placeholder="{% if kind == 'island' %}e.g. Gaafaru{% else %}e.g. Cozy Nest Fuvahmulah{% endif %}">
-    <button type="button" id="ai-go" class="ai-btn"><span class="material-symbols-outlined">travel_explore</span>Research with AI</button>
+    {% if kind == "listing" %}<input type="text" id="ai-url" placeholder="Website link (optional), e.g. cozynest.mv">{% endif %}
+    <button type="button" id="ai-quick" class="ai-btn" data-mode="quick"><span class="material-symbols-outlined">bolt</span>Quick lookup</button>
+    <button type="button" id="ai-go" class="ai-btn ai-btn-ghost" data-mode="ai"><span class="material-symbols-outlined">auto_awesome</span>Deep research with AI</button>
   </div>
   <p class="ai-status" id="ai-status" hidden></p>
   <div id="ai-result" hidden>
@@ -28,7 +30,7 @@
   nameInput.addEventListener('input', function () { nameInput.dataset.touched = '1'; });
   function csrf() { var m = document.cookie.match(/csrftoken=([^;]+)/); var i = document.querySelector('[name=csrfmiddlewaretoken]'); return i ? i.value : (m ? m[1] : ''); }
   function field(n) { return document.querySelector('form [name="' + n + '"]'); }
-  function label(n) { var l = document.querySelector('label[for="id_' + n + '"]'); return l ? l.textContent.replace('*', '').trim() : n.replace(/_/g, ' '); }
+  function label(n) { if (n === 'island_name') return 'Island'; var l = document.querySelector('label[for="id_' + n + '"]'); return l ? l.textContent.replace('*', '').trim() : n.replace(/_/g, ' '); }
   function current(n) {
     var el = field(n); if (!el) return n === 'island_name' ? (function(){ var i = field('island'); return i && i.selectedIndex > 0 ? i.options[i.selectedIndex].text : ''; })() : '';
     if (el.type === 'checkbox') return el.checked ? 'yes' : 'no';
@@ -36,23 +38,27 @@
     return el.value;
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-  var timer;
-  go.addEventListener('click', function () {
+  var timer, buttons = [go, document.getElementById('ai-quick')];
+  buttons.forEach(function (btn) { btn.addEventListener('click', function () { run(btn.dataset.mode); }); });
+  function run(mode) {
     syncName(); var name = nameInput.value.trim();
     if (name.length < 2) { status.hidden = false; status.className = 'ai-status err'; status.textContent = 'Type a name first.'; return; }
-    var t0 = Date.now(); go.disabled = true; status.hidden = false; status.className = 'ai-status';
-    clearInterval(timer); timer = setInterval(function () { status.textContent = 'Searching the web and reading sources… ' + Math.round((Date.now() - t0) / 1000) + 's (usually under 2 minutes)'; }, 1000);
-    var fd = new FormData(); fd.append('kind', kind); fd.append('name', name); fd.append('context', (window.aiAssistContext && window.aiAssistContext()) || '');
+    var t0 = Date.now(); buttons.forEach(function (b) { b.disabled = true; }); status.hidden = false; status.className = 'ai-status';
+    var msg = mode === 'quick' ? 'Looking it up… ' : 'Searching the web and reading sources… ';
+    status.textContent = msg;
+    clearInterval(timer); timer = setInterval(function () { status.textContent = msg + Math.round((Date.now() - t0) / 1000) + 's' + (mode === 'quick' ? '' : ' (usually under 2 minutes)'); }, 1000);
+    var urlBox = document.getElementById('ai-url');
+    var fd = new FormData(); fd.append('kind', kind); fd.append('name', name); fd.append('mode', mode); fd.append('url', urlBox ? urlBox.value.trim() : ''); fd.append('context', (window.aiAssistContext && window.aiAssistContext()) || '');
     fetch(box.dataset.url, { method: 'POST', body: fd, headers: { 'X-CSRFToken': csrf() }, credentials: 'same-origin' })
       .then(function (r) { return r.json().catch(function () { return { error: 'The request took too long or failed (' + r.status + '). Try again.' }; }); })
       .then(function (data) {
-        clearInterval(timer); go.disabled = false;
+        clearInterval(timer); buttons.forEach(function (b) { b.disabled = false; });
         if (data.error) { status.className = 'ai-status err'; status.textContent = data.error; return; }
         status.className = 'ai-status ok'; status.textContent = 'Done in ' + Math.round((Date.now() - t0) / 1000) + 's. Review the suggestions below.';
         render(data);
       })
-      .catch(function () { clearInterval(timer); go.disabled = false; status.className = 'ai-status err'; status.textContent = 'Network error. Try again.'; });
-  });
+      .catch(function () { clearInterval(timer); buttons.forEach(function (b) { b.disabled = false; }); status.className = 'ai-status err'; status.textContent = 'Network error. Try again.'; });
+  }
   function render(data) {
     var rows = document.getElementById('ai-rows'); rows.innerHTML = '';
     Object.keys(data.fields).forEach(function (n) {
@@ -63,7 +69,7 @@
         '<td><textarea class="ai-val" rows="' + Math.min(8, Math.max(1, Math.ceil(v.length / 70) + (v.match(/\n/g) || []).length)) + '">' + esc(v) + '</textarea></td><td class="ai-cur">' + esc(cur || '–') + '</td>';
       tr.dataset.field = n; rows.appendChild(tr);
     });
-    var notes = document.getElementById('ai-notes'); notes.hidden = !data.notes; notes.innerHTML = data.notes ? '<b>Check:</b> ' + esc(data.notes) : '';
+    var notes = document.getElementById('ai-notes'); notes.hidden = !data.notes; notes.innerHTML = data.notes ? '<b>Notes:</b> ' + esc(data.notes) : '';
     var src = document.getElementById('ai-sources');
     src.innerHTML = (data.sources || []).length ? '<b>Sources</b><ul>' + data.sources.map(function (u) { return '<li><a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a></li>'; }).join('') + '</ul>' : '';
     box.dataset.sources = (data.sources || []).join('\n');

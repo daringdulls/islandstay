@@ -564,8 +564,8 @@ class AIAssistTests(TestCase):
         self.assertEqual(self.client.post("/admin/ai-assist/", {"kind": "island", "name": ""}).status_code, 400)
 
     def test_staff_only_and_panel_shown(self):
-        self.assertContains(self.client.get(reverse("admin:directory_island_add")), "Research with AI")
-        self.assertContains(self.client.get(reverse("admin:directory_listing_add")), "Research with AI")
+        self.assertContains(self.client.get(reverse("admin:directory_island_add")), "Quick lookup")
+        self.assertContains(self.client.get(reverse("admin:directory_listing_add")), "Quick lookup")
         self.client.logout()
         r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru"})
         self.assertEqual(r.status_code, 302)  # sent to the admin login
@@ -615,3 +615,66 @@ class AIAssistErrorTests(TestCase):
         self.assertIn("no credit", r.json()["error"])
         r = self._run([self._err("first")], [self._err("tools.0: something specific")])
         self.assertIn("something specific", r.json()["error"])
+
+
+class QuickLookupTests(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create_superuser("ql@x.mv", "ql@x.mv", "pw"))
+
+    def fake_json(self, url, **kw):
+        if "list=search" in url:
+            return {"query": {"search": [{"title": "Gaafaru"}]}}
+        if "prop=extracts" in url:
+            return {"query": {"pages": {"1": {"title": "Gaafaru", "extract": "Gaafaru is an inhabited island of Kaafu Atoll.\nIt is known for shipwrecks.",
+                                              "coordinates": [{"lat": 4.7356, "lon": 73.5003}], "pageprops": {"wikibase_item": "Q123"}}}}}
+        if "wikidata" in url:
+            return {"entities": {"Q123": {"claims": {
+                "P1082": [{"mainsnak": {"datavalue": {"value": {"amount": "+1150", "unit": "1"}}},
+                           "qualifiers": {"P585": [{"datavalue": {"value": {"time": "+2022-09-01T00:00:00Z"}}}]}}],
+                "P2046": [{"mainsnak": {"datavalue": {"value": {"amount": "+21", "unit": "http://www.wikidata.org/entity/Q35852"}}}}]}}}}
+        if "overpass" in url:
+            return {"elements": [{"tags": {"amenity": "atm"}}, {"tags": {"amenity": "police"}}, {"tags": {"shop": "supermarket"}},
+                                 {"tags": {"tourism": "guest_house", "name": "Reef Inn"}}, {"tags": {"amenity": "place_of_worship"}}]}
+        if "nominatim" in url:
+            return [{"osm_type": "node", "osm_id": 5, "address": {"island": "Fuvahmulah", "road": "Magu Rd"},
+                     "extratags": {"phone": "+960 777 1234", "website": "https://cozynest.example"}}]
+        raise AssertionError(url)
+
+    def test_island_quick_lookup(self):
+        from unittest import mock
+
+        with mock.patch("directory.web_lookup._json", side_effect=self.fake_json):
+            r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Gaafaru", "mode": "quick", "context": "North Malé atoll"})
+        f = r.json()["fields"]
+        self.assertEqual((f["population"], f["population_year"], f["area_km2"]), ("1150", "2022", "0.21"))
+        self.assertEqual((f["has_atm"], f["has_police"], f["has_supermarket"], f["has_pharmacy"]), ("yes", "yes", "yes", "unknown"))
+        self.assertEqual(f["nearest_airport"], "Velana International (MLE)")
+        self.assertIn("Kaafu", f["overview"])
+        self.assertIn("Reef Inn", r.json()["notes"])
+
+    def test_listing_quick_lookup_reads_website(self):
+        from unittest import mock
+
+        page = ('<html><head><meta property="og:description" content="Cosy rooms by the beach in Fuvahmulah."></head>'
+                '<body>Email us: hello@cozynest.example Call +960 777 1234 <a href="https://wa.me/9607771234">WA</a>'
+                ' <a href="https://www.instagram.com/cozynest">IG</a> Check-in 14:00, check-out 12:00. We have 18 rooms.</body></html>')
+        with mock.patch("directory.web_lookup._json", side_effect=self.fake_json), mock.patch("directory.web_lookup._get", return_value=page):
+            r = self.client.post("/admin/ai-assist/", {"kind": "listing", "name": "Cozy Nest", "mode": "quick"})
+        f = r.json()["fields"]
+        self.assertEqual(f["island_name"], "Fuvahmulah")
+        self.assertEqual(f["contact_email"], "hello@cozynest.example")
+        self.assertEqual(f["whatsapp"], "+9607771234")
+        self.assertEqual((f["check_in_time"], f["check_out_time"], f["room_count"]), ("14:00", "12:00", "18"))
+        self.assertIn("Cosy rooms", f["short_description"])
+
+    def test_nothing_found(self):
+        from unittest import mock
+
+        def none(url, **kw):
+            if "list=search" in url:
+                return {"query": {"search": []}}
+            return []
+        with mock.patch("directory.web_lookup._json", side_effect=none):
+            r = self.client.post("/admin/ai-assist/", {"kind": "island", "name": "Zzzz", "mode": "quick"})
+        self.assertEqual(r.status_code, 404)
+        self.assertIn("No Wikipedia article", r.json()["error"])

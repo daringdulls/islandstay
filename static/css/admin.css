@@ -187,3 +187,6 @@ body, .font-sans, input, select, textarea, button { font-family: "Plus Jakarta S
 .ai-sources ul { margin: 4px 0 0; padding-left: 18px; list-style: disc; }
 .ai-sources a { color: #0B6E8A; overflow-wrap: anywhere; }
 .ai-hint { font-size: 12.5px; color: rgb(107 114 128); }
+.ai-btn-ghost { background: transparent; color: #0B6E8A; border: 1px solid #0B6E8A; }
+.dark .ai-btn-ghost { color: #4CC3C7; border-color: #4CC3C7; }
+#ai-url { flex: 0 1 280px !important; min-width: 200px; }
