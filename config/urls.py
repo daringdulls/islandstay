@@ -15,7 +15,10 @@ admin.site.site_header = "Island Stay — Admin"
 admin.site.site_title = "Island Stay Admin"
 admin.site.index_title = "Dashboard"
 
+from config.blob_storage import blob_proxy  # noqa: E402
+
 urlpatterns = [
+    path("media/blob/<path:path>", blob_proxy, name="blob_proxy"),
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("", include("directory.urls")),

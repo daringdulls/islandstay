@@ -371,3 +371,50 @@ class SetupCheckTests(TestCase):
         self.assertEqual(r.status_code, 503)
         self.assertContains(r, "DJANGO_SECRET_KEY", status_code=503)
         self.assertEqual(self.client.get("/").status_code, 200)
+
+
+class PrivateBlobTests(TestCase):
+    def test_private_store_upload_falls_back_and_is_served_through_site(self):
+        import io
+        import json
+        from unittest import mock
+        from urllib.error import HTTPError
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        from config import blob_storage
+        from config.blob_storage import VercelBlobStorage
+
+        class Resp(io.BytesIO):
+            headers = {"content-type": "image/jpeg"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        calls = []
+
+        def fake_urlopen(req, timeout=None):
+            calls.append((req.get_method(), req.full_url, req.get_header("X-vercel-blob-access")))
+            if req.get_method() == "PUT" and req.get_header("X-vercel-blob-access") == "public":
+                raise HTTPError(req.full_url, 400, "Bad Request", {}, io.BytesIO(b'{"error":"store is private"}'))
+            if req.get_method() == "PUT":
+                return Resp(json.dumps({"pathname": "listings/x-Zz9.jpg",
+                                        "url": "https://abc.private.blob.vercel-storage.com/listings/x-Zz9.jpg"}).encode())
+            return Resp(b"jpegbytes")
+
+        VercelBlobStorage.access = None
+        storage = VercelBlobStorage(token="vercel_blob_rw_ABC_secret")
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            name = storage.save("listings/x.jpg", SimpleUploadedFile("x.jpg", b"img", content_type="image/jpeg"))
+            self.assertEqual(name, "~p/listings/x-Zz9.jpg")
+            self.assertEqual(storage.url(name), "/media/blob/listings/x-Zz9.jpg")
+            with mock.patch("django.core.files.storage.default_storage", storage), \
+                    mock.patch.object(blob_storage, "VercelBlobStorage", VercelBlobStorage):
+                r = self.client.get("/media/blob/listings/x-Zz9.jpg")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, b"jpegbytes")
+        self.assertEqual([c[2] for c in calls if c[0] == "PUT"], ["public", "private"])
+        VercelBlobStorage.access = None
