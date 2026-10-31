@@ -418,3 +418,29 @@ class PrivateBlobTests(TestCase):
         self.assertEqual(r.content, b"jpegbytes")
         self.assertEqual([c[2] for c in calls if c[0] == "PUT"], ["public", "private"])
         VercelBlobStorage.access = None
+
+
+class ErrorDetailsTests(TestCase):
+    def test_superusers_see_error_details_others_do_not(self):
+        from unittest import mock
+
+        admin = User.objects.create_superuser("boss2@x.mv", "boss2@x.mv", "pw")
+        self.client.raise_request_exception = False
+        with mock.patch("directory.views.home", side_effect=RuntimeError("boom from test")), \
+                mock.patch("directory.urls.views.home", side_effect=RuntimeError("boom from test")):
+            from django.urls import clear_url_caches
+            clear_url_caches()
+            r = self.client.get("/how-it-works/")  # sanity: unaffected page still works
+            self.assertEqual(r.status_code, 200)
+        from config.error_details import AdminErrorDetailsMiddleware
+        from django.test import RequestFactory
+
+        req = RequestFactory().get("/")
+        req.user = admin
+        resp = AdminErrorDetailsMiddleware(lambda r: None).process_exception(req, RuntimeError("boom from test"))
+        self.assertEqual(resp.status_code, 500)
+        self.assertIn(b"boom from test", resp.content)
+        from django.contrib.auth.models import AnonymousUser
+
+        req.user = AnonymousUser()
+        self.assertIsNone(AdminErrorDetailsMiddleware(lambda r: None).process_exception(req, RuntimeError("x")))
