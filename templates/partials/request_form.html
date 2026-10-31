@@ -1,0 +1,105 @@
+{% load ui %}{# Booking / service request form shown beside a listing #}
+{% with host=listing.contact_name|default:"the host" %}
+<div class="rq-head">
+  <span class="rq-avatar" aria-hidden="true">{{ host|slice:":1"|upper }}</span>
+  <div>
+    <h3>{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
+    <p>Goes straight to {{ host }}{% if listing.is_verified %} <span class="badge badge-ok badge-sm">{% cowrie %}Verified</span>{% endif %}</p>
+  </div>
+</div>
+
+<form method="post" novalidate class="rq" id="rq-form">
+  {% csrf_token %}
+  <div class="hp" aria-hidden="true">{{ form.website }}</div>
+  {% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+  <fieldset class="rq-step">
+    <legend><span>1</span>{% if listing.is_stay %}Your stay{% else %}When and who{% endif %}</legend>
+    <div class="rq-dates{% if not form.check_out %} single{% endif %}">
+      <label class="rq-cell" for="{{ form.check_in.id_for_label }}"><small>{% if form.check_out %}Check-in{% else %}{{ form.check_in.label }}{% endif %}</small>{{ form.check_in }}</label>
+      {% if form.check_out %}<label class="rq-cell" for="{{ form.check_out.id_for_label }}"><small>Check-out</small>{{ form.check_out }}</label>{% endif %}
+    </div>
+    {{ form.check_in.errors }}{% if form.check_out %}{{ form.check_out.errors }}{% endif %}
+    {% if form.check_out %}<p class="rq-nights" id="rq-nights" hidden></p>{% endif %}
+
+    <div class="rq-counters">
+      <div class="rq-count"><div><b>Adults</b><small>Age 13 and over</small></div>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="One fewer adult">−</button>{{ form.adults }}<button type="button" data-step="1" aria-label="One more adult">+</button></div></div>
+      {{ form.adults.errors }}
+      <div class="rq-count"><div><b>Children</b><small>Under 13</small></div>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="One fewer child">−</button>{{ form.children }}<button type="button" data-step="1" aria-label="One more child">+</button></div></div>
+      {{ form.children.errors }}
+      {% if form.rooms %}<div class="rq-count"><div><b>Rooms</b><small>Leave empty if not sure</small></div>
+        <div class="stepper"><button type="button" data-step="-1" aria-label="One fewer room">−</button>{{ form.rooms }}<button type="button" data-step="1" aria-label="One more room">+</button></div></div>
+      {{ form.rooms.errors }}{% endif %}
+    </div>
+
+    {% if listing.rooms.exists %}<label class="rq-label" for="{{ form.room_type.id_for_label }}">Room or package</label>{{ form.room_type }}{{ form.room_type.errors }}{% endif %}
+
+    {% if not listing.is_transport %}
+    <label class="rq-switch">
+      {{ form.needs_transfer }}
+      <span class="rq-switch-ui" aria-hidden="true"></span>
+      <span class="rq-switch-text">{% icon "ship" %}<span><b>Help with my transfer</b><small>Ask the host to arrange the boat or flight from the airport</small></span></span>
+    </label>
+    {% endif %}
+  </fieldset>
+
+  <fieldset class="rq-step">
+    <legend><span>2</span>Your message</legend>
+    {{ form.message }}{{ form.message.errors }}
+  </fieldset>
+
+  <fieldset class="rq-step">
+    <legend><span>3</span>Your details</legend>
+    <div class="rq-fields">
+      <div class="full"><label class="rq-label" for="{{ form.guest_name.id_for_label }}">Full name <span class="req">*</span></label>{{ form.guest_name }}{{ form.guest_name.errors }}</div>
+      <div class="full"><label class="rq-label" for="{{ form.guest_email.id_for_label }}">Email <span class="req">*</span></label>{{ form.guest_email }}{{ form.guest_email.errors }}</div>
+      <div><label class="rq-label" for="{{ form.guest_phone.id_for_label }}">Phone / WhatsApp</label>{{ form.guest_phone }}{{ form.guest_phone.errors }}</div>
+      <div><label class="rq-label" for="{{ form.guest_country.id_for_label }}">Country</label>{{ form.guest_country }}{{ form.guest_country.errors }}</div>
+    </div>
+    <div class="rq-label" id="rq-contact-label">How should the host reply?</div>
+    <div class="rq-segments" role="radiogroup" aria-labelledby="rq-contact-label">
+      {% for radio in form.preferred_contact %}<label class="rq-seg">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endfor %}
+    </div>
+    {{ form.preferred_contact.errors }}
+  </fieldset>
+
+  <button class="btn btn-accent btn-block rq-submit" type="submit">Send request {% icon "arrow-right" %}</button>
+  <ul class="rq-assure">
+    <li>{% icon "check" %}Free, no booking fee</li>
+    <li>{% icon "check" %}No card details needed</li>
+    <li>{% icon "check" %}{{ host }} confirms the price and availability with you</li>
+  </ul>
+</form>
+{% endwith %}
+<script>
+(function () {
+  var f = document.getElementById('rq-form'); if (!f) return;
+  f.querySelectorAll('.stepper').forEach(function (s) {
+    var input = s.querySelector('input');
+    s.querySelectorAll('button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var min = +(input.min || 0), max = +(input.max || 99);
+        var v = (input.value === '' ? (input.name === 'rooms' ? 0 : min) : +input.value) + +b.dataset.step;
+        input.value = Math.max(min, Math.min(max, v));
+        input.dispatchEvent(new Event('change'));
+      });
+    });
+  });
+  var ci = f.querySelector('[name=check_in]'), co = f.querySelector('[name=check_out]'), out = document.getElementById('rq-nights');
+  var today = new Date(); today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  if (ci) ci.min = today.toISOString().slice(0, 10);
+  function nights() {
+    if (!co) return;
+    if (ci.value) { var next = new Date(ci.value); next.setDate(next.getDate() + 1); co.min = next.toISOString().slice(0, 10); if (co.value && co.value <= ci.value) co.value = ''; }
+    if (ci.value && co.value) {
+      var n = Math.round((new Date(co.value) - new Date(ci.value)) / 864e5);
+      out.textContent = n + (n === 1 ? ' night' : ' nights'); out.hidden = n < 1;
+    } else out.hidden = true;
+  }
+  if (ci) ci.addEventListener('change', function () { nights(); if (co && !co.value && ci.value) co.showPicker && co.focus(); });
+  if (co) co.addEventListener('change', nights);
+  nights();
+})();
+</script>

@@ -14,7 +14,7 @@
         <a class="meta" href="{{ listing.island.get_absolute_url }}" style="display:inline-flex;gap:6px;align-items:center">{% icon "map-pin" %} {{ listing.island.name }}, {{ listing.island.atoll.name }}</a>
         {% if listing.is_verified %}<span class="verified-badge" title="Licence checked by our team{% if listing.verified_at %} on {{ listing.verified_at|date:'j M Y' }}{% endif %}">{% cowrie %} Verified host</span>{% endif %}
         {% if listing.is_featured %}<span class="badge badge-rec" title="Recommended by the Island Stay team">{% icon "star" %}Recommended</span>{% endif %}
-        {% if listing.star_rating %}<span class="data muted">{{ listing.star_rating }}-STAR</span>{% endif %}
+        {% if listing.star_rating %}{% stars listing.star_rating %}{% endif %}
       </div>
     </div>
     <span class="spacer"></span>
@@ -104,15 +104,9 @@
     </div>
 
     <aside class="sticky" id="request">
-      <div class="panel">
+      <div class="panel rq-panel">
         {% if SHOW_PRICES and listing.price_from %}<div class="price" style="margin-bottom:6px">from <b style="font-size:1.5rem">{% if listing.currency == 'USD' %}${% else %}MVR {% endif %}{{ listing.price_from|floatformat:0 }}</b> {{ listing.get_price_unit_display }}</div>{% endif %}
-        <h3 style="font-size:1.2rem">{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
-        <p class="small muted">Sent directly to {{ listing.contact_name|default:"the owner" }}, who will reply to confirm availability and price. No payment or card details needed.</p>
-        <form method="post" novalidate>
-          {% csrf_token %}
-          {% include "partials/form_fields.html" with honeypot=True %}
-          <button class="btn btn-accent btn-block" type="submit" style="margin-top:16px">Send request</button>
-        </form>
+        {% include "partials/request_form.html" %}
       </div>
       <div class="panel">
         <h3>Contact the host</h3>

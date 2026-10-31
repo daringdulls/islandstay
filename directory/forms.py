@@ -27,6 +27,14 @@ class EnquiryForm(forms.ModelForm):
         }
         widgets = {
             "check_in": DateInput(), "check_out": DateInput(),
+            "preferred_contact": forms.RadioSelect(),
+            "adults": forms.NumberInput(attrs={"min": 1, "max": 30}),
+            "children": forms.NumberInput(attrs={"min": 0, "max": 30}),
+            "rooms": forms.NumberInput(attrs={"min": 1, "max": 30, "placeholder": "1"}),
+            "guest_name": forms.TextInput(attrs={"autocomplete": "name", "placeholder": "As on your passport"}),
+            "guest_email": forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "you@example.com"}),
+            "guest_phone": forms.TextInput(attrs={"autocomplete": "tel", "placeholder": "+44 7700 900123"}),
+            "guest_country": forms.TextInput(attrs={"autocomplete": "country-name", "placeholder": "Where you live"}),
             "message": forms.Textarea(attrs={"rows": 4, "placeholder": "Tell the host about your plans, special requests, arrival time…"}),
         }
 
@@ -44,6 +52,7 @@ class EnquiryForm(forms.ModelForm):
                 self.fields["adults"].label = "Adults"
                 for f in ("check_out", "rooms"):
                     self.fields.pop(f)
+        self.fields["preferred_contact"].choices = [c for c in self.fields["preferred_contact"].choices if c[0]]
 
     def clean_website(self):
         if self.cleaned_data.get("website"):
