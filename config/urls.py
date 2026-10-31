@@ -1,3 +1,10 @@
+import django
+from django.apps import apps
+
+# Vercel's build inspects the URLconf before Django has started; start it here if needed.
+if not apps.ready:
+    django.setup()
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
