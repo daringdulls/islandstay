@@ -76,9 +76,22 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # DATABASE_URL (e.g. Render Postgres) in production; a local SQLite file otherwise.
-# Vercel's Postgres (Neon) integration provides DATABASE_URL, or POSTGRES_URL on older stores.
-if not os.environ.get("DATABASE_URL") and os.environ.get("POSTGRES_URL"):
-    os.environ["DATABASE_URL"] = os.environ["POSTGRES_URL"]
+# Vercel's Postgres (Neon) integration provides DATABASE_URL / POSTGRES_URL, possibly with a custom prefix
+# (e.g. STORAGE_DATABASE_URL). Use the first Postgres URL found.
+DATABASE_URL_SOURCE = None
+for _name in ["DATABASE_URL", "POSTGRES_URL"] + sorted(
+    k for k in os.environ if k.endswith(("_DATABASE_URL", "_POSTGRES_URL")) and "UNPOOLED" not in k and "NON_POOLING" not in k
+):
+    if os.environ.get(_name, "").startswith(("postgres://", "postgresql://")):
+        DATABASE_URL_SOURCE = _name
+        os.environ["DATABASE_URL"] = os.environ[_name]
+        break
+
+# Without DJANGO_SECRET_KEY on a hosted site, derive a stable secret from the (secret) database URL.
+if SECRET_KEY.startswith("dev-only") and _HOSTED and os.environ.get("DATABASE_URL"):
+    import hashlib
+
+    SECRET_KEY = hashlib.sha256(("islandstay-secret:" + os.environ["DATABASE_URL"]).encode()).hexdigest()
 DATABASES = {
     "default": dj_database_url.config(
         default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
@@ -131,7 +144,7 @@ SETUP_MISSING = []
 if not DEBUG and SECRET_KEY.startswith("dev-only"):
     SETUP_MISSING.append(("DJANGO_SECRET_KEY", "Settings → Environment Variables: add DJANGO_SECRET_KEY with a long random value."))
 if ON_VERCEL and not os.environ.get("DATABASE_URL"):
-    SETUP_MISSING.append(("Database", "Storage → Create → Neon (Postgres), then connect it to this project."))
+    SETUP_MISSING.append(("Database", "Storage → Create → Neon (Postgres), then Connect Project → tick Production, Preview and Development."))
 
 LOGGING = {
     "version": 1,
