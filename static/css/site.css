@@ -760,3 +760,31 @@ a.card:hover .cover img.cowrie { transform: none; }
 .rq-assure li { display: flex; gap: 8px; align-items: flex-start; }
 .rq-assure .i { width: 15px; height: 15px; color: var(--verified); flex: none; margin-top: 2px; }
 .rq .errorlist { margin: 6px 0 0; }
+
+/* request form: date boxes with readable dates, error summary */
+.rq-date { position: relative; display: grid !important; grid-template-columns: 1fr auto; align-items: center; column-gap: 8px; padding: 12px 14px !important; }
+.rq-date small { grid-column: 1 / -1; }
+.rq-date-val { font-size: .98rem; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.rq-date.has-value .rq-date-val { color: var(--ink); }
+.rq-date > .i { width: 18px; height: 18px; color: var(--sea); }
+.rq .rq-date input { position: absolute !important; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; padding: 0; border: 0; }
+.rq-date:focus-within { box-shadow: inset 0 0 0 2px var(--sea); }
+.rq-dates { background: #fff; }
+.rq-error-summary { display: flex; gap: 10px; margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; background: #fdecea; color: #8a2e1d; font-size: .86rem; }
+.rq-error-summary .i { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.rq-error-summary ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* request sent: send it to the host */
+.send-options { display: grid; gap: 10px; margin: 20px 0; }
+.send-btn { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none !important; transition: border-color .15s, box-shadow .15s; }
+.send-btn:hover { border-color: var(--sea); box-shadow: 0 6px 20px rgba(10, 61, 76, .10); }
+.send-btn .send-ico { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; color: #fff; background: var(--sea); }
+.send-btn .send-ico .i { width: 22px; height: 22px; }
+.send-btn.wa .send-ico { background: #1E7A55; }
+.send-btn.viber .send-ico { background: #6b4fa0; }
+.send-btn b { display: block; font-size: 1rem; }
+.send-btn small { color: var(--ink-2); font-size: .84rem; }
+.send-btn > .i { margin-left: auto; color: var(--sea); width: 18px; height: 18px; }
+.send-preview { white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; font-size: .88rem; line-height: 1.55; max-height: 280px; overflow: auto; margin: 0; font-family: inherit; }
+.rq-date-val { font-size: 1.15rem; }
+.rq-date-sub { grid-column: 1 / -1; font-size: .74rem; color: var(--ink-2); min-height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

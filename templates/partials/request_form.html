@@ -8,16 +8,21 @@
   </div>
 </div>
 
-<form method="post" novalidate class="rq" id="rq-form">
+<form method="post" class="rq" id="rq-form">
   {% csrf_token %}
-  <div class="hp" aria-hidden="true">{{ form.website }}</div>
-  {% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <div class="hp" aria-hidden="true">{{ form.hp_leave_empty }}</div>
+  {% if form.errors %}<div class="rq-error-summary" role="alert" id="rq-errors">{% icon "info" %}<div><b>Please check {% if form.errors|length == 1 %}this{% else %}these{% endif %}:</b>
+    <ul>{% for field in form %}{% for err in field.errors %}<li>{% if field.name != "hp_leave_empty" %}{{ field.label }}: {% endif %}{{ err }}</li>{% endfor %}{% endfor %}{% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}</ul></div></div>{% endif %}
 
   <fieldset class="rq-step">
     <legend><span>1</span>{% if listing.is_stay %}Your stay{% else %}When and who{% endif %}</legend>
     <div class="rq-dates{% if not form.check_out %} single{% endif %}">
-      <label class="rq-cell" for="{{ form.check_in.id_for_label }}"><small>{% if form.check_out %}Check-in{% else %}{{ form.check_in.label }}{% endif %}</small>{{ form.check_in }}</label>
-      {% if form.check_out %}<label class="rq-cell" for="{{ form.check_out.id_for_label }}"><small>Check-out</small>{{ form.check_out }}</label>{% endif %}
+      <label class="rq-cell rq-date" for="{{ form.check_in.id_for_label }}">
+        <small>{% if form.check_out %}Check-in{% else %}{{ form.check_in.label }}{% endif %}</small>
+        <span class="rq-date-val" data-placeholder="Add date">Add date</span>{% icon "calendar" %}<span class="rq-date-sub"></span>{{ form.check_in }}</label>
+      {% if form.check_out %}<label class="rq-cell rq-date" for="{{ form.check_out.id_for_label }}">
+        <small>Check-out</small>
+        <span class="rq-date-val" data-placeholder="Add date">Add date</span>{% icon "calendar" %}<span class="rq-date-sub"></span>{{ form.check_out }}</label>{% endif %}
     </div>
     {{ form.check_in.errors }}{% if form.check_out %}{{ form.check_out.errors }}{% endif %}
     {% if form.check_out %}<p class="rq-nights" id="rq-nights" hidden></p>{% endif %}
@@ -53,7 +58,7 @@
   <fieldset class="rq-step">
     <legend><span>3</span>Your details</legend>
     <div class="rq-fields">
-      <div class="full"><label class="rq-label" for="{{ form.guest_name.id_for_label }}">Full name <span class="req">*</span></label>{{ form.guest_name }}{{ form.guest_name.errors }}</div>
+      <div class="full"><label class="rq-label" for="{{ form.guest_name.id_for_label }}">Your name <span class="req">*</span></label>{{ form.guest_name }}{{ form.guest_name.errors }}</div>
       <div class="full"><label class="rq-label" for="{{ form.guest_email.id_for_label }}">Email <span class="req">*</span></label>{{ form.guest_email }}{{ form.guest_email.errors }}</div>
       <div><label class="rq-label" for="{{ form.guest_phone.id_for_label }}">Phone / WhatsApp</label>{{ form.guest_phone }}{{ form.guest_phone.errors }}</div>
       <div><label class="rq-label" for="{{ form.guest_country.id_for_label }}">Country</label>{{ form.guest_country }}{{ form.guest_country.errors }}</div>
@@ -67,9 +72,8 @@
 
   <button class="btn btn-accent btn-block rq-submit" type="submit">Send request {% icon "arrow-right" %}</button>
   <ul class="rq-assure">
-    <li>{% icon "check" %}Free, no booking fee</li>
-    <li>{% icon "check" %}No card details needed</li>
-    <li>{% icon "check" %}{{ host }} confirms the price and availability with you</li>
+    <li>{% icon "check" %}Next, send it to {{ host }} on {% if listing.whatsapp_digits %}WhatsApp, {% endif %}{% if listing.viber_digits %}Viber, {% endif %}email or phone, already written for you</li>
+    <li>{% icon "check" %}Free, no booking fee and no card details</li>
   </ul>
 </form>
 {% endwith %}
@@ -87,6 +91,18 @@
       });
     });
   });
+  var fmt = { day: 'numeric', month: 'short' };
+  f.querySelectorAll('.rq-date').forEach(function (cell) {
+    var input = cell.querySelector('input'), val = cell.querySelector('.rq-date-val'), small = cell.querySelector('.rq-date-sub');
+    function show() {
+      if (input.value) { var d = new Date(input.value + 'T00:00'); val.textContent = d.toLocaleDateString(undefined, fmt); small.textContent = d.toLocaleDateString(undefined, { weekday: 'long' }) + ' ' + d.getFullYear(); cell.classList.add('has-value'); }
+      else { val.textContent = val.dataset.placeholder; small.textContent = ''; cell.classList.remove('has-value'); }
+    }
+    cell.addEventListener('click', function (ev) { ev.preventDefault(); try { input.showPicker(); } catch (e) { input.focus(); } });
+    input.addEventListener('change', show); input.addEventListener('input', show); show();
+  });
+  var errs = document.getElementById('rq-errors');
+  if (errs) { errs.scrollIntoView({ block: 'center' }); }
   var ci = f.querySelector('[name=check_in]'), co = f.querySelector('[name=check_out]'), out = document.getElementById('rq-nights');
   var today = new Date(); today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
   if (ci) ci.min = today.toISOString().slice(0, 10);
@@ -98,7 +114,7 @@
       out.textContent = n + (n === 1 ? ' night' : ' nights'); out.hidden = n < 1;
     } else out.hidden = true;
   }
-  if (ci) ci.addEventListener('change', function () { nights(); if (co && !co.value && ci.value) co.showPicker && co.focus(); });
+  if (ci) ci.addEventListener('change', function () { nights(); if (co && !co.value && ci.value) { try { co.showPicker(); } catch (e) {} } });
   if (co) co.addEventListener('change', nights);
   nights();
 })();

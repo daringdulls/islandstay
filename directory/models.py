@@ -417,6 +417,10 @@ class Listing(models.Model):
         return "".join(c for c in self.whatsapp if c.isdigit())
 
     @property
+    def viber_digits(self):
+        return "".join(c for c in self.viber if c.isdigit())
+
+    @property
     def kind_icon(self):
         return {
             "guesthouse": "house", "hotel": "hotel", "resort": "tree-palm", "villa": "bed-double", "activity": "sailboat",
@@ -551,10 +555,9 @@ class Enquiry(models.Model):
     rooms = models.PositiveSmallIntegerField(null=True, blank=True)
     room_type = models.CharField(max_length=80, blank=True)
     needs_transfer = models.BooleanField(default=False, help_text="Guest would like help arranging a transfer")
-    message = models.TextField()
+    message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_NEW)
     owner_notes = models.TextField(blank=True, help_text="Private notes for the owner")
-    email_status = models.CharField(max_length=255, blank=True, help_text="Whether the emails to the owner and guest went out")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -584,6 +587,35 @@ class Enquiry(models.Model):
         if self.check_in and self.check_out and self.check_out > self.check_in:
             return (self.check_out - self.check_in).days
         return None
+
+    def as_message(self):
+        """The request written out, for the guest to send to the host by WhatsApp, Viber or email."""
+        l = self.listing
+        host = (l.contact_name or "").split()[0] if l.contact_name else ""
+        lines = [f"Hello{' ' + host if host else ''}, I found {l.name} on Island Stay and would like to ask:", ""]
+        if self.check_in:
+            when = self.check_in.strftime("%a %d %b %Y")
+            if self.check_out:
+                n = self.nights
+                when += f" to {self.check_out.strftime('%a %d %b %Y')}" + (f" ({n} night{'s' if n != 1 else ''})" if n else "")
+            lines.append(f"Dates: {when}")
+        party = f"{self.adults} adult{'s' if self.adults != 1 else ''}"
+        if self.children:
+            party += f", {self.children} child{'ren' if self.children != 1 else ''}"
+        lines.append(f"Guests: {party}")
+        if self.rooms:
+            lines.append(f"Rooms: {self.rooms}")
+        if self.room_type:
+            lines.append(f"Room / package: {self.room_type}")
+        if self.needs_transfer:
+            lines.append("Transfer: please help me arrange it")
+        if self.message:
+            lines += ["", self.message.strip()]
+        contact = [c for c in (self.guest_phone, self.guest_email) if c]
+        lines += ["", f"{self.guest_name}{' (' + self.guest_country + ')' if self.guest_country else ''}",
+                  f"Please reply by {dict(email='email', whatsapp='WhatsApp', phone='phone', viber='Viber').get(self.preferred_contact, 'email')}" + (f": {', '.join(contact)}" if contact else ""),
+                  f"Island Stay reference: {self.reference}"]
+        return "\n".join(lines)
 
 
 class IslandSuggestion(models.Model):

@@ -111,8 +111,9 @@
       <div class="panel">
         <h3>Contact the host</h3>
         <ul class="contact-list">
+          {% if listing.contact_email %}<li>{% icon "mail" %}<a href="mailto:{{ listing.contact_email }}?subject={{ 'Question from Island Stay: '|urlencode:'' }}{{ listing.name|urlencode:'' }}">{{ listing.contact_email }}</a></li>{% endif %}
           {% if listing.contact_phone %}<li>{% icon "phone" %}<a href="tel:{{ listing.contact_phone }}">{{ listing.contact_phone }}</a></li>{% endif %}
-          {% if listing.viber %}<li>{% icon "message-circle" %}Viber {{ listing.viber }}</li>{% endif %}
+          {% if listing.viber_digits %}<li>{% icon "message-circle" %}<a href="viber://chat?number=%2B{{ listing.viber_digits }}">Viber {{ listing.viber }}</a></li>{% endif %}
           {% if listing.website %}<li>{% icon "globe" %}<a href="{{ listing.website }}" target="_blank" rel="noopener nofollow">Website</a></li>{% endif %}
           {% if listing.instagram %}<li>{% icon "instagram" %}<a href="{{ listing.instagram }}" target="_blank" rel="noopener nofollow">Instagram</a></li>{% endif %}
           {% if listing.facebook %}<li>{% icon "facebook" %}<a href="{{ listing.facebook }}" target="_blank" rel="noopener nofollow">Facebook</a></li>{% endif %}

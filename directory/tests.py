@@ -40,24 +40,29 @@ class FlowTests(TestCase):
         r = self.client.post(self.listing.get_absolute_url(), {
             "guest_name": "Sara Lee", "guest_email": "sara@example.com", "preferred_contact": "email",
             "check_in": d, "check_out": d + timedelta(days=4), "adults": 2, "children": 0,
-            "message": "Do you have a sea view room?", "website": "",
+            "message": "Do you have a sea view room?", "hp_leave_empty": "",
         })
         e = Enquiry.objects.get(guest_email="sara@example.com")
         self.assertRedirects(r, reverse("directory:enquiry_sent", args=[e.reference]))
         self.assertEqual(e.nights, 4)
-        self.assertEqual(len(mail.outbox), 2)
-        owner_mail, guest_mail = mail.outbox
-        self.assertEqual(owner_mail.to, [self.listing.contact_email])
-        self.assertEqual(owner_mail.reply_to, ["sara@example.com"])
-        self.assertIn(e.reference, owner_mail.subject)
-        self.assertEqual(guest_mail.to, ["sara@example.com"])
+        self.assertEqual(len(mail.outbox), 0)  # the site sends no email; the guest messages the host
+        page = self.client.get(r.url)
+        self.assertContains(page, "mailto:" + self.listing.contact_email)
+        self.assertIn("4 nights", e.as_message())
+        self.assertIn(e.reference, e.as_message())
+
+    def test_request_without_message_is_accepted(self):
+        self.client.post(self.listing.get_absolute_url(), {
+            "guest_name": "Ann", "guest_email": "ann@example.com", "preferred_contact": "whatsapp",
+            "adults": 2, "children": 0, "hp_leave_empty": ""})
+        self.assertTrue(Enquiry.objects.filter(guest_email="ann@example.com").exists())
 
     def test_request_validation_and_honeypot(self):
         d = timezone.localdate() + timedelta(days=5)
         base = {"guest_name": "X", "guest_email": "x@example.com", "preferred_contact": "email", "adults": 1, "children": 0, "message": "hi"}
         r = self.client.post(self.listing.get_absolute_url(), {**base, "check_in": d, "check_out": d})
         self.assertContains(r, "Check-out must be after check-in")
-        self.client.post(self.listing.get_absolute_url(), {**base, "website": "http://spam"})
+        self.client.post(self.listing.get_absolute_url(), {**base, "hp_leave_empty": "http://spam"})
         self.assertFalse(Enquiry.objects.filter(guest_email="x@example.com").exists())
 
     def test_signup_create_listing_and_admin_approval(self):
@@ -87,7 +92,7 @@ class FlowTests(TestCase):
         self.client.post(reverse("admin:directory_listing_changelist"), {"action": "approve", "_selected_action": [listing.pk]})
         listing.refresh_from_db()
         self.assertEqual(listing.status, Listing.STATUS_APPROVED)
-        self.assertEqual(mail.outbox[0].to, ["ali@example.mv"])
+        self.assertEqual(len(mail.outbox), 0)  # owners see the status in their dashboard
         self.client.logout()
         self.assertContains(self.client.get(thoddoo.get_absolute_url()), "Reef Side")
 
@@ -501,54 +506,6 @@ class OidcBlobTests(TestCase):
 
 
 from django.core import mail
-from django.test import override_settings
-
-from directory.models import Enquiry
 
 
-class EmailDeliveryTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
 
-    def _post(self):
-        listing = Listing.objects.filter(status=Listing.STATUS_APPROVED, kind__in=Listing.STAY_KINDS).first()
-        return listing, self.client.post(listing.get_absolute_url(), {
-            "guest_name": "Ana", "guest_email": "ana@example.com", "preferred_contact": "email",
-            "adults": 2, "children": 0, "message": "Hello", "website": ""})
-
-    @override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-    def test_request_emails_owner_and_guest_and_records_it(self):
-        listing, r = self._post()
-        self.assertEqual(r.status_code, 302)
-        self.assertEqual(len(mail.outbox), 2)
-        self.assertEqual(mail.outbox[0].to, [listing.contact_email])
-        self.assertEqual(mail.outbox[0].reply_to, ["ana@example.com"])
-        self.assertTrue(Enquiry.objects.latest("id").email_status.startswith("Sent to owner"))
-
-    @override_settings(EMAIL_CONFIGURED=False)
-    def test_unconfigured_email_is_recorded_not_hidden(self):
-        self._post()
-        self.assertIn("isn't set up", Enquiry.objects.latest("id").email_status)
-
-    @override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="directory.tests.BrokenBackend")
-    def test_mail_server_error_is_recorded(self):
-        _, r = self._post()
-        self.assertEqual(r.status_code, 302)  # the guest's request is still saved
-        self.assertIn("Failed", Enquiry.objects.latest("id").email_status)
-
-    def test_email_page_and_test_button(self):
-        admin_user = User.objects.create_superuser("root@x.mv", "root@x.mv", "pw")
-        self.client.force_login(admin_user)
-        self.assertContains(self.client.get("/admin/email/"), "Emails are not being sent")
-        with override_settings(EMAIL_CONFIGURED=True, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend"):
-            self.client.post("/admin/email/", {"to": "me@example.com"})
-            self.assertEqual(mail.outbox[-1].to, ["me@example.com"])
-
-
-from django.core.mail.backends.base import BaseEmailBackend  # noqa: E402
-
-
-class BrokenBackend(BaseEmailBackend):
-    def send_messages(self, messages):
-        raise ConnectionRefusedError("SMTP login failed")

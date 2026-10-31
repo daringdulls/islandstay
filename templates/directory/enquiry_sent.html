@@ -1,25 +1,40 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}Request sent{% endblock %}
+{% block title %}Send your request{% endblock %}
 {% block content %}
-<div class="container auth-wrap" style="max-width:640px">
+<div class="container auth-wrap" style="max-width:680px">
   <div class="panel">
-    <div class="eyebrow" style="display:flex;gap:8px;align-items:center;color:var(--verified)">{% icon "check" %} Request sent</div>
-    <h1 style="font-size:2.2rem;margin-top:8px">Your request is with {{ e.listing.name }}</h1>
-    {% if e.email_status|slice:":4" == "Sent" %}<p>We've emailed your request to the host on {{ e.listing.island.name }}{% if "Guest copy" not in e.email_status %} and sent a copy to <b>{{ e.guest_email }}</b>{% endif %}.</p>
-    {% else %}<p>Your request has reached the host's Island Stay inbox on {{ e.listing.island.name }}. They'll reply to <b>{{ e.guest_email }}</b>{% if e.guest_phone %} or {{ e.guest_phone }}{% endif %}.</p>{% endif %}
-    <dl class="kv" style="margin:24px 0">
-      <dt>Reference</dt><dd class="data" style="font-size:.95rem">{{ e.reference }}</dd>
-      {% if e.check_in %}<dt>Date{% if e.check_out %}s{% endif %}</dt><dd>{{ e.check_in|date:"j M Y" }}{% if e.check_out %} to {{ e.check_out|date:"j M Y" }} ({{ e.nights }} night{{ e.nights|pluralize }}){% endif %}</dd>{% endif %}
-      <dt>Guests</dt><dd>{{ e.adults }} adult{{ e.adults|pluralize }}{% if e.children %}, {{ e.children }} child{{ e.children|pluralize:"ren" }}{% endif %}</dd>
-      {% if e.room_type %}<dt>Room or package</dt><dd>{{ e.room_type }}</dd>{% endif %}
-      <dt>Reply by</dt><dd>{{ e.get_preferred_contact_display }}</dd>
-    </dl>
-    <div class="notice">{% icon "info" %}<span>The host will confirm availability, the rate and how to pay directly with you. {{ SITE_NAME }} never asks for card details.</span></div>
-    <div class="row" style="margin-top:24px">
-      <a class="btn btn-ghost" href="{{ e.listing.island.get_absolute_url }}">Back to {{ e.listing.island.name }}</a>
-      {% if e.listing.whatsapp_digits %}<a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/{{ e.listing.whatsapp_digits }}?text={{ 'Hello, I just sent a request on Island Stay, reference '|urlencode }}{{ e.reference }}">{% icon "message-circle" %} Follow up on WhatsApp</a>{% endif %}
+    <div class="eyebrow" style="display:flex;gap:8px;align-items:center;color:var(--verified)">{% icon "check" %} Request saved · {{ e.reference }}</div>
+    <h1 style="font-size:2rem;margin-top:8px">Last step: send it to {{ l.contact_name|default:l.name }}</h1>
+    <p class="muted" style="margin:0">Your request is written out below. Pick how you'd like to send it; it opens in your own app, ready to go. {{ l.name }} also sees it in their Island Stay inbox.</p>
+
+    <div class="send-options">
+      {% if l.whatsapp_digits %}<a class="send-btn wa" target="_blank" rel="noopener" href="https://wa.me/{{ l.whatsapp_digits }}?text={{ msg|urlencode:'' }}">
+        <span class="send-ico">{% icon "message-circle" %}</span><span><b>Send on WhatsApp</b><small>{{ l.whatsapp }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
+      {% if l.viber_digits %}<a class="send-btn viber" href="viber://chat?number=%2B{{ l.viber_digits }}&draft={{ msg|urlencode:'' }}">
+        <span class="send-ico">{% icon "message-circle" %}</span><span><b>Send on Viber</b><small>{{ l.viber }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
+      {% if l.contact_email %}<a class="send-btn" href="mailto:{{ l.contact_email }}?subject={{ subject|urlencode:'' }}&body={{ msg|urlencode:'' }}">
+        <span class="send-ico">{% icon "mail" %}</span><span><b>Send by email</b><small>{{ l.contact_email }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
+      {% if l.contact_phone %}<a class="send-btn" href="tel:{{ l.contact_phone }}">
+        <span class="send-ico">{% icon "phone" %}</span><span><b>Call</b><small>{{ l.contact_phone }}</small></span>{% icon "arrow-up-right" %}</a>{% endif %}
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px">
+      <b>Your message</b>
+      <button class="btn btn-ghost btn-sm" type="button" id="copy-msg">{% icon "check" %} Copy</button>
+    </div>
+    <pre class="send-preview" id="msg">{{ msg }}</pre>
+
+    <div class="notice" style="margin-top:20px">{% icon "info" %}<span>{{ l.contact_name|default:"The host" }} will confirm availability, the rate and how to pay directly with you. {{ SITE_NAME }} never asks for card details.</span></div>
+    <div class="row" style="margin-top:20px">
+      <a class="btn btn-ghost" href="{{ l.get_absolute_url }}">Back to {{ l.name }}</a>
+      <a class="btn btn-ghost" href="{{ l.island.get_absolute_url }}">More on {{ l.island.name }}</a>
     </div>
   </div>
 </div>
+<script>
+document.getElementById('copy-msg').addEventListener('click', function () {
+  var b = this; navigator.clipboard.writeText(document.getElementById('msg').innerText).then(function () { b.lastChild.textContent = ' Copied'; });
+});
+</script>
 {% endblock %}

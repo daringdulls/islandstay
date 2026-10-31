@@ -400,43 +400,26 @@ class ListingAdmin(BaseAdmin):
 
 @admin.register(Enquiry)
 class EnquiryAdmin(BaseAdmin):
-    list_display = ("reference_col", "guest", "listing", "dates", "party", "status_label", "emailed")
+    list_display = ("reference_col", "guest", "listing", "dates", "party", "status_label")
     list_display_links = ("reference_col",)
     list_filter = (("status", ChoicesDropdownFilter), ("listing__kind", ChoicesDropdownFilter),
                    ("listing__island", RelatedDropdownFilter), "created_at")
     search_fields = ("reference", "guest_name", "guest_email", "listing__name")
-    readonly_fields = ("reference", "created_at", "updated_at", "ip_address", "email_status")
+    readonly_fields = ("reference", "created_at", "updated_at", "ip_address")
     autocomplete_fields = ("listing",)
-    actions = ["mark_closed", "resend_email"]
+    actions = ["mark_closed"]
     fieldsets = (
         ("Request", {"classes": ["tab"], "fields": (
             ("reference", "status"), "listing", ("check_in", "check_out"), ("adults", "children", "rooms"),
             "room_type", "needs_transfer", "message", "owner_notes")}),
         ("Guest", {"classes": ["tab"], "fields": (
             ("guest_name", "guest_email"), ("guest_phone", "guest_country"), "preferred_contact")}),
-        ("System", {"classes": ["tab"], "fields": ("email_status", ("created_at", "updated_at"), "ip_address")}),
+        ("System", {"classes": ["tab"], "fields": (("created_at", "updated_at"), "ip_address")}),
     )
 
-    @admin.action(description="Send the emails again (owner and guest)")
-    def resend_email(self, request, queryset):
-        sent = 0
-        for enquiry in queryset.select_related("listing"):
-            notifications.enquiry_created(enquiry, request)
-            sent += enquiry.email_status.startswith("Sent")
-        n = queryset.count()
-        level = messages.SUCCESS if sent == n else messages.WARNING
-        self.message_user(request, f"Emails sent for {sent} of {n} request{'s' if n != 1 else ''}."
-                          + ("" if sent == n else " Open a request's System tab to see why."), level)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("listing", "listing__island")
-
-    @display(description="Email", label={"Sent": "success", "Not sent": "warning", "Failed": "danger", "–": "info"})
-    def emailed(self, obj):
-        s = obj.email_status
-        if not s:
-            return "–"
-        return "Sent" if s.startswith("Sent") and "Guest copy" not in s else ("Failed" if "Failed" in s else ("Not sent" if "Not sent" in s else "Sent"))
 
     @display(description="Request", header=True, ordering="reference")
     def reference_col(self, obj):

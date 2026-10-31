@@ -10,8 +10,8 @@ class DateInput(forms.DateInput):
 
 
 class EnquiryForm(forms.ModelForm):
-    # Honeypot: real people never see or fill this field.
-    website = forms.CharField(required=False, widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "off"}))
+    # Honeypot: hidden from people; bots that fill every field get caught. Named so browsers don't autofill it.
+    hp_leave_empty = forms.CharField(required=False, widget=forms.TextInput(attrs={"tabindex": "-1", "autocomplete": "one-time-code"}))
 
     class Meta:
         model = Enquiry
@@ -23,7 +23,7 @@ class EnquiryForm(forms.ModelForm):
             "guest_name": "Full name", "guest_email": "Email", "guest_phone": "Phone / WhatsApp",
             "guest_country": "Country", "check_in": "Check-in / date", "check_out": "Check-out",
             "rooms": "Rooms", "room_type": "Room / package", "needs_transfer": "I'd like help arranging a transfer",
-            "message": "Your message",
+            "message": "Message to the host (optional)",
         }
         widgets = {
             "check_in": DateInput(), "check_out": DateInput(),
@@ -54,9 +54,9 @@ class EnquiryForm(forms.ModelForm):
                     self.fields.pop(f)
         self.fields["preferred_contact"].choices = [c for c in self.fields["preferred_contact"].choices if c[0]]
 
-    def clean_website(self):
-        if self.cleaned_data.get("website"):
-            raise forms.ValidationError("Spam detected.")
+    def clean_hp_leave_empty(self):
+        if self.cleaned_data.get("hp_leave_empty"):
+            raise forms.ValidationError("Please clear the hidden field and try again.")
         return ""
 
     def clean(self):

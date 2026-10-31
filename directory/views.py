@@ -247,7 +247,10 @@ def enquiry_sent(request, ref):
     if request.session.get("last_enquiry") != ref:
         raise Http404
     enquiry = get_object_or_404(Enquiry.objects.select_related("listing", "listing__island"), reference=ref)
-    return render(request, "directory/enquiry_sent.html", {"e": enquiry})
+    return render(request, "directory/enquiry_sent.html", {
+        "e": enquiry, "l": enquiry.listing, "msg": enquiry.as_message(),
+        "subject": f"Request from Island Stay: {enquiry.listing.name} ({enquiry.reference})",
+    })
 
 
 def list_your_business(request):

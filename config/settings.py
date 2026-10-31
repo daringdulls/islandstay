@@ -298,7 +298,6 @@ UNFOLD = {
                 "items": [
                     {"title": "Activity types", "icon": "scuba_diving", "link": reverse_lazy("admin:directory_activitytype_changelist")},
                     {"title": "Amenities", "icon": "checklist", "link": reverse_lazy("admin:directory_amenity_changelist")},
-                    {"title": "Email", "icon": "mail", "link": reverse_lazy("email_setup")},
                     {"title": "Users & businesses", "icon": "group", "link": reverse_lazy("admin:auth_user_changelist")},
                     {"title": "Staff groups", "icon": "admin_panel_settings", "link": reverse_lazy("admin:auth_group_changelist")},
                 ],

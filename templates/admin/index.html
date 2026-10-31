@@ -22,7 +22,6 @@
     </div>
   </div>
 
-  {% if not email_configured %}<div class="is-alert-bar"><span class="material-symbols-outlined">mail_off</span><span><b>Booking request emails are not being sent.</b> Requests are saved, but hosts and guests aren't emailed until email is set up.</span><a href="{% url 'email_setup' %}">Set up email</a></div>{% endif %}
   <div class="is-kpis">
     {% for k in kpis %}
       <a class="is-kpi {% if k.alert and k.value %}is-kpi-alert{% endif %}" href="{{ k.href }}">
@@ -36,7 +35,7 @@
 
   <div class="is-grid">
     <section class="is-panel is-span-2">
-      <header><div><h2>Listings waiting for review</h2><p>Approve to publish them on the website. Owners are emailed automatically.</p></div>
+      <header><div><h2>Listings waiting for review</h2><p>Approve to publish them on the website. Owners see the new status in their dashboard.</p></div>
         <a class="is-link" href="{% url 'admin:directory_listing_changelist' %}?status__exact=pending">View all</a></header>
       {% if pending %}
       <table class="is-table">

@@ -57,10 +57,7 @@ def dashboard_callback(request, context):
     live = Listing.objects.filter(status=Listing.STATUS_APPROVED)
     week_ago = timezone.now() - timedelta(days=7)
 
-    from django.conf import settings as dj_settings
-
     context.update({
-        "email_configured": dj_settings.EMAIL_CONFIGURED,
         "kpis": [
             {"title": "Listings to review", "value": Listing.objects.filter(status=Listing.STATUS_PENDING).count(),
              "note": "Waiting for approval", "href": listing_url + "?status__exact=pending", "icon": "pending_actions", "alert": True},
