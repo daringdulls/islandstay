@@ -889,3 +889,44 @@ a.card:hover .cover img.cowrie { transform: none; }
 /* figures strip: lighter, with the 0% fee standing out */
 .figures-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
 .figures-row > div:last-child b { color: var(--gold); }
+
+/* ===================================================== home: for businesses banner */
+.biz { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 48px; align-items: center; padding: 56px; border-radius: 28px; background: linear-gradient(135deg, #0A3D4C 0%, #0B6E8A 100%); color: #fff; isolation: isolate; }
+.biz::before { content: ""; position: absolute; z-index: -1; right: -180px; bottom: -220px; width: 620px; height: 620px; background: url("../img/brand/pattern-atoll.svg") center / contain no-repeat; opacity: .22; filter: brightness(2.6); }
+.biz .eyebrow { color: var(--shallows); }
+.biz h2 { color: #fff; margin: 8px 0 14px; font-size: clamp(1.7rem, 3vw, 2.4rem); line-height: 1.12; }
+.biz h2 .accent-word { color: var(--shallows); }
+.biz-lead { color: rgba(255, 255, 255, .85); margin: 0 0 22px; max-width: 520px; }
+.biz-steps { list-style: none; margin: 0 0 26px; padding: 0; display: grid; gap: 10px; }
+.biz-steps li { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.biz-steps b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .3); font-family: var(--font-display); font-size: .9rem; flex: none; }
+.biz-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; }
+.biz-btn { background: #fff !important; color: var(--sea-2) !important; border-color: #fff !important; }
+.biz-btn:hover { background: var(--paper) !important; }
+.biz-btn .i { width: 18px; height: 18px; }
+.biz-link { color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.biz-visual { position: relative; min-height: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
+.biz-card { width: min(320px, 100%); background: #fff; color: var(--ink); border-radius: 18px; overflow: hidden; box-shadow: 0 24px 48px rgba(0, 0, 0, .25); transform: rotate(-2.5deg); }
+.biz-card-photo { position: relative; height: 150px; background: linear-gradient(135deg, #4CC3C7, #0B6E8A) ; }
+.biz-card-photo::after { content: ""; position: absolute; inset: 0; background: url("../img/brand/pattern-waves.svg") center bottom / 100% 60% no-repeat; opacity: .5; }
+.biz-card-body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.biz-card-body small { color: var(--ink-2); font-size: .78rem; }
+.biz-card-body b { font-family: var(--font-display); font-size: 1.2rem; color: var(--sea-2); }
+.biz-card-line { display: grid; gap: 6px; width: 100%; margin-top: 6px; }
+.biz-card-line i { display: block; height: 8px; border-radius: 99px; background: var(--shoal); }
+.biz-card-line i + i { width: 70%; }
+.biz-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 700; line-height: 1; padding: 6px 11px 6px 8px; border-radius: 999px; }
+.biz-badge .i { width: 14px; height: 14px; }
+.biz-badge .cowrie { width: 13px; height: 17px; }
+.biz-badge.ok { background: var(--verified); color: #fff; }
+.biz-badge.rec { position: absolute; z-index: 1; left: 12px; top: 12px; background: var(--sea-2); color: #fff; }
+.biz-badge.rec .i { color: var(--shallows); fill: var(--shallows); }
+.biz-bubble { position: absolute; right: 0; top: 18px; display: flex; gap: 10px; align-items: center; background: #fff; color: var(--ink); padding: 10px 14px; border-radius: 14px 14px 4px 14px; box-shadow: 0 14px 30px rgba(0, 0, 0, .22); font-size: .8rem; transform: rotate(2deg); }
+.biz-bubble .i { width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: #1E7A55; color: #fff; flex: none; }
+.biz-bubble b { display: block; font-size: .85rem; }
+.motion .biz.in .biz-bubble, .motion .biz.is-visible .biz-bubble { animation: bubble-in .8s .4s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(12px) rotate(2deg) scale(.9); } to { opacity: 1; transform: rotate(2deg); } }
+.biz-perks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.biz-perks li { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 600; padding: 7px 12px; border-radius: 999px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); }
+.biz-perks .i { width: 15px; height: 15px; color: var(--shallows); }
+@media (max-width: 900px) { .biz { grid-template-columns: 1fr; padding: 32px 22px; gap: 28px; } .biz-visual { min-height: 0; padding-top: 50px; } .biz-bubble { top: 0; right: 4px; } }

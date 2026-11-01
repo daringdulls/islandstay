@@ -717,3 +717,28 @@ class HealthcareAndMobileTests(TestCase):
         thoddoo = Island.objects.get(slug="thoddoo")
         self.assertEqual(thoddoo.healthcare_label, "Health centre")
         self.assertEqual(thoddoo.mobile_data_label, "4G")
+
+
+class HomeFeatureTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", stdout=open("/dev/null", "w"))
+
+    def test_chosen_islands_and_order_drive_the_home_page(self):
+        from directory.models import HomeFeature
+
+        HomeFeature.objects.all().delete()
+        a, b, c = Island.objects.get(slug="thoddoo"), Island.objects.get(slug="maafushi"), Island.objects.get(slug="fulidhoo")
+        for n, isl in enumerate((c, a, b), 1):
+            HomeFeature.objects.create(section="portrait", island=isl, order=n)
+        HomeFeature.objects.create(section="popular", island=a, order=1)
+        r = self.client.get("/")
+        self.assertEqual([i.slug for i in r.context["portraits"]], ["fulidhoo", "thoddoo", "maafushi"])
+        self.assertEqual([i.slug for i in r.context["popular"]], ["thoddoo"])
+        HomeFeature.objects.filter(section="popular").update(is_active=False)
+        self.assertNotEqual([i.slug for i in self.client.get("/").context["popular"]], ["thoddoo"])  # falls back to Featured
+
+    def test_admin_page(self):
+        self.client.force_login(User.objects.create_superuser("hp@x.mv", "hp@x.mv", "pw"))
+        self.assertEqual(self.client.get(reverse("admin:directory_homefeature_changelist")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("admin:directory_homefeature_add")).status_code, 200)

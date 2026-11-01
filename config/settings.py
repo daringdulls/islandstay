@@ -285,6 +285,7 @@ UNFOLD = {
                     {"title": "All listings", "icon": "storefront", "link": reverse_lazy("admin:directory_listing_changelist")},
                     {"title": "Booking requests", "icon": "inbox", "link": reverse_lazy("admin:directory_enquiry_changelist")},
                     {"title": "Islands", "icon": "landscape", "link": reverse_lazy("admin:directory_island_changelist")},
+                    {"title": "Home page islands", "icon": "home", "link": reverse_lazy("admin:directory_homefeature_changelist")},
                     {"title": "Atolls", "icon": "public", "link": reverse_lazy("admin:directory_atoll_changelist")},
                     {"title": "Transport routes", "icon": "directions_boat", "link": reverse_lazy("admin:directory_transportroute_changelist")},
                 ],

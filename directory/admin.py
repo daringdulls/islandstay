@@ -13,7 +13,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import HomeFeature, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -562,3 +562,47 @@ class TransportRouteAdmin(BaseAdmin):
         "ferry": "info", "speedboat": "success", "private": "success", "flight": "warning", "seaplane": "warning"})
     def mode_label(self, obj):
         return obj.mode, obj.get_mode_display()
+
+
+@admin.register(HomeFeature)
+class HomeFeatureAdmin(BaseAdmin):
+    list_display = ("island_col", "section_label", "has_photo", "is_active")
+    list_display_links = ("island_col",)
+    list_filter = ("section",)
+    list_editable = ("is_active",)
+    ordering_field = "order"
+    hide_ordering_field = True
+    autocomplete_fields = ("island",)
+    fields = ("section", "island", "is_active")
+    actions_list = ["view_home"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("island", "island__atoll").order_by("section", "order", "id")
+
+    @display(description="Island", header=True)
+    def island_col(self, obj):
+        return obj.island.name, obj.island.atoll.name
+
+    @display(description="Where on the home page", label={"hero": "info", "portrait": "success", "popular": "warning"})
+    def section_label(self, obj):
+        return obj.section, {"hero": "Slideshow", "portrait": "Island portraits", "popular": "Popular links"}[obj.section]
+
+    @display(description="Photo", boolean=True)
+    def has_photo(self, obj):
+        return bool(obj.island.photo_url)
+
+    def save_model(self, request, obj, form, change):
+        if not change and not obj.order:
+            last = HomeFeature.objects.filter(section=obj.section).order_by("-order").first()
+            obj.order = (last.order + 1) if last else 1
+        super().save_model(request, obj, form, change)
+        if obj.section == HomeFeature.SECTION_HERO and not obj.island.photo_url:
+            messages.warning(request, f"{obj.island.name} has no photo, so it won't appear in the slideshow until you add one.")
+        limit = HomeFeature.LIMITS[obj.section]
+        n = HomeFeature.objects.filter(section=obj.section, is_active=True).count()
+        if n > limit:
+            messages.warning(request, f"{obj.get_section_display()}: only the first {limit} are shown ({n} are switched on).")
+
+    @action(description="View home page", icon="open_in_new", url_path="view-home")
+    def view_home(self, request):
+        return redirect("/")

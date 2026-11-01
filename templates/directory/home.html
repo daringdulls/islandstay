@@ -96,8 +96,10 @@
         <dl class="portrait-facts">
           {% if island.population %}<div><dt>Population</dt><dd>{{ island.population|intcomma }}</dd></div>{% endif %}
           {% if island.transfer_time %}<div><dt>From Malé</dt><dd>{{ island.transfer_time }}</dd></div>{% endif %}
-          <div><dt>Stays</dt><dd>{{ island.stay_count }}</dd></div>
-          <div><dt>Experiences</dt><dd>{{ island.service_count }}</dd></div>
+          {% if island.stay_count %}<div><dt>Stays</dt><dd>{{ island.stay_count }}</dd></div>{% endif %}
+          {% if island.service_count %}<div><dt>Experiences</dt><dd>{{ island.service_count }}</dd></div>{% endif %}
+          {% if not island.stay_count or not island.service_count %}<div><dt>Bikini beach</dt><dd>{{ island.has_bikini_beach|yesno:"Yes,No" }}</dd></div>{% endif %}
+          {% if not island.stay_count and not island.service_count %}<div><dt>Healthcare</dt><dd>{{ island.healthcare_label }}</dd></div>{% endif %}
         </dl>
         <a class="btn" href="{{ island.get_absolute_url }}">Read the {{ island.name }} guide {% icon "arrow-right" %}</a>
       </div>
@@ -172,18 +174,38 @@
 {# 7 — For businesses #}
 <section class="section">
   <div class="container">
-    <div class="host-cta reveal">
-      <div>
+    <div class="biz reveal">
+      <div class="biz-text">
         <div class="eyebrow">For island businesses</div>
-        <h2>Your island already has a page. Put your business on it.</h2>
-        <a class="btn" href="{% url 'directory:list_your_business' %}">List your business free</a>
+        <h2>Your island already has a page. Put your <span class="accent-word">business</span> on it.</h2>
+        <p class="biz-lead">Guest houses, dive centres, boat operators and cafés: list free, and travellers who are already reading your island's guide can message you directly.</p>
+        <ol class="biz-steps">
+          <li><b>1</b><span>Create a free account</span></li>
+          <li><b>2</b><span>Add your listing and photos</span></li>
+          <li><b>3</b><span>Guests message you on WhatsApp, Viber or email</span></li>
+        </ol>
+        <div class="biz-cta">
+          <a class="btn biz-btn" href="{% url 'directory:list_your_business' %}">List your business free {% icon "arrow-right" %}</a>
+          <a class="biz-link" href="{% url 'directory:how_it_works' %}#verified">How verification works</a>
+        </div>
       </div>
-      <ul class="host-cta-list">
-        <li>{% icon "inbox" %}<span><b>Guests message you directly</b> on WhatsApp, Viber or email, no commission</span></li>
-        <li>{% icon "map-pin" %}<span><b>Shown on your island's guide</b> and its atoll page</span></li>
-        <li>{% cowrie %}<span><b>Verified host badge</b> once we've checked your licence</span></li>
-        <li>{% icon "route" %}<span><b>Transfer operators</b> appear on every island they serve</span></li>
-      </ul>
+      <div class="biz-visual" aria-hidden="true">
+        <div class="biz-card">
+          <div class="biz-card-photo"><span class="biz-badge rec">{% icon "star" %}Recommended</span></div>
+          <div class="biz-card-body">
+            <small>Guest house · Your island</small>
+            <b>Your business here</b>
+            <span class="biz-badge ok">{% cowrie %}Verified host</span>
+            <span class="biz-card-line"><i></i><i></i></span>
+          </div>
+        </div>
+        <div class="biz-bubble">{% icon "message-circle" %}<span><b>New request</b>2 adults · 4 nights · 12–16 Dec</span></div>
+        <ul class="biz-perks">
+          <li>{% icon "hand-coins" %}No commission</li>
+          <li>{% icon "map-pin" %}On your island's guide</li>
+          <li>{% icon "route" %}Transfers shown on every island you serve</li>
+        </ul>
+      </div>
     </div>
   </div>
 </section>

@@ -43,19 +43,34 @@ def home(request):
     atoll_counts = Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name")
     featured = sorted(_islands().filter(is_featured=True).prefetch_related("activities"),
                       key=lambda i: (not i.photo_url, i.name))
-    slides = [i for i in featured if i.photo_url][:5]
-    if len(slides) < 3:
-        extra = [i for i in _islands().exclude(pk__in=[x.pk for x in slides]).prefetch_related("activities") if i.photo_url]
-        slides += extra[: 5 - len(slides)]
+    from .models import HomeFeature
+
+    def chosen(section):
+        """Islands picked in the back office (Home page), annotated like the rest, or None."""
+        picked = HomeFeature.islands_for(section)
+        if not picked:
+            return None
+        by_pk = {i.pk: i for i in _islands().filter(pk__in=[i.pk for i in picked]).prefetch_related("activities")}
+        return [by_pk[i.pk] for i in picked if i.pk in by_pk]
+
+    slides = chosen(HomeFeature.SECTION_HERO)
+    slides = [i for i in slides if i.photo_url] if slides else None
+    if not slides:
+        slides = [i for i in featured if i.photo_url][:5]
+        if len(slides) < 3:
+            extra = [i for i in _islands().exclude(pk__in=[x.pk for x in slides]).prefetch_related("activities") if i.photo_url]
+            slides += extra[: 5 - len(slides)]
+    portraits = chosen(HomeFeature.SECTION_PORTRAIT) or featured[:3]
+    popular = chosen(HomeFeature.SECTION_POPULAR) or featured[:5]
     return render(request, "directory/home.html", {
         "needs": _plan_by_need(featured),
         "slides": slides or featured[:1],
-        "popular": featured[:5],
+        "popular": popular,
         "figures": _figures(),
         "atoll_index": atoll_counts,
         "hero_island": featured[0] if featured else None,
-        "portraits": featured[:3],
-        "more_islands": featured[3:9],
+        "portraits": portraits,
+        "more_islands": [i for i in featured if i not in portraits][:6],
         "featured_routes": TransportRoute.objects.filter(is_active=True, island__is_published=True)
         .filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("island", "operator")
         .order_by(F("operator").desc(nulls_last=True), "-island__is_featured", "island__name")[:4],

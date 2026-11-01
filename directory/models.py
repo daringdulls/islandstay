@@ -674,3 +674,35 @@ class IslandSuggestion(models.Model):
 
     def __str__(self):
         return f"{self.island_name} ({self.atoll or 'atoll unknown'})"
+
+
+class HomeFeature(models.Model):
+    """Which islands the home page shows, and in what order. Empty section = fall back to 'Featured' islands."""
+    SECTION_HERO, SECTION_PORTRAIT, SECTION_POPULAR = "hero", "portrait", "popular"
+    SECTION_CHOICES = [
+        (SECTION_HERO, "Top slideshow (up to 5, needs a photo)"),
+        (SECTION_PORTRAIT, "Island portraits (3)"),
+        (SECTION_POPULAR, "Popular links under the search (up to 6)"),
+    ]
+    LIMITS = {SECTION_HERO: 5, SECTION_PORTRAIT: 3, SECTION_POPULAR: 6}
+
+    section = models.CharField(max_length=10, choices=SECTION_CHOICES)
+    island = models.ForeignKey(Island, on_delete=models.CASCADE, related_name="home_features")
+    order = models.PositiveIntegerField(default=0, db_index=True)
+    is_active = models.BooleanField("Show", default=True)
+
+    class Meta:
+        ordering = ["section", "order", "id"]
+        unique_together = [("section", "island")]
+        verbose_name = "home page island"
+        verbose_name_plural = "home page islands"
+
+    def __str__(self):
+        return f"{self.island} ({self.get_section_display()})"
+
+    @classmethod
+    def islands_for(cls, section):
+        """Islands chosen for a section, in order, or None if nothing is set (so the page uses Featured islands)."""
+        rows = (cls.objects.filter(section=section, is_active=True, island__is_published=True)
+                .select_related("island", "island__atoll").order_by("order", "id")[: cls.LIMITS[section]])
+        return [r.island for r in rows] or None
