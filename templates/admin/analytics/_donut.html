@@ -1,0 +1,6 @@
+{% if segments %}<div class="an-donut">
+  <svg viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(11,110,138,.08)" stroke-width="6"/>
+    {% for s in segments %}<circle cx="21" cy="21" r="15.915" fill="none" stroke="{{ s.color }}" stroke-width="6" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}"/>{% endfor %}
+    <text x="21" y="20" text-anchor="middle" class="an-donut-big">{{ segments.0.share }}%</text><text x="21" y="26" text-anchor="middle" class="an-donut-small">{{ segments.0.label|truncatechars:12 }}</text></svg>
+  <ul>{% for s in segments %}<li><i style="background:{{ s.color }}"></i><span>{{ s.label }}</span><b>{{ s.n }}</b><small>{{ s.share }}%</small></li>{% endfor %}</ul>
+</div>{% else %}<div class="an-empty"><span class="material-symbols-outlined">donut_large</span><p>Nothing yet for this period.</p></div>{% endif %}

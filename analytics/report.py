@@ -19,14 +19,47 @@ def _pct(a, b):
     return round(100 * a / b, 1) if b else 0
 
 
-def _dur(seconds):
-    seconds = int(seconds or 0)
-    return f"{seconds // 60}m {seconds % 60:02d}s"
-
-
 def _rows(counter, total=None, n=10, label=lambda k: k or "Unknown"):
     total = total or sum(counter.values()) or 1
     return [{"label": label(k), "n": v, "pct": _pct(v, total)} for k, v in counter.most_common(n)]
+
+
+def _spark(values, w=140, h=36):
+    """SVG polyline points for a small trend line."""
+    if not values:
+        return ""
+    top = max(values) or 1
+    step = w / max(len(values) - 1, 1)
+    return " ".join(f"{i * step:.1f},{h - 3 - (v / top) * (h - 6):.1f}" for i, v in enumerate(values))
+
+
+def _delta(now, before):
+    if not before:
+        return None if not now else {"pct": None, "up": True, "text": "new"}
+    d = round(100 * (now - before) / before)
+    return {"pct": d, "up": d >= 0, "text": f"{'+' if d >= 0 else ''}{d}%"}
+
+
+def _donut(rows, n=5):
+    """Segments for an SVG donut (circle with circumference 100)."""
+    rows = rows[:n]
+    total = sum(r["n"] for r in rows) or 1
+    out, offset = [], 25
+    for i, r in enumerate(rows):
+        pct = 100 * r["n"] / total
+        out.append({**r, "share": round(pct), "dash": f"{pct:.2f} {100 - pct:.2f}", "offset": f"{offset:.2f}",
+                    "color": PALETTE[i % len(PALETTE)]})
+        offset -= pct
+    return out
+
+
+def _dur(seconds):
+    seconds = int(seconds or 0)
+    if seconds < 60:
+        return f"{seconds}s"
+    if seconds < 3600:
+        return f"{seconds // 60}m {seconds % 60:02d}s"
+    return f"{seconds // 3600}h {seconds % 3600 // 60:02d}m"
 
 
 def build(days=30):
@@ -111,9 +144,10 @@ def build(days=30):
                              "rate": f"{_pct(req_by_listing[slug], listing_views[slug])}%" if 0 < req_by_listing[slug] <= listing_views[slug] or (listing_views[slug] and not req_by_listing[slug]) else "–",
                              "url": l.get_absolute_url() if l else ""})
     island_names = dict(Island.objects.filter(slug__in=island_views).values_list("slug", "name"))
-    top_islands = [{"label": island_names.get(s, s), "n": n} for s, n in island_views.most_common(12)]
+    top_islands = _rows(Counter({island_names.get(s, s): n for s, n in island_views.items()}), n=12)
     searches = _rows(Counter(v.strip().lower() for v in events.filter(type="search").values_list("value", flat=True) if v.strip()), n=15)
-    clicks = list(events.filter(type__in=["click", "outbound"]).exclude(label="").values("label").annotate(n=Count("id")).order_by("-n")[:15])
+    clicks = _rows(Counter(dict(events.filter(type__in=["click", "outbound"]).exclude(label="").values_list("label")
+                                .annotate(n=Count("id")).order_by("-n")[:15])), n=15)
     exits = Counter(visits.exclude(exit_path="").values_list("exit_path", flat=True))
 
     # Audience
@@ -158,9 +192,56 @@ def build(days=30):
     }
 
     recent = Visit.objects.select_related("visitor").order_by("-last_at")[:15]
+    # Hero numbers with trend vs the previous period and a small trend line
+    prev_visits = Visit.objects.filter(started_at__gte=prev, started_at__lt=since)
+    n_prev_visits = prev_visits.count()
+    n_prev_pageviews = Event.objects.filter(type="pageview", ts__gte=prev, ts__lt=since).count()
+    pv_by_day = dict(pageviews.annotate(d=TruncDate("ts")).values("d").annotate(n=Count("id")).values_list("d", "n"))
+    visits_by_day = dict(visits.annotate(d=TruncDate("started_at")).values("d").annotate(n=Count("id")).values_list("d", "n"))
+    prev_tracked = Enquiry.objects.filter(created_at__gte=prev, created_at__lt=since).exclude(visitor=None).count()
+    conv, prev_conv = _pct(tracked_req, n_visitors), _pct(prev_tracked, n_prev_visitors)
+    hero = [
+        {"title": "Visitors", "value": n_visitors, "delta": _delta(n_visitors, n_prev_visitors),
+         "spark": _spark([v_by_day.get(d, 0) for d in day_list]), "note": f"{n_new} new"},
+        {"title": "Visits", "value": n_visits, "delta": _delta(n_visits, n_prev_visits),
+         "spark": _spark([visits_by_day.get(d, 0) for d in day_list]), "note": f"{_pct(bounces, n_visits)}% left after one page"},
+        {"title": "Page views", "value": n_pageviews + n_anon, "delta": _delta(n_pageviews, n_prev_pageviews),
+         "spark": _spark([pv_by_day.get(d, 0) for d in day_list]), "note": f"{round(n_pageviews / n_visits, 1) if n_visits else 0} per visit"},
+        {"title": "Booking requests", "value": n_req, "delta": _delta(n_req, n_prev_req),
+         "spark": _spark([r_by_day.get(d, 0) for d in day_list]), "note": f"{conv}% of visitors", "accent": True},
+    ]
+    minor = [
+        {"title": "Average visit", "value": _dur(sum(durations) / len(durations) if durations else 0), "icon": "timer"},
+        {"title": "Conversion", "value": f"{conv}%", "icon": "trending_up",
+         "delta": _delta(conv, prev_conv) if prev_conv else None},
+        {"title": "Sent to host", "value": f"{_pct(n_sent, n_req)}%", "icon": "send"},
+        {"title": "Anonymous views", "value": n_anon, "icon": "visibility_off"},
+    ]
+
+    # Busiest times: visits by weekday and hour (Maldives time)
+    grid = [[0] * 24 for _ in range(7)]
+    for started in visits.values_list("started_at", flat=True)[:20000]:
+        local = timezone.localtime(started)
+        grid[local.weekday()][local.hour] += 1
+    peak = max(max(r) for r in grid) or 1
+    heat = [{"day": name, "cells": [{"h": h, "n": n, "level": 0 if not n else min(4, 1 + int(3 * n / peak))} for h, n in enumerate(row)]}
+            for name, row in zip(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], grid)]
+
+    # Funnel with drop-off between steps
+    steps = []
+    for i, (label, n, pct) in enumerate(funnel):
+        prev_n = funnel[i - 1][1] if i else n
+        steps.append({"label": label, "n": n, "pct": pct, "drop": (100 - _pct(n, prev_n)) if i and prev_n else None})
+
+    for v in recent:
+        v.duration_label = _dur(v.seconds)
+
     return {
+        "hero": hero, "minor": minor, "heat": heat, "steps": steps,
+        "device_donut": _donut(audience["devices"]), "source_donut": _donut(audience["sources"]),
+        "has_requests": n_req > 0,
         "days": days, "kpis": kpis, "chart": chart, "funnel": funnel, "top_pages": top_pages, "top_listings": top_listings,
         "top_islands": top_islands, "searches": searches, "clicks": clicks,
-        "exits": [{"label": k, "n": v} for k, v in exits.most_common(10)], "audience": audience, "booking": booking,
+        "exits": _rows(exits, n=10), "audience": audience, "booking": booking,
         "recent": recent, "has_data": n_visits > 0 or n_req > 0,
     }

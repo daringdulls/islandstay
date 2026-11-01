@@ -3,99 +3,141 @@
 {% block title %}Analytics | {{ site_title }}{% endblock %}
 {% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
 {% block content %}
-<div class="is-dash an">
-  <div class="is-dash-head">
-    <div>
-      <p class="is-eyebrow">Insights</p>
-      <h1 class="is-title">Analytics</h1>
-      <p class="is-sub">Who visits the site, what they do and how many become booking requests. Detailed tracking covers visitors who accepted analytics cookies.</p>
+<div class="an">
+  {# ---------- hero band ---------- #}
+  <section class="an-hero">
+    <div class="an-hero-top">
+      <div>
+        <p class="an-eyebrow">Insights · {% for d, label in ranges %}{% if d == days %}{{ label }}{% endif %}{% endfor %}</p>
+        <h1>Analytics</h1>
+        <p class="an-hero-sub">Who visits Island Stay, what they do, and how many become booking requests.</p>
+      </div>
+      <div class="an-hero-side">
+        <span class="an-live"><i></i>{{ kpis.7.value }} on the site now</span>
+        <div class="an-ranges">{% for d, label in ranges %}<a href="?days={{ d }}" class="{% if d == days %}on{% endif %}">{{ label }}</a>{% endfor %}</div>
+      </div>
     </div>
-    <div class="an-ranges">{% for d, label in ranges %}<a href="?days={{ d }}" class="{% if d == days %}on{% endif %}">{{ label }}</a>{% endfor %}</div>
-  </div>
-
-  {% if not has_data %}<div class="an-note">No visits recorded yet for this period. Data appears as soon as visitors accept cookies on the website. Your own visits while signed in as staff are not counted.</div>{% endif %}
-
-  <div class="is-kpis an-kpis">
-    {% for k in kpis %}<div class="is-kpi"><span class="is-kpi-icon material-symbols-outlined">{{ k.icon }}</span><span class="is-kpi-title">{{ k.title }}</span><span class="is-kpi-value">{{ k.value }}</span><span class="is-kpi-note">{{ k.note }}</span></div>{% endfor %}
-  </div>
-
-  <section class="is-panel an-full">
-    <header><div><h2>Visitors and booking requests per day</h2></div></header>
-    <div class="is-chart">{% component "unfold/components/chart/line.html" with data=chart height=240 %}{% endcomponent %}</div>
+    <div class="an-hero-grid">
+      {% for h in hero %}
+      <div class="an-hero-card{% if h.accent %} accent{% endif %}">
+        <span class="an-hero-title">{{ h.title }}</span>
+        <div class="an-hero-row"><b>{{ h.value|intcomma }}</b>
+          {% if h.delta %}<span class="an-delta {% if h.delta.up %}up{% else %}down{% endif %}"><span class="material-symbols-outlined">{% if h.delta.up %}trending_up{% else %}trending_down{% endif %}</span>{{ h.delta.text }}</span>{% endif %}</div>
+        <svg class="an-spark" viewBox="0 0 140 36" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ h.spark }}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        <span class="an-hero-note">{{ h.note }}</span>
+      </div>
+      {% endfor %}
+    </div>
   </section>
 
-  <div class="an-grid">
-    <section class="is-panel">
-      <header><div><h2>Journey to a request</h2><p>Unique visitors reaching each step</p></div></header>
-      <ol class="an-funnel">{% for label, n, pct in funnel %}<li><span>{{ label }}</span><span class="an-bar"><i style="width:{{ pct }}%"></i></span><b>{{ n }}</b><small>{{ pct }}%</small></li>{% endfor %}</ol>
-    </section>
-    <section class="is-panel">
-      <header><div><h2>Where visitors come from</h2></div></header>
-      {% include "admin/analytics/_bars.html" with rows=audience.sources %}
-    </section>
-    <section class="is-panel">
-      <header><div><h2>Countries</h2></div></header>
-      {% include "admin/analytics/_bars.html" with rows=audience.countries %}
-    </section>
-    <section class="is-panel">
-      <header><div><h2>Devices</h2></div></header>
-      {% include "admin/analytics/_bars.html" with rows=audience.devices %}
-      <h3 class="an-h3">Browsers and apps</h3>
-      {% include "admin/analytics/_bars.html" with rows=audience.browsers %}
-    </section>
-  </div>
+  <nav class="an-tabs" aria-label="Sections">
+    <a href="#overview">Overview</a><a href="#audience">Audience</a><a href="#content">Content</a><a href="#requests">Booking requests</a><a href="#visits">Latest visits</a>
+  </nav>
 
-  <section class="is-panel an-full">
-    <header><div><h2>Listings: views and requests</h2><p>Which businesses guests look at, and how many of those views turn into a request</p></div></header>
-    <table class="is-table"><thead><tr><th>Listing</th><th>Island</th><th>Views</th><th>Requests</th><th>Request rate</th></tr></thead>
-      <tbody>{% for l in top_listings %}<tr><td><a href="{{ l.url }}" target="_blank">{{ l.name }}</a></td><td>{{ l.island }}</td><td>{{ l.views }}</td><td>{{ l.requests }}</td><td>{{ l.rate }}</td></tr>{% empty %}<tr><td colspan="5" class="an-empty">No listing views yet</td></tr>{% endfor %}</tbody></table>
+  {% if not has_data %}<div class="an-note"><span class="material-symbols-outlined">info</span>No visits recorded for this period yet. Data appears as soon as visitors accept cookies on the website; your own visits while signed in as staff aren't counted.</div>{% endif %}
+
+  {# ---------- overview ---------- #}
+  <section id="overview" class="an-section">
+    <div class="an-minor">
+      {% for m in minor %}<div class="an-mini"><span class="material-symbols-outlined">{{ m.icon }}</span><div><small>{{ m.title }}</small><b>{{ m.value }}</b></div>{% if m.delta %}<span class="an-delta {% if m.delta.up %}up{% else %}down{% endif %}">{{ m.delta.text }}</span>{% endif %}</div>{% endfor %}
+    </div>
+    <div class="an-grid an-grid-2-1">
+      <div class="an-card">
+        <header><span class="material-symbols-outlined">show_chart</span><div><h2>Visitors and booking requests</h2><p>Per day</p></div></header>
+        <div class="an-chart">{% component "unfold/components/chart/line.html" with data=chart height=260 %}{% endcomponent %}</div>
+      </div>
+      <div class="an-card">
+        <header><span class="material-symbols-outlined">filter_alt</span><div><h2>Journey to a request</h2><p>Unique visitors at each step</p></div></header>
+        <ol class="an-funnel">
+          {% for s in steps %}<li>
+            <div class="an-funnel-top"><span>{{ s.label }}</span><b>{{ s.n }}</b></div>
+            <div class="an-funnel-bar"><i style="width:{% if s.pct %}{{ s.pct }}{% else %}0{% endif %}%"></i></div>
+            {% if s.drop is not None and s.drop > 0 %}<small class="an-drop">{{ s.drop }}% dropped off</small>{% endif %}
+          </li>{% endfor %}
+        </ol>
+      </div>
+    </div>
+    <div class="an-card">
+      <header><span class="material-symbols-outlined">calendar_view_week</span><div><h2>Busiest times</h2><p>Visits by day and hour, Maldives time</p></div></header>
+      <div class="an-heat">
+        <div class="an-heat-hours"><span></span>{% for h in heat.0.cells %}<span>{% if h.h|divisibleby:3 %}{{ h.h }}{% endif %}</span>{% endfor %}</div>
+        {% for row in heat %}<div class="an-heat-row"><span>{{ row.day }}</span>{% for c in row.cells %}<i class="l{{ c.level }}" title="{{ row.day }} {{ c.h }}:00 · {{ c.n }} visit{{ c.n|pluralize }}"></i>{% endfor %}</div>{% endfor %}
+        <div class="an-heat-legend">Fewer <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>
+      </div>
+    </div>
   </section>
 
-  <div class="an-grid">
-    <section class="is-panel">
-      <header><div><h2>Islands viewed</h2></div></header>
-      <ul class="an-bars">{% for r in top_islands %}<li><span class="an-bar-label">{{ r.label }}</span><b>{{ r.n }}</b></li>{% empty %}<li class="an-empty">No data yet</li>{% endfor %}</ul>
-    </section>
-    <section class="is-panel">
-      <header><div><h2>What people search for</h2></div></header>
-      {% include "admin/analytics/_bars.html" with rows=searches %}
-    </section>
-    <section class="is-panel">
-      <header><div><h2>Most clicked</h2></div></header>
-      <ul class="an-bars">{% for c in clicks %}<li><span class="an-bar-label" title="{{ c.label }}">{{ c.label|truncatechars:48 }}</span><b>{{ c.n }}</b></li>{% empty %}<li class="an-empty">No data yet</li>{% endfor %}</ul>
-    </section>
-    <section class="is-panel">
-      <header><div><h2>Where visits end</h2><p>Last page before leaving</p></div></header>
-      <ul class="an-bars">{% for r in exits %}<li><span class="an-bar-label" title="{{ r.label }}">{{ r.label }}</span><b>{{ r.n }}</b></li>{% empty %}<li class="an-empty">No data yet</li>{% endfor %}</ul>
-    </section>
-  </div>
-
-  <section class="is-panel an-full">
-    <header><div><h2>Top pages</h2></div></header>
-    <table class="is-table"><thead><tr><th>Page</th><th>Views</th><th>Unique visitors</th></tr></thead>
-      <tbody>{% for p in top_pages %}<tr><td><a href="{{ p.path }}" target="_blank">{{ p.path }}</a></td><td>{{ p.n }}</td><td>{{ p.u }}</td></tr>{% empty %}<tr><td colspan="3" class="an-empty">No data yet</td></tr>{% endfor %}</tbody></table>
+  {# ---------- audience ---------- #}
+  <section id="audience" class="an-section">
+    <h2 class="an-section-title"><span class="material-symbols-outlined">groups</span>Audience</h2>
+    <div class="an-grid an-grid-3">
+      <div class="an-card"><header><div><h2>Where visitors come from</h2></div></header>{% include "admin/analytics/_donut.html" with segments=source_donut %}</div>
+      <div class="an-card"><header><div><h2>Devices</h2></div></header>{% include "admin/analytics/_donut.html" with segments=device_donut %}</div>
+      <div class="an-card"><header><div><h2>Countries</h2></div></header>{% include "admin/analytics/_bars.html" with rows=audience.countries icon="public" %}</div>
+      <div class="an-card"><header><div><h2>Browsers and apps</h2></div></header>{% include "admin/analytics/_bars.html" with rows=audience.browsers icon="web" %}</div>
+      <div class="an-card"><header><div><h2>Languages</h2></div></header>{% include "admin/analytics/_bars.html" with rows=audience.languages icon="translate" %}</div>
+      <div class="an-card"><header><div><h2>Campaigns</h2></div></header>{% include "admin/analytics/_bars.html" with rows=audience.campaigns icon="campaign" empty="Add ?utm_campaign=… to links you share to see them here." %}</div>
+    </div>
   </section>
 
-  <h2 class="an-section-title">Booking requests</h2>
-  <div class="is-kpis an-kpis">
-    {% for k in booking.kpis %}<div class="is-kpi"><span class="is-kpi-title">{{ k.title }}</span><span class="is-kpi-value">{{ k.value }}</span><span class="is-kpi-note">{{ k.note }}</span></div>{% endfor %}
-  </div>
-  <div class="an-grid">
-    <section class="is-panel"><header><div><h2>Status</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.status %}</section>
-    <section class="is-panel"><header><div><h2>How guests sent it to the host</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.sent_via %}</section>
-    <section class="is-panel"><header><div><h2>By island</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_island %}</section>
-    <section class="is-panel"><header><div><h2>By type of business</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_kind %}</section>
-    <section class="is-panel"><header><div><h2>Guest countries</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_country %}</section>
-    <section class="is-panel"><header><div><h2>Arrival month</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.months %}</section>
-    <section class="is-panel"><header><div><h2>Found us via</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.sources %}</section>
-    <section class="is-panel"><header><div><h2>Preferred reply</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.contact %}
-      <h3 class="an-h3">Device used</h3>{% include "admin/analytics/_bars.html" with rows=booking.devices %}</section>
-  </div>
+  {# ---------- content ---------- #}
+  <section id="content" class="an-section">
+    <h2 class="an-section-title"><span class="material-symbols-outlined">article</span>Content</h2>
+    <div class="an-card">
+      <header><span class="material-symbols-outlined">storefront</span><div><h2>Listings: views and requests</h2><p>Which businesses guests look at, and how often a view becomes a request</p></div></header>
+      {% if top_listings %}<table class="an-table"><thead><tr><th>Listing</th><th>Island</th><th class="num">Views</th><th class="num">Requests</th><th class="num">Request rate</th></tr></thead>
+        <tbody>{% for l in top_listings %}<tr><td><a href="{{ l.url }}" target="_blank">{{ l.name }}</a></td><td>{{ l.island }}</td><td class="num">{{ l.views }}</td><td class="num">{{ l.requests }}</td><td class="num"><span class="an-pill">{{ l.rate }}</span></td></tr>{% endfor %}</tbody></table>
+      {% else %}<div class="an-empty"><span class="material-symbols-outlined">storefront</span><p>No listing views yet.</p></div>{% endif %}
+    </div>
+    <div class="an-grid an-grid-2">
+      <div class="an-card"><header><div><h2>Islands viewed</h2></div></header>{% include "admin/analytics/_bars.html" with rows=top_islands icon="landscape" %}</div>
+      <div class="an-card"><header><div><h2>What people search for</h2></div></header>{% include "admin/analytics/_bars.html" with rows=searches icon="search" %}</div>
+      <div class="an-card"><header><div><h2>Most clicked</h2></div></header>{% include "admin/analytics/_bars.html" with rows=clicks icon="ads_click" %}</div>
+      <div class="an-card"><header><div><h2>Where visits end</h2><p>Last page before leaving</p></div></header>{% include "admin/analytics/_bars.html" with rows=exits icon="logout" %}</div>
+    </div>
+    <div class="an-card">
+      <header><span class="material-symbols-outlined">description</span><div><h2>Top pages</h2></div></header>
+      {% if top_pages %}<table class="an-table"><thead><tr><th>Page</th><th class="num">Views</th><th class="num">Unique visitors</th></tr></thead>
+        <tbody>{% for p in top_pages %}<tr><td><a href="{{ p.path }}" target="_blank">{{ p.path }}</a></td><td class="num">{{ p.n }}</td><td class="num">{{ p.u }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<div class="an-empty"><span class="material-symbols-outlined">description</span><p>No page views yet.</p></div>{% endif %}
+    </div>
+  </section>
 
-  <section class="is-panel an-full">
-    <header><div><h2>Latest visits</h2><p>Open a visitor to see every step of their journey</p></div><a class="is-link" href="{{ visitors_url }}">All visitors</a></header>
-    <table class="is-table"><thead><tr><th>Visitor</th><th>Started</th><th>Source</th><th>Entry page</th><th>Last page</th><th>Pages</th><th>Time</th></tr></thead>
-      <tbody>{% for v in recent %}<tr><td><a href="{% url 'admin:analytics_visitor_change' v.visitor_id %}">#{{ v.visitor.short_id }}</a> <small>{{ v.visitor.city|default:v.visitor.country }}</small></td><td>{{ v.started_at|date:"d M H:i" }}</td><td>{{ v.source }}</td><td>{{ v.entry_path|truncatechars:40 }}</td><td>{{ v.exit_path|truncatechars:40 }}</td><td>{{ v.pageviews }}</td><td>{{ v.seconds }}s</td></tr>{% empty %}<tr><td colspan="7" class="an-empty">No visits yet</td></tr>{% endfor %}</tbody></table>
+  {# ---------- booking requests ---------- #}
+  <section id="requests" class="an-section">
+    <h2 class="an-section-title"><span class="material-symbols-outlined">mark_email_unread</span>Booking requests</h2>
+    {% if has_requests %}
+    <div class="an-minor an-minor-4">
+      {% for k in booking.kpis %}<div class="an-mini"><div><small>{{ k.title }}</small><b>{{ k.value }}</b><em>{{ k.note }}</em></div></div>{% endfor %}
+    </div>
+    <div class="an-grid an-grid-3">
+      <div class="an-card"><header><div><h2>Status</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.status %}</div>
+      <div class="an-card"><header><div><h2>How guests sent it to the host</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.sent_via %}</div>
+      <div class="an-card"><header><div><h2>By island</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_island %}</div>
+      <div class="an-card"><header><div><h2>By type of business</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_kind %}</div>
+      <div class="an-card"><header><div><h2>Guest countries</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.by_country %}</div>
+      <div class="an-card"><header><div><h2>Arrival month</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.months %}</div>
+      <div class="an-card"><header><div><h2>Found us via</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.sources %}</div>
+      <div class="an-card"><header><div><h2>Preferred reply</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.contact %}</div>
+      <div class="an-card"><header><div><h2>Device used</h2></div></header>{% include "admin/analytics/_bars.html" with rows=booking.devices %}</div>
+    </div>
+    {% else %}
+    <div class="an-card an-empty-big"><span class="material-symbols-outlined">mark_email_unread</span><div><h3>No booking requests in this period</h3><p>When guests send requests, you'll see reply and confirmation rates, group sizes, length of stay, how far ahead they book, where they come from and how they reached the host.</p>
+      <a class="an-btn" href="{{ requests_url }}">Open all booking requests</a> <a class="an-btn ghost" href="?days=365">Look at the last 12 months</a></div></div>
+    {% endif %}
+  </section>
+
+  {# ---------- latest visits ---------- #}
+  <section id="visits" class="an-section">
+    <div class="an-card">
+      <header><span class="material-symbols-outlined">person_search</span><div><h2>Latest visits</h2><p>Open a visitor to see every step of their journey</p></div><a class="an-link" href="{{ visitors_url }}">All visitors <span class="material-symbols-outlined">arrow_forward</span></a></header>
+      {% if recent %}<table class="an-table"><thead><tr><th>Visitor</th><th>Started</th><th>Source</th><th>First page</th><th>Last page</th><th class="num">Pages</th><th class="num">Time</th></tr></thead>
+        <tbody>{% for v in recent %}<tr>
+          <td><a class="an-who" href="{% url 'admin:analytics_visitor_change' v.visitor_id %}"><span class="an-avatar">{{ v.visitor.country|default:"··" }}</span><span><b>#{{ v.visitor.short_id }}</b><small>{{ v.visitor.city|default:v.visitor.device|default:"Unknown" }}</small></span></a></td>
+          <td>{{ v.started_at|naturaltime }}</td><td><span class="an-pill">{{ v.source|default:"Direct" }}</span></td>
+          <td class="an-path">{{ v.entry_path|truncatechars:34 }}</td><td class="an-path">{{ v.exit_path|truncatechars:34 }}</td><td class="num">{{ v.pageviews }}</td><td class="num">{{ v.duration_label }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<div class="an-empty"><span class="material-symbols-outlined">person_search</span><p>No visits yet.</p></div>{% endif %}
+    </div>
   </section>
 </div>
 {% endblock %}
