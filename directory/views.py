@@ -43,8 +43,15 @@ def home(request):
     atoll_counts = Atoll.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name")
     featured = sorted(_islands().filter(is_featured=True).prefetch_related("activities"),
                       key=lambda i: (not i.photo_url, i.name))
+    slides = [i for i in featured if i.photo_url][:5]
+    if len(slides) < 3:
+        extra = [i for i in _islands().exclude(pk__in=[x.pk for x in slides]).prefetch_related("activities") if i.photo_url]
+        slides += extra[: 5 - len(slides)]
     return render(request, "directory/home.html", {
         "needs": _plan_by_need(featured),
+        "slides": slides or featured[:1],
+        "popular": featured[:5],
+        "figures": _figures(),
         "atoll_index": atoll_counts,
         "hero_island": featured[0] if featured else None,
         "portraits": featured[:3],
@@ -66,6 +73,27 @@ def home(request):
             "verified": _live_listings().filter(is_verified=True).count(),
         },
     })
+
+
+def _figures():
+    """Numbers for the strip under the hero. Listing counts appear only once they're large enough to impress."""
+    islands = Island.objects.filter(is_published=True)
+    live = _live_listings()
+    figs = [
+        {"n": islands.count(), "label": "island guides", "count": True},
+        {"n": islands.values("atoll").distinct().count(), "label": "atolls covered", "count": True},
+        {"n": TransportRoute.objects.filter(is_active=True).count(), "label": "boat and flight routes", "count": True},
+    ]
+    stays = live.filter(kind__in=Listing.STAY_KINDS).count()
+    hosts = live.count()
+    if stays >= 20:
+        figs.append({"n": stays, "label": "places to stay", "count": True})
+    elif hosts >= 20:
+        figs.append({"n": hosts, "label": "local businesses", "count": True})
+    else:
+        figs.append({"n": ActivityType.objects.filter(islands__isnull=False).distinct().count(), "label": "kinds of experiences", "count": True})
+    figs.append({"text": "0%", "label": "booking fees, ever"})
+    return figs
 
 
 def _plan_by_need(featured_islands):

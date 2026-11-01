@@ -844,3 +844,48 @@ a.card:hover .cover img.cowrie { transform: none; }
 .need-items { grid-template-columns: minmax(0, 1fr); }
 .need-items li { min-width: 0; }
 .need-item-text { flex: 1 1 auto; }
+
+/* ===================================================== home hero: featured island slideshow */
+.hero-show { position: relative; aspect-ratio: 4 / 4.6; max-width: 100%; border-radius: var(--radius-lg); overflow: hidden; background: var(--sea-2); box-shadow: var(--shadow-pop); isolation: isolate; }
+.hero-slide { position: absolute; inset: 0; display: block; color: #fff; opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility 0s .9s; }
+.hero-slide.is-active { opacity: 1; visibility: visible; transition: opacity .9s ease; z-index: 1; }
+.hero-slide:hover { text-decoration: none; }
+.hero-slide > img, .hero-slide > .chart { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; transform: scale(1.02); }
+.motion .hero-slide.is-active > img { animation: hero-zoom 9s ease-out both; }
+@keyframes hero-zoom { from { transform: scale(1.12); } to { transform: scale(1.02); } }
+.hero-slide::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10, 61, 76, .15) 0%, transparent 30%, rgba(10, 61, 76, .55) 60%, rgba(10, 61, 76, .95) 100%); }
+.hero-slide-body { position: absolute; left: 26px; right: 26px; bottom: 54px; display: flex; flex-direction: column; gap: 6px; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+.hero-slide-body small { color: var(--shallows); font-weight: 700; font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; }
+.hero-slide-body b { font-family: var(--font-display); font-weight: 600; font-size: 2.3rem; line-height: 1.05; }
+.hero-slide-tag { color: rgba(255, 255, 255, .9); font-size: 1rem; }
+.hero-slide-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; text-shadow: none; }
+.hero-slide-facts > span { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28); backdrop-filter: blur(6px); }
+.hero-slide-facts .i { width: 14px; height: 14px; color: var(--shallows); }
+.hero-slide-cta { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 16px; border-radius: 999px; background: #fff; color: var(--sea-2); font-weight: 700; font-size: .88rem; text-shadow: none; transition: gap .2s; }
+.hero-slide:hover .hero-slide-cta { gap: 12px; }
+.hero-slide-cta .i { width: 16px; height: 16px; }
+.hero-dots { position: absolute; z-index: 3; left: 26px; bottom: 20px; display: flex; gap: 6px; }
+.hero-dots button { width: 34px; height: 6px; padding: 0; border: 0; border-radius: 99px; background: rgba(255, 255, 255, .35); cursor: pointer; overflow: hidden; }
+.hero-dots button i { display: block; height: 100%; width: 0; background: #fff; border-radius: 99px; }
+.hero-dots button.on i { width: 100%; }
+.motion .hero-dots button.on i { animation: dot-fill 7s linear both; }
+.hero-show.paused .hero-dots button.on i { animation-play-state: paused; }
+@keyframes dot-fill { from { width: 0; } to { width: 100%; } }
+@media (max-width: 900px) { .hero-show { aspect-ratio: 4 / 4; } .hero-slide-body b { font-size: 1.9rem; } }
+@media (max-width: 480px) { .hero-show { aspect-ratio: 4 / 5; } .hero-slide-body { left: 18px; right: 18px; } .hero-dots { left: 18px; } }
+
+/* popular islands + reassurance under the search */
+.hero-popular { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -4px 0 0; font-size: .88rem; color: var(--ink-2); }
+.hero-popular span { font-weight: 600; }
+.hero-popular a { color: var(--sea); font-weight: 600; border-bottom: 1px dashed rgba(11, 110, 138, .4); }
+.hero-popular a:hover { text-decoration: none; border-bottom-style: solid; }
+.hero-trust { list-style: none; margin: 6px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-width: 620px; }
+.hero-trust li { display: flex; gap: 10px; align-items: flex-start; font-size: .8rem; color: var(--ink-2); line-height: 1.35; }
+.hero-trust b { display: block; color: var(--ink); font-size: .86rem; margin-bottom: 1px; }
+.hero-trust .i, .hero-trust .cowrie { flex: none; width: 34px; height: 34px; padding: 8px; border-radius: 10px; background: var(--shoal); color: var(--sea); }
+.hero-trust .cowrie { background: var(--sea); padding: 6px 9px; }
+@media (max-width: 640px) { .hero-trust { grid-template-columns: 1fr; } }
+
+/* figures strip: lighter, with the 0% fee standing out */
+.figures-row { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+.figures-row > div:last-child b { color: var(--gold); }

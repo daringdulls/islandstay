@@ -22,17 +22,34 @@
         <a href="{% url 'directory:transport_list' %}">{% icon "ship" %} Transport</a>
         <a href="{% url 'directory:food_list' %}">{% icon "utensils" %} Food</a>
       </div>
+      {% if popular %}<p class="hero-popular"><span>Popular:</span>{% for i in popular %}<a href="{{ i.get_absolute_url }}">{{ i.name }}</a>{% endfor %}</p>{% endif %}
+      <ul class="hero-trust">
+        <li>{% icon "hand-coins" %}<span><b>No booking fees</b>Agree the price with the host</span></li>
+        <li>{% icon "message-circle" %}<span><b>Message hosts directly</b>WhatsApp, Viber or email</span></li>
+        <li>{% cowrie %}<span><b>Verified local hosts</b>Licences checked by our team</span></li>
+      </ul>
     </div>
-    {% if hero_island %}
-    <a class="opening-card" href="{{ hero_island.get_absolute_url }}">
-      {% if hero_island.photo_url %}<img src="{{ hero_island.photo_url }}" alt="{{ hero_island.name }}, {{ hero_island.atoll.name }}" onerror="this.remove()">{% else %}<div class="chart" style="{{ hero_island.chart_style }}"></div>{% endif %}
-      <span class="opening-card-body">
-        <small>Featured island · {{ hero_island.atoll.name }}</small>
-        <b>{{ hero_island.name }}</b>
-        <span>{{ hero_island.tagline }}</span>
-      </span>
-      {% if hero_island.cover_credit %}<span class="opening-credit">Photo: {{ hero_island.cover_credit|truncatechars:40 }}{% if hero_island.cover_license %}, {{ hero_island.cover_license }}{% endif %}</span>{% endif %}
-    </a>
+    {% if slides %}
+    <div class="hero-show" data-slides>
+      {% for i in slides %}
+      <a class="hero-slide{% if forloop.first %} is-active{% endif %}" href="{{ i.get_absolute_url }}" aria-label="{{ i.name }}, {{ i.atoll.name }}"{% if not forloop.first %} aria-hidden="true" tabindex="-1"{% endif %}>
+        {% if i.photo_url %}<img src="{{ i.photo_url }}" alt="" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} onerror="this.remove()">{% else %}<div class="chart" style="{{ i.chart_style }}"></div>{% endif %}
+        <span class="hero-slide-body">
+          <small>{% if forloop.first %}Featured island{% else %}Island guide{% endif %} · {{ i.atoll.name }}</small>
+          <b>{{ i.name }}</b>
+          <span class="hero-slide-tag">{{ i.tagline }}</span>
+          <span class="hero-slide-facts">
+            {% if i.transfer_time %}<span>{% icon "ship" %}{{ i.transfer_time }}</span>{% endif %}
+            {% if i.has_bikini_beach %}<span>{% icon "umbrella" %}Bikini beach</span>{% endif %}
+            {% for a in i.activities.all|slice:":2" %}<span>{% icon a.icon %}{{ a.name }}</span>{% endfor %}
+          </span>
+          <span class="hero-slide-cta">Explore {{ i.name }} {% icon "arrow-right" %}</span>
+        </span>
+        {% if i.cover_credit %}<span class="opening-credit">Photo: {{ i.cover_credit|truncatechars:40 }}{% if i.cover_license %}, {{ i.cover_license }}{% endif %}</span>{% endif %}
+      </a>
+      {% endfor %}
+      {% if slides|length > 1 %}<div class="hero-dots" role="tablist" aria-label="Featured islands">{% for i in slides %}<button type="button" role="tab" aria-label="Show {{ i.name }}"{% if forloop.first %} aria-selected="true" class="on"{% endif %}><i></i></button>{% endfor %}</div>{% endif %}
+    </div>
     {% endif %}
   </div>
 </section>
@@ -40,11 +57,7 @@
 {# 2 — Figures #}
 <section class="figures">
   <div class="container figures-row">
-    <div><b data-count="{{ stats.islands }}">{{ stats.islands }}</b><span>island guides</span></div>
-    <div><b data-count="{{ stats.stays }}">{{ stats.stays }}</b><span>places to stay</span></div>
-    <div><b data-count="{{ stats.services }}">{{ stats.services }}</b><span>experience operators</span></div>
-    <div><b data-count="{{ stats.routes }}">{{ stats.routes }}</b><span>transport routes</span></div>
-    <div><b data-count="{{ stats.verified }}">{{ stats.verified }}</b><span>verified hosts</span></div>
+    {% for f in figures %}<div>{% if f.count %}<b data-count="{{ f.n }}">{{ f.n }}</b>{% else %}<b>{{ f.text }}</b>{% endif %}<span>{{ f.label }}</span></div>{% endfor %}
   </div>
 </section>
 
@@ -174,4 +187,33 @@
     </div>
   </div>
 </section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var show = document.querySelector('[data-slides]'); if (!show) return;
+  var slides = show.querySelectorAll('.hero-slide'), dots = show.querySelectorAll('.hero-dots button');
+  if (slides.length < 2) return;
+  var i = 0, timer, reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function go(n) {
+    slides[i].classList.remove('is-active'); slides[i].setAttribute('aria-hidden', 'true'); slides[i].tabIndex = -1;
+    dots[i].classList.remove('on'); dots[i].removeAttribute('aria-selected');
+    i = (n + slides.length) % slides.length;
+    slides[i].classList.add('is-active'); slides[i].removeAttribute('aria-hidden'); slides[i].removeAttribute('tabindex');
+    dots[i].classList.add('on'); dots[i].setAttribute('aria-selected', 'true');
+    // restart the progress bar animation
+    var bar = dots[i].firstElementChild; bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  }
+  function play() { if (reduce) return; clearInterval(timer); timer = setInterval(function () { if (!show.classList.contains('paused')) go(i + 1); }, 7000); }
+  dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); play(); }); });
+  show.addEventListener('mouseenter', function () { show.classList.add('paused'); });
+  show.addEventListener('mouseleave', function () { show.classList.remove('paused'); });
+  show.addEventListener('focusin', function () { show.classList.add('paused'); });
+  show.addEventListener('focusout', function () { show.classList.remove('paused'); });
+  var x0 = null;
+  show.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+  show.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) { go(i + (dx < 0 ? 1 : -1)); play(); } x0 = null; });
+  play();
+})();
+</script>
 {% endblock %}
