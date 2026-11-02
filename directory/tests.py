@@ -742,3 +742,29 @@ class HomeFeatureTests(TestCase):
         self.client.force_login(User.objects.create_superuser("hp@x.mv", "hp@x.mv", "pw"))
         self.assertEqual(self.client.get(reverse("admin:directory_homefeature_changelist")).status_code, 200)
         self.assertEqual(self.client.get(reverse("admin:directory_homefeature_add")).status_code, 200)
+
+
+class ListingLogoTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_logo_shows_on_listing_and_request_form(self):
+        import io
+        import tempfile
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from PIL import Image
+
+        buf = io.BytesIO(); Image.new("RGB", (200, 200), "teal").save(buf, "PNG")
+        listing = Listing.objects.filter(status="approved").first()
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp, STORAGES={
+                "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}):
+            listing.logo = SimpleUploadedFile("logo.png", buf.getvalue(), content_type="image/png")
+            listing.save()
+            page = self.client.get(listing.get_absolute_url()).content.decode()
+            self.assertIn('class="listing-logo"', page)
+            self.assertIn('rq-avatar rq-logo', page)
+            self.assertIn("logos/", page)

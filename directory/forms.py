@@ -87,7 +87,7 @@ class ListingForm(forms.ModelForm):
     class Meta:
         model = Listing
         fields = [
-            "kind", "name", "island", "short_description", "description", "cover_image",
+            "kind", "name", "island", "short_description", "description", "logo", "cover_image",
             "room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
             "house_rules", "amenities", "activity_types", "cuisine", "opening_hours", "serves_breakfast", "delivery",
             "price_from", "currency", "price_unit",
@@ -104,7 +104,7 @@ class ListingForm(forms.ModelForm):
         }
 
     GROUPS = {
-        "basics": ["kind", "name", "island", "short_description", "description", "cover_image"],
+        "basics": ["kind", "name", "island", "short_description", "description", "logo", "cover_image"],
         "stay": ["room_count", "max_guests", "star_rating", "distance_to_beach_m", "check_in_time", "check_out_time",
                  "house_rules", "amenities"],
         "food": ["cuisine", "opening_hours", "serves_breakfast", "delivery"],

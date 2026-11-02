@@ -294,7 +294,7 @@ class ListingAdmin(BaseAdmin):
     readonly_fields = ("created_at", "updated_at", "verified_at", "verification_requested_at")
     fieldsets = (
         ("Business", {"classes": ["tab"], "fields": (
-            ("name", "slug"), ("kind", "island"), "owner", "short_description", "description", "cover_image")}),
+            ("name", "slug"), ("kind", "island"), "owner", "short_description", "description", ("logo", "cover_image"))}),
         ("Review & verification", {"classes": ["tab"], "fields": (
             ("status", "is_featured"), "admin_note", ("is_verified", "registration_number"), "verification_document",
             ("verification_requested_at", "verified_at"), ("created_at", "updated_at"))}),

@@ -1,10 +1,11 @@
 {% load ui %}{# Booking / service request form shown beside a listing #}
 {% with host=listing.contact_name|default:"the host" %}
 <div class="rq-head">
-  <span class="rq-avatar" aria-hidden="true">{{ host|slice:":1"|upper }}</span>
+  {% if listing.logo_url %}<span class="rq-avatar rq-logo"><img src="{{ listing.logo_url }}" alt="{{ listing.name }} logo"></span>
+  {% else %}<span class="rq-avatar" aria-hidden="true">{{ listing.name|slice:":1"|upper }}</span>{% endif %}
   <div>
     <h3>{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
-    <p>Goes straight to {{ host }}{% if listing.is_verified %} <span class="badge badge-ok badge-sm">{% cowrie %}Verified</span>{% endif %}</p>
+    <p>Goes straight to {% if listing.contact_name and listing.contact_name != listing.name %}{{ host }} at {{ listing.name }}{% else %}{{ listing.name }}{% endif %}{% if listing.is_verified %} <span class="badge badge-ok badge-sm">{% cowrie %}Verified</span>{% endif %}</p>
   </div>
 </div>
 

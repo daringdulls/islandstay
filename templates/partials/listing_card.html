@@ -6,7 +6,7 @@
       {% if l.is_featured %}<span class="badge badge-rec">{% icon "star" %}Recommended</span>{% endif %}
       {% if l.is_verified %}<span class="badge badge-ok">{% cowrie %}Verified host</span>{% endif %}
     </span>{% endif %}
-    <span class="kind-mark">{% icon l.kind_icon %}</span>
+    {% if l.logo_url %}<span class="kind-mark has-logo"><img src="{{ l.logo_url }}" alt="" loading="lazy"></span>{% else %}<span class="kind-mark">{% icon l.kind_icon %}</span>{% endif %}
   </div>
   <div class="card-body">
     <h3>{{ l.name }}</h3>

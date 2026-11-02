@@ -8,8 +8,11 @@
   <div class="crumbs muted"><a href="{% url 'directory:island_list' %}">Islands</a> / <a href="{{ listing.island.get_absolute_url }}">{{ listing.island.name }}</a> / {{ listing.get_kind_display }}</div>
   <div class="row" style="align-items:flex-end;margin-bottom:20px">
     <div>
-      <div class="eyebrow">{{ listing.get_kind_display }}</div>
-      <h1 style="margin-bottom:8px">{{ listing.name }}</h1>
+      <div class="listing-title">
+        {% if listing.logo_url %}<img class="listing-logo" src="{{ listing.logo_url }}" alt="{{ listing.name }} logo">{% endif %}
+        <div><div class="eyebrow">{{ listing.get_kind_display }}</div>
+        <h1 style="margin-bottom:8px">{{ listing.name }}</h1></div>
+      </div>
       <div class="row" style="gap:16px">
         <a class="meta" href="{{ listing.island.get_absolute_url }}" style="display:inline-flex;gap:6px;align-items:center">{% icon "map-pin" %} {{ listing.island.name }}, {{ listing.island.atoll.name }}</a>
         {% if listing.is_verified %}<span class="verified-badge" title="Licence checked by our team{% if listing.verified_at %} on {{ listing.verified_at|date:'j M Y' }}{% endif %}">{% cowrie %} Verified host</span>{% endif %}

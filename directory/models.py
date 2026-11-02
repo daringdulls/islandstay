@@ -359,6 +359,8 @@ class Listing(models.Model):
     delivery = models.BooleanField("Delivers to guest houses", default=False)
 
     cover_image = models.ImageField(upload_to="listings/", blank=True)
+    logo = models.ImageField(upload_to="logos/", blank=True,
+                             help_text="Your business logo. Square works best (at least 200 × 200 px); PNG with a transparent background is ideal.")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     admin_note = models.TextField(blank=True, help_text="Feedback to the owner (e.g. reason for rejection)")
     is_featured = models.BooleanField("Recommended", default=False,
@@ -429,6 +431,15 @@ class Listing(models.Model):
     @property
     def whatsapp_digits(self):
         return "".join(c for c in self.whatsapp if c.isdigit())
+
+    @property
+    def logo_url(self):
+        if self.logo:
+            try:
+                return self.logo.url
+            except Exception:
+                return ""
+        return ""
 
     @property
     def viber_digits(self):
