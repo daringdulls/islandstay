@@ -384,7 +384,33 @@ def enquiry_sent_via(request, ref):
 
 
 def list_your_business(request):
-    return render(request, "directory/list_your_business.html", {"islands_count": Island.objects.filter(is_published=True).count()})
+    from .models import HomeFeature
+
+    islands = list(_islands().filter(is_featured=True))
+    photo_islands = [i for i in (HomeFeature.islands_for(HomeFeature.SECTION_HERO) or []) + islands if i.photo_url]
+    acts = {a.slug: a for a in ActivityType.objects.exclude(image_url="")}
+
+    def act_img(*slugs):
+        for s in slugs:
+            if s in acts:
+                return acts[s].image_url
+        return ""
+
+    pick = lambda n: photo_islands[n % len(photo_islands)].photo_url if photo_islands else ""  # noqa: E731
+    return render(request, "directory/list_your_business.html", {
+        "islands_count": Island.objects.filter(is_published=True).count(),
+        "atolls_count": Island.objects.filter(is_published=True).values("atoll").distinct().count(),
+        "routes_count": TransportRoute.objects.filter(is_active=True).count(),
+        "hero_photo": pick(0),
+        "kinds": [
+            {"title": "Stays", "icon": "house", "img": pick(1), "text": "Guest houses, island hotels, home stays and private villas."},
+            {"title": "Experiences", "icon": "sailboat", "img": act_img("snorkeling", "scuba-diving", "sandbank-picnic") or pick(2),
+             "text": "Dive centres, excursion and fishing trips, sandbank picnics, spa and photography."},
+            {"title": "Transport", "icon": "ship", "img": act_img("island-hopping", "dolphin-cruise") or pick(3),
+             "text": "Speedboat and transfer services. Add your routes once and appear on every island you serve."},
+            {"title": "Food", "icon": "utensils", "img": pick(4), "text": "Cafés and restaurants, with your cuisine, opening hours and table requests."},
+        ],
+    })
 
 
 def privacy(request):

@@ -1,32 +1,144 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}List your guest house, experience or restaurant{% endblock %}
+{% block title %}List your business on Island Stay{% endblock %}
+{% block meta_description %}List your guest house, dive centre, excursion, transfer service or café on Island Stay for free. Travellers reading your island's guide message you directly, with no commission.{% endblock %}
 {% block content %}
-<section class="hero"><div class="hero-media chart"></div><div class="container">
-  <div class="eyebrow">For island businesses</div>
-  <h1>Receive requests from travellers <em>directly</em>.</h1>
-  <p class="lead">List your guest house, hotel, dive centre, excursion, transfer service or restaurant under your island. No commission, no channel manager and no payment processing.</p>
-  <div class="row" style="margin-top:28px">
-    {% if user.is_authenticated %}<a class="btn btn-light" href="{% url 'directory:listing_create' %}">Add a listing</a>
-    {% else %}<a class="btn btn-light" href="{% url 'accounts:signup' %}">Create a free account</a><a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="{% url 'accounts:login' %}">Log in</a>{% endif %}
+
+{# ---------- banner ---------- #}
+<section class="lyb-hero">
+  {% if hero_photo %}<img class="lyb-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container lyb-hero-grid">
+    <div class="lyb-hero-text">
+      <div class="eyebrow">For island businesses</div>
+      <h1>Travellers are reading about your island. Let them <span class="accent-word">message</span> you.</h1>
+      <p class="lead">List your guest house, dive centre, excursion, transfer service or café under your island. It's free, there's no commission, and guests contact you directly on WhatsApp, Viber or email.</p>
+      <div class="lyb-cta">
+        {% if user.is_authenticated %}<a class="btn lyb-btn" href="{% url 'directory:listing_create' %}">Add your listing {% icon "arrow-right" %}</a>
+        {% else %}<a class="btn lyb-btn" href="{% url 'accounts:signup' %}">List your business free {% icon "arrow-right" %}</a>
+        <a class="lyb-link" href="{% url 'accounts:login' %}">I already have an account</a>{% endif %}
+      </div>
+      <ul class="lyb-stats">
+        <li><b>{{ islands_count }}</b><span>island guides</span></li>
+        <li><b>{{ atolls_count }}</b><span>atolls</span></li>
+        <li><b>{{ routes_count }}</b><span>transfer routes</span></li>
+        <li><b class="gold">0%</b><span>commission</span></li>
+      </ul>
+    </div>
+    <div class="lyb-hero-visual" aria-hidden="true">
+      <div class="biz-card">
+        <div class="biz-card-photo">{% if hero_photo %}<img src="{{ hero_photo }}" alt="" onerror="this.remove()">{% endif %}<span class="biz-badge rec">{% icon "star" %}Recommended</span></div>
+        <div class="biz-card-body">
+          <small>Guest house · Your island</small>
+          <b>Your business here</b>
+          <span class="biz-badge ok">{% cowrie %}Verified host</span>
+          <span class="lyb-card-rating">{% icon "star" %}<b>4.9</b> · Usually replies within 2 hours</span>
+        </div>
+      </div>
+      <div class="biz-bubble">{% icon "message-circle" %}<span><b>New request</b>2 adults · 4 nights · 12–16 Dec</span></div>
+    </div>
   </div>
-</div></section>
-<div class="container section">
-  <div class="section-title"><h2>How listing works</h2></div>
-  <div class="steps light">
-    <div class="step"><h3>Create an account</h3><p>Sign up with your email in under a minute.</p></div>
-    <div class="step"><h3>Add your listing</h3><p>Choose your island and add photos, rooms or packages and contact details.</p></div>
-    <div class="step"><h3>We review it</h3><p>Our team checks every listing, usually within one or two working days.</p></div>
-    <div class="step"><h3>Receive requests</h3><p>Guests message you on WhatsApp, Viber or email, and every request is saved in your dashboard.</p></div>
+</section>
+
+{# ---------- why ---------- #}
+<section class="section">
+  <div class="container">
+    <div class="section-head reveal"><div><div class="eyebrow">Why list with us</div><h2>Built for local island businesses</h2></div></div>
+    <div class="lyb-benefits">
+      <div class="lyb-benefit reveal">{% icon "hand-coins" %}<h3>No commission, ever</h3><p>Guests pay you directly. Island Stay takes nothing from your bookings.</p></div>
+      <div class="lyb-benefit reveal" data-delay="60">{% icon "message-circle" %}<h3>Requests in your pocket</h3><p>Guests send their dates and questions on WhatsApp, Viber or email, already written out.</p></div>
+      <div class="lyb-benefit reveal" data-delay="120">{% icon "map-pin" %}<h3>Found by island</h3><p>Travellers choose an island first. Your listing sits on its guide, next to the facts they're reading.</p></div>
+      <div class="lyb-benefit reveal" data-delay="180">{% cowrie %}<h3>Verified host badge</h3><p>Upload your tourism licence and we add the cowrie badge that tells guests you're the real thing.</p></div>
+      <div class="lyb-benefit reveal" data-delay="240">{% icon "star" %}<h3>Real reviews</h3><p>Only guests who sent you a request can review you, and you can reply to every review.</p></div>
+      <div class="lyb-benefit reveal" data-delay="300">{% icon "gauge" %}<h3>See how you're doing</h3><p>Your dashboard shows views, requests, where guests come from and how fast you reply.</p></div>
+    </div>
   </div>
-  <div class="section-title" style="margin-top:48px"><h2>Who can list</h2></div>
-  <div class="grid-2">
-    <div class="panel"><h3>{% icon "house" %} Stays</h3><p class="muted" style="margin:0">Guest houses, island hotels, private villas, home stays and resorts.</p></div>
-    <div class="panel" style="margin-top:0"><h3>{% icon "sailboat" %} Experiences</h3><p class="muted" style="margin:0">Excursion operators, dive centres, fishing trips and other activities.</p></div>
-    <div class="panel" style="margin-top:0"><h3>{% icon "ship" %} Transport</h3><p class="muted" style="margin:0">Speedboat and transfer services. Add your routes and appear on every island you serve.</p></div>
-    <div class="panel" style="margin-top:0"><h3>{% icon "utensils" %} Food</h3><p class="muted" style="margin:0">Restaurants and cafés. Show your cuisine and opening hours and take table requests.</p></div>
-    <div class="panel" style="margin-top:0"><h3>{% cowrie %} Verified host badge</h3><p class="muted" style="margin:0">Upload your tourism licence or business registration and we add a Verified host badge to your listing.</p></div>
-    <div class="panel" style="margin-top:0"><h3>{% icon "inbox" %} You stay in control</h3><p class="muted" style="margin:0">No availability calendar and no payments through us. You confirm each request yourself. {{ islands_count }} island guides and growing; <a href="{% url 'directory:suggest_island' %}">suggest yours</a>.</p></div>
+</section>
+
+{# ---------- how ---------- #}
+<section class="section band">
+  <div class="container">
+    <div class="section-head reveal"><div><div class="eyebrow">How it works</div><h2>Live in a day or two</h2></div></div>
+    <ol class="lyb-steps">
+      <li class="reveal"><b>1</b><h3>Create a free account</h3><p>Your email and a password. It takes under a minute.</p></li>
+      <li class="reveal" data-delay="80"><b>2</b><h3>Add your listing</h3><p>Pick your island, add photos, your logo, rooms or packages and how guests can reach you.</p></li>
+      <li class="reveal" data-delay="160"><b>3</b><h3>We check it</h3><p>Our team reviews every listing, usually within one or two working days.</p></li>
+      <li class="reveal" data-delay="240"><b>4</b><h3>Guests message you</h3><p>Requests arrive on your phone and are saved in your dashboard. You confirm the price and payment directly.</p></li>
+    </ol>
   </div>
-</div>
+</section>
+
+{# ---------- who ---------- #}
+<section class="section">
+  <div class="container">
+    <div class="section-head reveal"><div><div class="eyebrow">Who can list</div><h2>Stays, experiences, transport and food</h2></div></div>
+    <div class="lyb-kinds">
+      {% for k in kinds %}
+      <div class="lyb-kind reveal" data-delay="{% widthratio forloop.counter0 1 70 %}">
+        <div class="lyb-kind-img">{% if k.img %}<img src="{{ k.img }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span>{% icon k.icon %}</span></div>
+        <h3>{{ k.title }}</h3><p>{{ k.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- compare ---------- #}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="lyb-compare reveal">
+      <div>
+        <div class="eyebrow">The difference</div>
+        <h2>Island Stay next to the big booking sites</h2>
+        <p class="muted">Keep the booking sites if they work for you. Island Stay adds travellers who want to plan by island and talk to a local first.</p>
+      </div>
+      <table>
+        <thead><tr><th></th><th>Island Stay</th><th>Typical booking site</th></tr></thead>
+        <tbody>
+          <tr><td>Commission per booking</td><td class="yes">None</td><td>Often 15–25%</td></tr>
+          <tr><td>Guest contacts you directly</td><td class="yes">Yes</td><td>Through the platform</td></tr>
+          <tr><td>Who sets price and payment</td><td class="yes">You</td><td>The platform's rules</td></tr>
+          <tr><td>Listed by island, with its guide</td><td class="yes">Yes</td><td>Mixed with resorts</td></tr>
+          <tr><td>Cost to list</td><td class="yes">Free</td><td>Free, plus commission</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{# ---------- claim ---------- #}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="lyb-claim reveal">{% icon "store" %}
+      <div><h3>Already on Island Stay?</h3><p>We add some businesses from public information. If yours is there, open its page and press <b>Claim this listing</b>. It's free and takes two minutes.</p></div>
+      <form action="{% url 'directory:search' %}" class="lyb-claim-form" role="search"><input type="search" name="q" placeholder="Your island, e.g. Thoddoo" aria-label="Island name"><button class="btn btn-sm" type="submit">Find it</button></form>
+    </div>
+  </div>
+</section>
+
+{# ---------- FAQ ---------- #}
+<section class="section band">
+  <div class="container lyb-faq-wrap">
+    <div><div class="eyebrow">Questions</div><h2>Good to know</h2><p class="muted">Anything else? <a href="{% url 'directory:how_it_works' %}">How requests work</a> explains the guest side.</p></div>
+    <div class="lyb-faq">
+      <details open><summary>Does it really cost nothing?</summary><p>Yes. Listing is free and we take no commission. Guests pay you directly, however you agree.</p></details>
+      <details><summary>Do I need a booking system or calendar?</summary><p>No. Guests send a request with their dates, and you reply to confirm availability and price. There's nothing to keep in sync.</p></details>
+      <details><summary>How do guests reach me?</summary><p>On WhatsApp, Viber, email or phone, whichever you add. Each request is also saved in your dashboard so nothing gets lost.</p></details>
+      <details><summary>How do I get the Verified host badge?</summary><p>Upload your tourism licence or business registration from your dashboard. We check it and add the cowrie badge, usually within a few days.</p></details>
+      <details><summary>Can I list more than one business?</summary><p>Yes. Add as many listings as you run, for example a guest house and an excursion service, all from one account.</p></details>
+      <details><summary>My island isn't on the site yet.</summary><p>Tell us with <a href="{% url 'directory:suggest_island' %}">Suggest an island</a>. We're adding guides every week ({{ islands_count }} so far).</p></details>
+    </div>
+  </div>
+</section>
+
+{# ---------- final CTA ---------- #}
+<section class="section">
+  <div class="container">
+    <div class="lyb-final reveal">
+      <h2>Put your business on your island's page</h2>
+      <p>Free to list, no commission, guests message you directly.</p>
+      {% if user.is_authenticated %}<a class="btn lyb-btn" href="{% url 'directory:listing_create' %}">Add your listing {% icon "arrow-right" %}</a>
+      {% else %}<a class="btn lyb-btn" href="{% url 'accounts:signup' %}">Create a free account {% icon "arrow-right" %}</a>{% endif %}
+    </div>
+  </div>
+</section>
 {% endblock %}
