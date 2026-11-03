@@ -6,6 +6,7 @@
 
 {# ---------- banner ---------- #}
 <section class="lyb-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
   {% if hero_photo %}<img class="lyb-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
   <div class="container lyb-hero-grid">
     <div class="lyb-hero-text">

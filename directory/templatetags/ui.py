@@ -32,3 +32,11 @@ def stars(n, total=5):
     body = "".join(star.format("" if i < n else " off") for i in range(total))
     return format_html('<span class="stars" role="img" aria-label="{}-star rating" title="Officially rated {} star">{}</span>',
                        n, n, mark_safe(body))
+
+
+@register.simple_tag
+def page_banner(page):
+    """Banner photo set in the back office for a page (url, credit), or ('', '')."""
+    from directory.models import PageBanner
+
+    return PageBanner.for_page(page, "")

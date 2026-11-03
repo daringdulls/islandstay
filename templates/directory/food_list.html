@@ -6,6 +6,7 @@
 
 {# ---------- banner ---------- #}
 <section class="fd-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
   {% if hero_photo %}<img class="fd-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
   <div class="container fd-hero-inner">
     <div class="eyebrow">Food</div>
@@ -30,7 +31,7 @@
     <div class="fd-results-head">
       <div><div class="eyebrow">Places to eat</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching cafés and restaurants{% else %}Cafés and restaurants{% endif %}</h2></div>
       <div class="fd-results-meta"><span>{{ page.paginator.count }} place{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
-        <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+        <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" and k != "max_price" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
           <label class="sr-only" for="fd-sort">Sort</label><select id="fd-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></form>
       </div>
     </div>

@@ -819,3 +819,42 @@ class Review(models.Model):
     def token_for(enquiry):
         from django.core import signing
         return signing.Signer(salt="review").sign(enquiry.reference).split(":", 1)[1]
+
+
+class PageBanner(models.Model):
+    """Cover photo for a page's banner, set in the back office. Pages fall back to an automatic photo."""
+    PAGE_CHOICES = [
+        ("stays", "Stays"), ("experiences", "Experiences"), ("transport", "Transport"), ("food", "Food"),
+        ("list_business", "List your business"), ("islands", "Islands"), ("atolls", "Atolls"),
+        ("how_it_works", "How it works"),
+    ]
+    page = models.CharField(max_length=20, choices=PAGE_CHOICES, unique=True)
+    image = models.ImageField(upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")
+    image_url = models.URLField(max_length=500, blank=True, help_text="Or paste a photo link")
+    credit = models.CharField("Photo credit", max_length=120, blank=True, help_text="Shown small in the corner, e.g. 'Photo: Aishath Ali'")
+    is_active = models.BooleanField("Show", default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["page"]
+        verbose_name = "page banner"
+
+    def __str__(self):
+        return self.get_page_display()
+
+    @property
+    def url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        return self.image_url
+
+    @classmethod
+    def for_page(cls, page, fallback=""):
+        """(photo url, credit) for a page: the banner set in the back office, else the fallback photo."""
+        b = cls.objects.filter(page=page, is_active=True).first()
+        if b and b.url:
+            return b.url, b.credit
+        return fallback, ""

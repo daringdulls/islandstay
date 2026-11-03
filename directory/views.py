@@ -284,11 +284,39 @@ def _filtered_listings(request, kinds):
 
 
 def stay_list(request):
+    from .models import PageBanner
+
     page, f, sort = _filtered_listings(request, Listing.STAY_KINDS)
-    return render(request, "directory/listing_list.html", {
-        "page": page, "f": f, "sort": sort, "mode": "stays", "title": "Places to stay",
-        "kind_choices": Listing.KIND_CHOICES[0][1], "atolls": Atoll.objects.all(),
-        "islands": Island.objects.filter(is_published=True), "amenities": Amenity.objects.all(),
+    island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
+    amen = {a.name: a.id for a in Amenity.objects.all()}
+    base = {k: v for k, v in request.GET.items() if k not in ("page", "kind", "amenity", "verified")
+            and (k != "max_price" or settings.SHOW_PRICES)}
+
+    def link(**extra):
+        from urllib.parse import urlencode
+
+        return "?" + urlencode({**base, **extra}) + "#stays"
+
+    chips = [("All stays", link(), not (f["kind"] or f["amenity"] or request.GET.get("verified")), "house")]
+    for key, label, ic in (("guesthouse", "Guest houses", "house"), ("hotel", "Island hotels", "hotel"), ("villa", "Home stays & villas", "bed-double")):
+        chips.append((label, link(kind=key), f["kind"] == key, ic))
+    for name, label, ic in (("Breakfast included", "Breakfast included", "coffee"), ("Sea view", "Sea view", "waves"),
+                            ("Family rooms", "Family rooms", "baby"), ("Airport transfer arranged", "Transfer arranged", "ship")):
+        if name in amen:
+            chips.append((label, link(amenity=amen[name]), f["amenity"] == str(amen[name]), ic))
+    chips.append(("Verified hosts", link(verified=1), bool(request.GET.get("verified")), "badge-check"))
+    top_islands = [i for i in _islands().filter(stay_count__gt=0).order_by("-stay_count", "name")[:8]]
+    if len(top_islands) < 4:
+        top_islands += [i for i in _islands().filter(is_featured=True).exclude(pk__in=[i.pk for i in top_islands])][: 8 - len(top_islands)]
+    auto = (island.photo_url if island and island.photo_url else "") or next((i.photo_url for i in _islands().filter(is_featured=True) if i.photo_url), "")
+    hero_photo, hero_credit = (auto, "") if island and island.photo_url else PageBanner.for_page("stays", auto)
+    live = _live_listings().filter(kind__in=Listing.STAY_KINDS)
+    return render(request, "directory/stay_list.html", {
+        "page": page, "f": f, "sort": sort, "chips": chips, "island": island, "top_islands": top_islands,
+        "islands": Island.objects.filter(is_published=True).order_by("name"),
+        "hero_photo": hero_photo, "hero_credit": hero_credit,
+        "n_stays": live.count(), "n_islands": live.values("island").distinct().count(), "n_verified": live.filter(is_verified=True).count(),
+        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "kind", "amenity", "guests", "verified")),
     })
 
 
@@ -305,7 +333,13 @@ def service_list(request):
     hero_photo = (activity.image_url if activity and activity.image_url else "") or (island.photo_url if island and island.photo_url else "") \
         or next((a.image_url for a in activities if a.image_url and a.slug in ("manta-ray-snorkeling", "snorkeling", "scuba-diving")), "") \
         or next((a.image_url for a in activities if a.image_url), "")
-    return render(request, "directory/experience_list.html", {
+    from .models import PageBanner
+
+    if not (activity and activity.image_url) and not (island and island.photo_url):
+        hero_photo, hero_credit = PageBanner.for_page("experiences", hero_photo)
+    else:
+        hero_credit = ""
+    return render(request, "directory/experience_list.html", {"hero_credit": hero_credit,
         "page": page, "f": f, "sort": sort, "activity": activity, "island": island, "activities": activities,
         "best_islands": best_islands, "hero_photo": hero_photo,
         "islands": Island.objects.filter(is_published=True).order_by("name"),
@@ -328,10 +362,14 @@ def food_list(request):
         ("Maldivian", "q=maldivian", q == "maldivian", "soup"),
         ("Café", "q=cafe", q == "cafe", "coffee"),
     ]
+    from .models import PageBanner
+
+    auto = (island.photo_url if island and island.photo_url else "") or (photos[1] if len(photos) > 1 else (photos[0] if photos else ""))
+    banner, hero_credit = PageBanner.for_page("food", "")
     return render(request, "directory/food_list.html", {
-        "page": page, "f": f, "sort": sort, "chips": chips, "island": island,
+        "page": page, "f": f, "sort": sort, "chips": chips, "island": island, "hero_credit": hero_credit,
         "islands": Island.objects.filter(is_published=True).order_by("name"),
-        "hero_photo": (island.photo_url if island and island.photo_url else "") or (photos[1] if len(photos) > 1 else (photos[0] if photos else "")),
+        "hero_photo": (island.photo_url if island and island.photo_url else "") or banner or auto,
         "n_food": food.count(), "n_islands": food.values("island").distinct().count(),
         "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "breakfast", "delivery", "verified")),
     })
@@ -381,7 +419,13 @@ def transport_list(request):
     acts = {a.slug: a.image_url for a in ActivityType.objects.exclude(image_url="")}
     hero_photo = (island.photo_url if island and island.photo_url else "") or acts.get("island-hopping") or acts.get("dolphin-cruise") or next(
         (i.photo_url for i in _islands().filter(is_featured=True) if i.photo_url), "")
-    return render(request, "directory/transport_list.html", {
+    from .models import PageBanner
+
+    if island and island.photo_url:
+        hero_credit = ""
+    else:
+        hero_photo, hero_credit = PageBanner.for_page("transport", hero_photo)
+    return render(request, "directory/transport_list.html", {"hero_credit": hero_credit,
         "routes": routes, "groups": groups, "operators": operators.select_related("island"), "island": island, "mode": mode,
         "modes": modes, "mode_label": dict(TransportRoute.MODE_CHOICES).get(mode, ""),
         "islands": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
@@ -444,7 +488,7 @@ def enquiry_sent_via(request, ref):
 
 
 def list_your_business(request):
-    from .models import HomeFeature
+    from .models import HomeFeature, PageBanner
 
     islands = list(_islands().filter(is_featured=True))
     photo_islands = [i for i in (HomeFeature.islands_for(HomeFeature.SECTION_HERO) or []) + islands if i.photo_url]
@@ -461,7 +505,8 @@ def list_your_business(request):
         "islands_count": Island.objects.filter(is_published=True).count(),
         "atolls_count": Island.objects.filter(is_published=True).values("atoll").distinct().count(),
         "routes_count": TransportRoute.objects.filter(is_active=True).count(),
-        "hero_photo": pick(0),
+        "hero_photo": PageBanner.for_page("list_business", pick(0))[0],
+        "hero_credit": PageBanner.for_page("list_business", pick(0))[1],
         "kinds": [
             {"title": "Stays", "icon": "house", "img": pick(1), "text": "Guest houses, island hotels, home stays and private villas."},
             {"title": "Experiences", "icon": "sailboat", "img": act_img("snorkeling", "scuba-diving", "sandbank-picnic") or pick(2),

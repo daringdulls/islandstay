@@ -873,3 +873,26 @@ class ExperiencePageTests(TestCase):
         r = self.client.get(reverse("directory:service_list") + f"?activity={act.slug}")
         self.assertEqual(r.context["activity"], act)
         self.assertContains(r, f"Best islands for {act.name.lower()}")
+
+
+class PageBannerTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_banner_set_in_back_office_shows_on_pages(self):
+        from directory.models import PageBanner
+
+        url = "https://example.com/banner.jpg"
+        for key, path in (("stays", "directory:stay_list"), ("food", "directory:food_list"), ("transport", "directory:transport_list"),
+                          ("experiences", "directory:service_list"), ("list_business", "directory:list_your_business"),
+                          ("islands", "directory:island_list")):
+            PageBanner.objects.update_or_create(page=key, defaults={"image_url": url, "credit": "Photo: Test"})
+            r = self.client.get(reverse(path))
+            self.assertContains(r, url, msg_prefix=key)
+            self.assertContains(r, "Photo: Test", msg_prefix=key)
+        PageBanner.objects.filter(page="stays").update(is_active=False)
+        self.assertNotContains(self.client.get(reverse("directory:stay_list")), url)
+        admin_user = User.objects.create_superuser("pb@x.mv", "pb@x.mv", "pw")
+        self.client.force_login(admin_user)
+        self.assertEqual(self.client.get(reverse("admin:directory_pagebanner_changelist")).status_code, 200)

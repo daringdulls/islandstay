@@ -13,7 +13,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import HomeFeature, ListingClaim, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -692,3 +692,31 @@ class ReviewAdmin(BaseAdmin):
             r.status = "rejected"
             r.save()
         self.message_user(request, f"{queryset.count()} review(s) hidden.", messages.SUCCESS)
+
+
+@admin.register(PageBanner)
+class PageBannerAdmin(BaseAdmin):
+    list_display = ("page_col", "preview", "credit", "is_active", "updated_at")
+    list_display_links = ("page_col",)
+    list_editable = ("is_active",)
+    fields = ("page", "preview_large", "image", "image_url", "credit", "is_active")
+    readonly_fields = ("preview_large",)
+
+    PATHS = {"stays": "/stays/", "experiences": "/experiences/", "transport": "/transport/", "food": "/food/",
+             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/"}
+
+    @display(description="Page", header=True)
+    def page_col(self, obj):
+        return obj.get_page_display(), self.PATHS.get(obj.page, "")
+
+    @display(description="Photo")
+    def preview(self, obj):
+        if not obj.url:
+            return "–"
+        return format_html('<img src="{}" style="width:120px;height:60px;object-fit:cover;border-radius:8px">', obj.url)
+
+    @display(description="Current photo")
+    def preview_large(self, obj):
+        if not obj or not obj.url:
+            return "No photo yet: the page uses an automatic island or activity photo."
+        return format_html('<img src="{}" style="max-width:520px;width:100%;aspect-ratio:16/7;object-fit:cover;border-radius:12px">', obj.url)

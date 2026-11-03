@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if island %}Where to stay on {{ island.name }}{% else %}Guest houses and places to stay on the local islands{% endif %}{% endblock %}
+{% block meta_description %}Guest houses, island hotels and home stays on the local islands of the Maldives. Message the host directly with no booking fees.{% endblock %}
+{% block content %}
+
+{# ---------- banner ---------- #}
+<section class="st-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
+  {% if hero_photo %}<img class="st-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container st-hero-inner">
+    <div class="eyebrow">Stays</div>
+    <h1>{% if island %}Where to stay on <span class="accent-word">{{ island.name }}</span>{% else %}Stay where the <span class="accent-word">island</span> lives{% endif %}</h1>
+    <p class="lead">Guest houses and small hotels run by island families, a short walk from the beach. Send your dates to the host and agree the price directly, with no booking fees.</p>
+    <form class="st-search" method="get" action="#stays">
+      <label class="st-field"><small>Where</small>
+        <select name="island"><option value="">Any island</option>{% for i in islands %}<option value="{{ i.slug }}" {% if i.slug == f.island %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select></label>
+      <label class="st-field"><small>Guests</small><input type="number" name="guests" min="1" max="30" value="{{ f.guests }}" placeholder="2"></label>
+      <label class="st-field st-field-q"><small>Name or keyword</small><input type="search" name="q" value="{{ f.q }}" placeholder="e.g. beach, family"></label>
+      <button class="btn btn-accent" type="submit">{% icon "search" %} Search</button>
+    </form>
+    <ul class="st-trust">
+      <li>{% icon "hand-coins" %}No booking fees</li>
+      <li>{% icon "message-circle" %}Message the host directly</li>
+      <li>{% cowrie %}{{ n_verified }} verified host{{ n_verified|pluralize }}</li>
+    </ul>
+  </div>
+</section>
+
+{# ---------- islands ---------- #}
+{% if not island and top_islands %}
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Choose your island</div><h2>Popular islands to stay on</h2></div>
+      <a class="link-arrow" href="{% url 'directory:island_list' %}">All island guides {% icon "arrow-right" %}</a></div>
+    <div class="st-islands">
+      {% for i in top_islands %}
+      <a class="st-island" href="?island={{ i.slug }}#stays">
+        {% if i.photo_url %}<img src="{{ i.card_photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
+        <span class="st-island-body"><small>{{ i.atoll.name }}</small><b>{{ i.name }}</b><em>{% if i.stay_count %}{{ i.stay_count }} place{{ i.stay_count|pluralize }} to stay{% else %}Island guide{% endif %}{% if i.has_bikini_beach %} · Bikini beach{% endif %}</em></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- results ---------- #}
+<section class="section" id="stays">
+  <div class="container">
+    <div class="st-chips" role="navigation" aria-label="Filter stays">
+      {% for label, href, on, ic in chips %}<a class="st-chip{% if on %} on{% endif %}" href="{{ href }}">{% icon ic %}{{ label }}</a>{% endfor %}
+    </div>
+    <div class="fd-results-head">
+      <div><div class="eyebrow">Places to stay</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching stays{% else %}Guest houses and island hotels{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} place{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?#stays">{% icon "x" %} Clear</a>{% endif %}
+        <form method="get" class="fd-sort" action="#stays">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" and k != "max_price" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label class="sr-only" for="st-sort">Sort</label><select id="st-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option>{% if SHOW_PRICES %}<option value="price" {% if sort == 'price' %}selected{% endif %}>Lowest price</option>{% endif %}<option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></form>
+      </div>
+    </div>
+    {% if island %}
+    <div class="st-island-note">
+      {% if island.photo_url %}<img src="{{ island.card_photo_url }}" alt="" onerror="this.remove()">{% endif %}
+      <div><b>{{ island.name }}</b>, {{ island.atoll.name }}: {{ island.tagline }}{% if island.transfer_time %} · {{ island.transfer_time }} from the airport{% endif %}.</div>
+      <a class="btn btn-ghost btn-sm" href="{{ island.get_absolute_url }}">Read the island guide</a>
+    </div>
+    {% endif %}
+    {% if page.object_list %}
+      <div class="grid">{% for l in page.object_list %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+    {% else %}
+      <div class="fd-empty">
+        <span class="fd-empty-ico ex">{% icon "house" %}</span>
+        <div>
+          <h3>{% if filtered %}No stays match that yet{% else %}Guest houses are joining now{% endif %}</h3>
+          <p>{% if island %}{{ island.name }}'s guest houses haven't listed yet. The island guide has what to expect and how to get there, and you can check back soon.{% else %}Try another island or fewer filters. New guest houses are added every week.{% endif %}</p>
+          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="?#stays">See all stays</a>{% endif %}{% if island %}<a class="btn btn-ghost btn-sm" href="{{ island.get_absolute_url }}">{{ island.name }} guide</a>{% endif %}</div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ---------- why a local island ---------- #}
+<section class="section band">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Why a guest house</div><h2>What staying on a local island is like</h2></div></div>
+    <div class="ex-seasons">
+      <article><span>{% icon "heart-handshake" %}</span><h3>Hosted by a family</h3><p>Your host knows the boat crews, the best snorkel spots and who cooks the best fish on the island.</p></article>
+      <article><span>{% icon "banknote" %}</span><h3>Fair prices</h3><p>Rooms cost a fraction of a resort, and you pay the host directly with no booking fees on top.</p></article>
+      <article><span>{% icon "umbrella" %}</span><h3>Beach and reef close by</h3><p>Most guest houses are a short walk from the beach, and many islands have a bikini beach for visitors.</p></article>
+      <article><span>{% icon "landmark" %}</span><h3>Real island life</h3><p>Mosques, schools, cafés and harbours. Dress modestly in the village, and enjoy being a guest.</p></article>
+    </div>
+  </div>
+</section>
+
+{# ---------- tips + CTA ---------- #}
+<section class="section">
+  <div class="container fd-bottom">
+    <div class="fd-tips">
+      <div class="eyebrow">Before you book</div>
+      <h2>Good questions to ask your host</h2>
+      <ul>
+        <li>{% icon "plane-landing" %}<span><b>Transfer:</b> can they arrange the boat from your flight, and what does it cost?</span></li>
+        <li>{% icon "coffee" %}<span><b>Meals:</b> is breakfast included, and can they cook dinner?</span></li>
+        <li>{% icon "umbrella" %}<span><b>Beach:</b> how far is the bikini beach from the guest house?</span></li>
+        <li>{% icon "sailboat" %}<span><b>Trips:</b> which excursions do they run, and on which days?</span></li>
+        <li>{% icon "banknote" %}<span><b>Payment:</b> cash or card, and in US dollars or rufiyaa?</span></li>
+      </ul>
+    </div>
+    <div class="fd-cta">
+      <span class="fd-cta-ico">{% icon "house" %}</span>
+      <h3>Run a guest house?</h3>
+      <p>List it free with your rooms, photos and logo. Travellers reading your island's guide message you directly, and you keep the whole booking.</p>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your guest house {% icon "arrow-right" %}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
