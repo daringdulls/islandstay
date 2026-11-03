@@ -859,3 +859,17 @@ class FoodPageTests(TestCase):
             first.save()
             r = self.client.get(reverse("directory:food_list") + "?breakfast=1")
             self.assertEqual([l.pk for l in r.context["page"].object_list], [first.pk])
+
+
+class ExperiencePageTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_experiences_page_and_activity(self):
+        r = self.client.get(reverse("directory:service_list"))
+        self.assertContains(r, "What would you like to do?")
+        act = ActivityType.objects.filter(islands__isnull=False).first()
+        r = self.client.get(reverse("directory:service_list") + f"?activity={act.slug}")
+        self.assertEqual(r.context["activity"], act)
+        self.assertContains(r, f"Best islands for {act.name.lower()}")

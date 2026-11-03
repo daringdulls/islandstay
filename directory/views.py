@@ -294,10 +294,24 @@ def stay_list(request):
 
 def service_list(request):
     page, f, sort = _filtered_listings(request, Listing.EXPERIENCE_KINDS)
-    return render(request, "directory/listing_list.html", {
-        "page": page, "f": f, "sort": sort, "mode": "experiences", "title": "Experiences",
-        "kind_choices": Listing.KIND_CHOICES[1][1], "atolls": Atoll.objects.all(),
-        "islands": Island.objects.filter(is_published=True), "activities": ActivityType.objects.all(),
+    live = _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS)
+    activities = list(ActivityType.objects.annotate(
+        n_islands=Count("islands", filter=Q(islands__is_published=True), distinct=True),
+        n_ops=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.EXPERIENCE_KINDS), distinct=True),
+    ).filter(Q(n_islands__gt=0) | Q(n_ops__gt=0)).order_by("-n_islands", "name"))
+    activity = next((a for a in activities if a.slug == f["activity"]), None)
+    island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
+    best_islands = list(_islands().filter(activities=activity).order_by("-is_featured", "name")[:8]) if activity else []
+    hero_photo = (activity.image_url if activity and activity.image_url else "") or (island.photo_url if island and island.photo_url else "") \
+        or next((a.image_url for a in activities if a.image_url and a.slug in ("manta-ray-snorkeling", "snorkeling", "scuba-diving")), "") \
+        or next((a.image_url for a in activities if a.image_url), "")
+    return render(request, "directory/experience_list.html", {
+        "page": page, "f": f, "sort": sort, "activity": activity, "island": island, "activities": activities,
+        "best_islands": best_islands, "hero_photo": hero_photo,
+        "islands": Island.objects.filter(is_published=True).order_by("name"),
+        "n_ops": live.count(), "n_acts": len(activities),
+        "n_islands": Island.objects.filter(is_published=True, activities__isnull=False).distinct().count(),
+        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "activity", "verified")),
     })
 
 

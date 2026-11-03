@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if activity %}{{ activity.name }} in the Maldives{% elif island %}Things to do on {{ island.name }}{% else %}Experiences on the local islands{% endif %}{% endblock %}
+{% block meta_description %}Snorkelling, diving, manta and whale shark trips, sandbank picnics and fishing on the local islands of the Maldives, run by local operators you can message directly.{% endblock %}
+{% block content %}
+
+{# ---------- banner ---------- #}
+<section class="ex-hero">
+  {% if hero_photo %}<img class="ex-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container ex-hero-inner">
+    <div class="eyebrow">Experiences</div>
+    <h1>{% if activity %}<span class="accent-word">{{ activity.name }}</span> on the local islands{% elif island %}Things to do on <span class="accent-word">{{ island.name }}</span>{% else %}Spend your days on the <span class="accent-word">reef</span>{% endif %}</h1>
+    <p class="lead">{% if activity %}{{ activity.description }}{% else %}Snorkelling, diving, mantas, whale sharks, sandbank picnics and fishing trips, run by people from the island who know the reef.{% endif %}</p>
+    <form class="fd-search" method="get" role="search" action="#operators">
+      {% if activity %}<input type="hidden" name="activity" value="{{ activity.slug }}">{% endif %}
+      <label class="sr-only" for="ex-q">Search</label>
+      {% icon "search" %}<input id="ex-q" type="search" name="q" value="{{ f.q }}" placeholder="Operator, trip or island">
+      <label class="sr-only" for="ex-island">Island</label>
+      <select id="ex-island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if i.slug == f.island %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select>
+      <button class="btn btn-accent btn-sm" type="submit">Search</button>
+    </form>
+    <ul class="ex-hero-facts">
+      <li><b>{{ n_acts }}</b><span>activities</span></li>
+      <li><b>{{ n_islands }}</b><span>islands</span></li>
+      <li><b>{{ n_ops }}</b><span>local operator{{ n_ops|pluralize }}</span></li>
+    </ul>
+  </div>
+</section>
+
+{# ---------- activities ---------- #}
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Choose by activity</div><h2>What would you like to do?</h2></div>
+      {% if activity %}<a class="link-arrow" href="{% url 'directory:service_list' %}">All activities {% icon "arrow-right" %}</a>{% endif %}</div>
+    <div class="ex-acts">
+      {% for a in activities %}
+      {% if forloop.counter == 11 %}</div><details class="ex-more"{% if activity %} open{% endif %}><summary>Show all {{ activities|length }} activities</summary><div class="ex-acts">{% endif %}
+      <a class="ex-act{% if activity and a.slug == activity.slug %} on{% endif %}" href="?activity={{ a.slug }}{% if f.island %}&amp;island={{ f.island }}{% endif %}#operators">
+        <span class="ex-act-img">{% if a.image_url %}<img src="{{ a.thumb_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="ex-act-ico">{% icon a.icon %}</span></span>
+        <span class="ex-act-body"><b>{{ a.name }}</b><small>{{ a.n_islands }} island{{ a.n_islands|pluralize }}{% if a.n_ops %} · {{ a.n_ops }} operator{{ a.n_ops|pluralize }}{% endif %}</small></span>
+      </a>
+      {% if forloop.last and forloop.counter > 10 %}</div></details><div class="ex-acts">{% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- best islands for the chosen activity ---------- #}
+{% if activity and best_islands %}
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Where to go</div><h2>Best islands for {{ activity.name|lower }}</h2></div></div>
+    <div class="ex-islands">
+      {% for i in best_islands %}
+      <a class="ex-island" href="{{ i.get_absolute_url }}">
+        <span class="ex-island-img">{% if i.photo_url %}<img src="{{ i.card_photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</span>
+        <span><small>{{ i.atoll.name }}</small><b>{{ i.name }}</b>{% if i.transfer_time %}<em>{% icon "clock" %}{{ i.transfer_time }}</em>{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- operators ---------- #}
+<section class="section" id="operators">
+  <div class="container">
+    <div class="fd-results-head">
+      <div><div class="eyebrow">Local operators</div><h2>{% if activity %}{{ activity.name }} operators{% elif island %}On {{ island.name }}{% else %}Dive centres and excursions{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} operator{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
+        <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label class="sr-only" for="ex-sort">Sort</label><select id="ex-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select>
+          <label class="ex-verified"><input type="checkbox" name="verified" value="1" {% if request.GET.verified %}checked{% endif %} onchange="this.form.submit()"> Verified only</label></form>
+      </div>
+    </div>
+    {% if page.object_list %}
+      <div class="grid">{% for l in page.object_list %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+    {% else %}
+      <div class="fd-empty">
+        <span class="fd-empty-ico ex">{% icon "sailboat" %}</span>
+        <div>
+          <h3>{% if filtered %}No operators listed for this yet{% else %}Local operators are joining now{% endif %}</h3>
+          <p>Guest houses arrange {% if activity %}{{ activity.name|lower }}{% else %}snorkelling, diving and boat trips{% endif %} for their guests every day, usually with the island's own boat crews. {% if best_islands %}Pick one of the islands above and ask your host.{% else %}Ask your host when you send a request.{% endif %}</p>
+          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="?">See all experiences</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:stay_list' %}{% if f.island %}?island={{ f.island }}{% endif %}">Find a guest house</a></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ---------- seasons ---------- #}
+<section class="section band">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">When to go</div><h2>The reef has seasons too</h2></div></div>
+    <div class="ex-seasons">
+      <article><span>{% icon "waves" %}</span><h3>Manta rays</h3><p>Hanifaru Bay in Baa is famous from roughly May to November. Ari's cleaning stations are busier from about December to April.</p></article>
+      <article><span>{% icon "fish" %}</span><h3>Whale sharks</h3><p>Seen all year in the South Ari Marine Protected Area, around Dhigurah and Dhangethi.</p></article>
+      <article><span>{% icon "sun" %}</span><h3>Calm, clear water</h3><p>The dry season, about December to April, usually brings flat seas and the best visibility.</p></article>
+      <article><span>{% icon "sailboat" %}</span><h3>Surf</h3><p>Waves are most consistent from about March to October, around North Malé breaks such as Thulusdhoo and Himmafushi.</p></article>
+    </div>
+    <p class="small muted" style="margin-top:12px">Seasons vary year to year. Your host or operator will know what's being seen this week.</p>
+  </div>
+</section>
+
+{# ---------- etiquette + CTA ---------- #}
+<section class="section">
+  <div class="container fd-bottom">
+    <div class="fd-tips">
+      <div class="eyebrow">Good to know</div>
+      <h2>On the reef</h2>
+      <ul>
+        <li>{% icon "leaf" %}<span><b>Don't touch or stand on coral.</b> It's alive, and it's what feeds the island.</span></li>
+        <li>{% icon "turtle" %}<span><b>Give wildlife space:</b> stay a few metres from whale sharks, mantas and turtles, and never chase or touch them.</span></li>
+        <li>{% icon "droplets" %}<span><b>Use reef-safe sunscreen</b>, or a rash vest.</span></li>
+        <li>{% icon "shield-check" %}<span><b>Go with a licensed operator:</b> look for the Verified badge, and ask about life jackets and first aid.</span></li>
+        <li>{% icon "life-buoy" %}<span><b>Diving before your flight home?</b> Leave about 24 hours between your last dive and take-off.</span></li>
+      </ul>
+    </div>
+    <div class="fd-cta">
+      <span class="fd-cta-ico">{% icon "sailboat" %}</span>
+      <h3>Run trips, a dive centre or a boat?</h3>
+      <p>List free with the activities you offer. You'll appear on your island's guide and under each activity here, and guests message you directly.</p>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your experience {% icon "arrow-right" %}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
