@@ -840,3 +840,22 @@ class ClaimReviewInsightTests(TestCase):
         self.client.force_login(self.listing.owner)
         for d in (7, 30, 90):
             self.assertEqual(self.client.get(reverse("directory:listing_insights", args=[self.listing.pk]) + f"?days={d}").status_code, 200)
+
+
+class FoodPageTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_food_page_and_filters(self):
+        food = Listing.objects.filter(kind__in=Listing.FOOD_KINDS, status="approved")
+        r = self.client.get(reverse("directory:food_list"))
+        self.assertContains(r, "Maldivian food to try")
+        self.assertEqual(r.context["page"].paginator.count, food.count())
+        Listing.objects.filter(pk__in=food.values("pk")).update(serves_breakfast=False)
+        if food.exists():
+            first = food.first()
+            first.serves_breakfast = True
+            first.save()
+            r = self.client.get(reverse("directory:food_list") + "?breakfast=1")
+            self.assertEqual([l.pk for l in r.context["page"].object_list], [first.pk])

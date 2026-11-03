@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if island %}Where to eat on {{ island.name }}{% else %}Cafés and restaurants on the local islands{% endif %}{% endblock %}
+{% block meta_description %}Cafés and family restaurants on the local islands of the Maldives: Maldivian breakfasts, reef fish, short eats and fresh juice. Find places to eat and message them directly.{% endblock %}
+{% block content %}
+
+{# ---------- banner ---------- #}
+<section class="fd-hero">
+  {% if hero_photo %}<img class="fd-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container fd-hero-inner">
+    <div class="eyebrow">Food</div>
+    <h1>{% if island %}Where to eat on <span class="accent-word">{{ island.name }}</span>{% else %}Eat where the <span class="accent-word">island</span> eats{% endif %}</h1>
+    <p class="lead">Island cafés and family restaurants: mas huni for breakfast, reef fish grilled on the beach, short eats with sweet tea, and fresh juice everywhere.</p>
+    <form class="fd-search" method="get" role="search">
+      <label class="sr-only" for="fd-q">Search</label>
+      {% icon "search" %}<input id="fd-q" type="search" name="q" value="{{ f.q }}" placeholder="Café, dish or cuisine">
+      <label class="sr-only" for="fd-island">Island</label>
+      <select id="fd-island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if i.slug == f.island %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select>
+      <button class="btn btn-accent btn-sm" type="submit">Search</button>
+    </form>
+    <div class="fd-chips">
+      {% for label, qs, on, ic in chips %}<a class="fd-chip{% if on %} on{% endif %}" href="?{% if f.island and 'island' not in qs %}island={{ f.island }}&amp;{% endif %}{{ qs }}#places">{% icon ic %}{{ label }}</a>{% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- results ---------- #}
+<section class="section" id="places">
+  <div class="container">
+    <div class="fd-results-head">
+      <div><div class="eyebrow">Places to eat</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching cafés and restaurants{% else %}Cafés and restaurants{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} place{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
+        <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label class="sr-only" for="fd-sort">Sort</label><select id="fd-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></form>
+      </div>
+    </div>
+    {% if page.object_list %}
+      <div class="grid">{% for l in page.object_list %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+    {% else %}
+      <div class="fd-empty">
+        <span class="fd-empty-ico">{% icon "utensils" %}</span>
+        <div>
+          <h3>{% if filtered %}Nothing matches that yet{% else %}Island cafés are joining now{% endif %}</h3>
+          <p>Most guest houses serve breakfast and can cook lunch and dinner on request, and every inhabited island has a few local cafés. Ask your host where they eat.</p>
+          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="?">See all places</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:stay_list' %}">Find a guest house</a></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ---------- dishes ---------- #}
+<section class="section band">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Maldivian food to try</div><h2>Six things to order on a local island</h2></div></div>
+    <div class="fd-dishes">
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "sun" %}</span><h3>Mas huni</h3><small>Breakfast</small><p>Tuna, grated coconut, onion and chilli, eaten with warm roshi flatbread and sweet black tea.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "soup" %}</span><h3>Garudhiya</h3><small>Lunch or dinner</small><p>A clear tuna broth served with rice, lime, chilli and onion. The everyday family meal.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "coffee" %}</span><h3>Hedhikaa</h3><small>Tea time</small><p>Short eats: a tray of fried and baked snacks such as gulha, bajiya and fish rolls, with tea.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "fish" %}</span><h3>Fihunu mas</h3><small>Dinner</small><p>Fish rubbed with chilli paste and grilled, often reef fish caught that day.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "utensils" %}</span><h3>Mas riha</h3><small>Lunch or dinner</small><p>Tuna curry, rich with coconut and curry leaves, eaten with rice or roshi.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "citrus" %}</span><h3>Fresh juice</h3><small>Any time</small><p>Watermelon, papaya, lime and young coconut (kurumba): the drinks of an alcohol-free island.</p></article>
+    </div>
+  </div>
+</section>
+
+{# ---------- tips + CTA ---------- #}
+<section class="section">
+  <div class="container fd-bottom">
+    <div class="fd-tips">
+      <div class="eyebrow">Good to know</div>
+      <h2>Eating on a local island</h2>
+      <ul>
+        <li>{% icon "shield-check" %}<span><b>No alcohol</b> is served on local islands. Try a resort day trip or a safari boat if you'd like a drink.</span></li>
+        <li>{% icon "clock" %}<span><b>Fridays:</b> many cafés close for midday prayers and reopen in the afternoon.</span></li>
+        <li>{% icon "calendar" %}<span><b>During Ramadan</b> cafés open after sunset; guest houses still serve guests during the day.</span></li>
+        <li>{% icon "banknote" %}<span><b>Bring some cash.</b> Small cafés may not take cards, and some add a 10% service charge.</span></li>
+        <li>{% icon "heart-handshake" %}<span><b>Ask your host:</b> many guest houses cook dinner on request, including beach barbecues.</span></li>
+      </ul>
+    </div>
+    <div class="fd-cta">
+      <span class="fd-cta-ico">{% icon "store" %}</span>
+      <h3>Run a café or restaurant?</h3>
+      <p>List it free with your menu style, opening hours and whether you deliver to guest houses. Guests message you directly.</p>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your restaurant {% icon "arrow-right" %}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -271,6 +271,10 @@ def _filtered_listings(request, kinds):
         qs = qs.filter(is_verified=True)
     if f["amenity"].isdigit():
         qs = qs.filter(amenities__id=int(f["amenity"]))
+    if request.GET.get("breakfast"):
+        qs = qs.filter(serves_breakfast=True)
+    if request.GET.get("delivery"):
+        qs = qs.filter(delivery=True)
     sort = request.GET.get("sort", "")
     if sort == "price" and settings.SHOW_PRICES:
         qs = qs.order_by("price_from")
@@ -299,9 +303,23 @@ def service_list(request):
 
 def food_list(request):
     page, f, sort = _filtered_listings(request, Listing.FOOD_KINDS)
-    return render(request, "directory/listing_list.html", {
-        "page": page, "f": f, "sort": sort, "mode": "food", "title": "Food & restaurants",
-        "kind_choices": [], "atolls": Atoll.objects.all(), "islands": Island.objects.filter(is_published=True),
+    food = _live_listings().filter(kind__in=Listing.FOOD_KINDS)
+    photos = [i.photo_url for i in _islands().filter(is_featured=True) if i.photo_url]
+    island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
+    q = (f["q"] or "").lower()
+    chips = [
+        ("Breakfast", "breakfast=1", bool(request.GET.get("breakfast")), "coffee"),
+        ("Delivers to guest houses", "delivery=1", bool(request.GET.get("delivery")), "bike"),
+        ("Seafood", "q=seafood", q == "seafood", "fish"),
+        ("Maldivian", "q=maldivian", q == "maldivian", "soup"),
+        ("Café", "q=cafe", q == "cafe", "coffee"),
+    ]
+    return render(request, "directory/food_list.html", {
+        "page": page, "f": f, "sort": sort, "chips": chips, "island": island,
+        "islands": Island.objects.filter(is_published=True).order_by("name"),
+        "hero_photo": (island.photo_url if island and island.photo_url else "") or (photos[1] if len(photos) > 1 else (photos[0] if photos else "")),
+        "n_food": food.count(), "n_islands": food.values("island").distinct().count(),
+        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "breakfast", "delivery", "verified")),
     })
 
 
