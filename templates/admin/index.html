@@ -2,106 +2,110 @@
 {% load i18n unfold humanize %}
 
 {% block title %}Dashboard | {{ site_title }}{% endblock %}
-
-{% block branding %}
-    {% include "unfold/helpers/site_branding.html" %}
-{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
 
 {% block content %}
 <div class="is-dash">
-  <div class="is-dash-head">
-    <div>
-      <p class="is-eyebrow">{% now "l j F Y" %}</p>
-      <h1 class="is-title">Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
-      <p class="is-sub">Here's what needs your attention on Island Stay today.</p>
+  {# ---------- welcome band ---------- #}
+  <section class="db-hero">
+    <div class="db-hero-top">
+      <div>
+        <p class="db-eyebrow">{% now "l j F Y" %}</p>
+        <h1>Welcome back{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+        <p class="db-sub">{% if waiting %}<b>{{ waiting }} thing{{ waiting|pluralize }}</b> waiting for you today.{% else %}Everything is up to date. Nice work.{% endif %}</p>
+      </div>
+      <div class="db-actions">
+        {% for q in quick_links %}<a href="{{ q.href }}"><span class="material-symbols-outlined">{{ q.icon }}</span>{{ q.title }}</a>{% endfor %}
+        <a href="/" target="_blank"><span class="material-symbols-outlined">open_in_new</span>View website</a>
+      </div>
     </div>
-    <div class="is-quick">
-      {% for q in quick_links %}
-        <a class="is-quick-link" href="{{ q.href }}"><span class="material-symbols-outlined">{{ q.icon }}</span>{{ q.title }}</a>
-      {% endfor %}
+    <div class="db-hero-stats">
+      <div><span>Visitors this week</span><b>{{ week.visitors|intcomma }}</b></div>
+      <div><span>Visits</span><b>{{ week.visits|intcomma }}</b></div>
+      <div><span>Booking requests</span><b>{{ week.requests|intcomma }}</b></div>
+      <a class="db-hero-link" href="{{ analytics_url }}">Open analytics <span class="material-symbols-outlined">arrow_forward</span></a>
     </div>
-  </div>
+  </section>
 
-  <div class="is-kpis">
+  {# ---------- KPIs ---------- #}
+  <div class="db-kpis">
     {% for k in kpis %}
-      <a class="is-kpi {% if k.alert and k.value %}is-kpi-alert{% endif %}" href="{{ k.href }}">
-        <span class="is-kpi-icon material-symbols-outlined">{{ k.icon }}</span>
-        <span class="is-kpi-title">{{ k.title }}</span>
-        <span class="is-kpi-value">{{ k.value|intcomma }}</span>
-        <span class="is-kpi-note">{{ k.note }}</span>
+      <a class="db-kpi {% if k.alert and k.value %}alert{% endif %}" href="{{ k.href }}">
+        <span class="db-kpi-icon material-symbols-outlined">{{ k.icon }}</span>
+        <span class="db-kpi-title">{{ k.title }}</span>
+        <span class="db-kpi-value">{{ k.value|intcomma }}</span>
+        <span class="db-kpi-note">{{ k.note }}</span>
       </a>
     {% endfor %}
   </div>
 
-  <div class="is-grid">
-    <section class="is-panel is-span-2">
-      <header><div><h2>Listings waiting for review</h2><p>Approve to publish them on the website. Owners see the new status in their dashboard.</p></div>
-        <a class="is-link" href="{% url 'admin:directory_listing_changelist' %}?status__exact=pending">View all</a></header>
+  <div class="db-grid">
+    {# ---------- to do ---------- #}
+    <section class="db-card">
+      <header><span class="material-symbols-outlined">checklist</span><div><h2>To do</h2><p>Everything waiting for a decision</p></div></header>
+      <ul class="db-todo">
+        {% for title, n, href, icon in todo %}
+        <li class="{% if n %}has{% endif %}"><a href="{{ href }}"><span class="material-symbols-outlined">{{ icon }}</span><span class="db-todo-title">{{ title }}</span>{% if n %}<b>{{ n }}</b>{% else %}<em class="material-symbols-outlined">check</em>{% endif %}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {# ---------- chart ---------- #}
+    <section class="db-card db-span-2">
+      <header><span class="material-symbols-outlined">bar_chart</span><div><h2>Booking requests</h2><p>Last 14 days · {{ requests_total }} total</p></div>
+        <a class="db-link" href="{% url 'admin:directory_enquiry_changelist' %}">All requests</a></header>
+      <div class="db-chart">{% component "unfold/components/chart/bar.html" with data=chart_data height=230 %}{% endcomponent %}</div>
+    </section>
+
+    {# ---------- pending listings ---------- #}
+    <section class="db-card db-span-2">
+      <header><span class="material-symbols-outlined">pending_actions</span><div><h2>Listings waiting for review</h2><p>Approve to publish them on the website</p></div>
+        <a class="db-link" href="{% url 'admin:directory_listing_changelist' %}?status__exact=pending">View all</a></header>
       {% if pending %}
-      <table class="is-table">
+      <table class="db-table">
         <thead><tr><th>Business</th><th>Type</th><th>Island</th><th>Submitted</th><th></th></tr></thead>
-        <tbody>
-        {% for l in pending %}
-          <tr>
-            <td><strong>{{ l.name }}</strong><span class="is-muted">{{ l.owner.email }}</span></td>
-            <td>{{ l.get_kind_display }}</td>
-            <td>{{ l.island.name }}</td>
-            <td>{{ l.created_at|timesince }} ago</td>
-            <td class="is-right"><a class="is-btn" href="{% url 'admin:directory_listing_change' l.pk %}">Review</a></td>
-          </tr>
-        {% endfor %}
-        </tbody>
+        <tbody>{% for l in pending %}<tr>
+          <td><strong>{{ l.name }}</strong><span class="is-muted">{{ l.owner.email }}</span></td><td>{{ l.get_kind_display }}</td><td>{{ l.island.name }}</td>
+          <td>{{ l.created_at|timesince }} ago</td><td class="is-right"><a class="db-btn" href="{% url 'admin:directory_listing_change' l.pk %}">Review</a></td></tr>{% endfor %}</tbody>
       </table>
-      {% else %}<div class="is-empty"><span class="material-symbols-outlined">task_alt</span>No listings waiting. You're all caught up.</div>{% endif %}
+      {% else %}<div class="db-empty"><span class="material-symbols-outlined">task_alt</span><div><b>All caught up</b><p>New listings from businesses will appear here for approval.</p></div></div>{% endif %}
     </section>
 
-    <section class="is-panel">
-      <header><div><h2>Booking requests</h2><p>Last 14 days · {{ requests_total }} total</p></div></header>
-      <div class="is-chart">{% component "unfold/components/chart/bar.html" with data=chart_data height=220 %}{% endcomponent %}</div>
+    {# ---------- website this week ---------- #}
+    <section class="db-card">
+      <header><span class="material-symbols-outlined">insights</span><div><h2>Website this week</h2><p>From visitors who allowed analytics</p></div></header>
+      <h3 class="db-h3">Most viewed islands</h3>
+      {% if week.islands %}<ol class="db-rank">{% for name, n in week.islands %}<li><span>{{ name }}</span><b>{{ n }}</b></li>{% endfor %}</ol>{% else %}<p class="db-none">No island views yet this week.</p>{% endif %}
+      <h3 class="db-h3">Where visitors came from</h3>
+      {% if week.sources %}<ol class="db-rank">{% for name, n in week.sources %}<li><span>{{ name }}</span><b>{{ n }}</b></li>{% endfor %}</ol>{% else %}<p class="db-none">No visits yet this week.</p>{% endif %}
     </section>
 
-    <section class="is-panel is-span-2">
-      <header><div><h2>Latest booking requests</h2><p>Sent by travellers directly to hosts.</p></div>
-        <a class="is-link" href="{% url 'admin:directory_enquiry_changelist' %}">View all</a></header>
+    {# ---------- latest requests ---------- #}
+    <section class="db-card db-span-2">
+      <header><span class="material-symbols-outlined">inbox</span><div><h2>Latest booking requests</h2><p>Sent by travellers to hosts</p></div>
+        <a class="db-link" href="{% url 'admin:directory_enquiry_changelist' %}">View all</a></header>
       {% if latest_requests %}
-      <table class="is-table">
+      <table class="db-table">
         <thead><tr><th>Reference</th><th>Guest</th><th>For</th><th>Dates</th><th>Status</th></tr></thead>
-        <tbody>
-        {% for e in latest_requests %}
-          <tr>
-            <td><a href="{% url 'admin:directory_enquiry_change' e.pk %}"><strong>{{ e.reference }}</strong></a><span class="is-muted">{{ e.created_at|date:"j M, H:i" }}</span></td>
-            <td>{{ e.guest_name }}<span class="is-muted">{{ e.guest_country|default:e.guest_email }}</span></td>
-            <td>{{ e.listing.name }}<span class="is-muted">{{ e.listing.island.name }}</span></td>
-            <td>{% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td>
-            <td><span class="is-status is-status-{{ e.status }}">{{ e.get_status_display }}</span></td>
-          </tr>
-        {% endfor %}
-        </tbody>
+        <tbody>{% for e in latest_requests %}<tr>
+          <td><a href="{% url 'admin:directory_enquiry_change' e.pk %}"><strong>{{ e.reference }}</strong></a><span class="is-muted">{{ e.created_at|date:"j M, H:i" }}</span></td>
+          <td>{{ e.guest_name }}<span class="is-muted">{{ e.guest_country|default:e.guest_email }}</span></td>
+          <td>{{ e.listing.name }}<span class="is-muted">{{ e.listing.island.name }}</span></td>
+          <td>{% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td>
+          <td><span class="is-status is-status-{{ e.status }}">{{ e.get_status_display }}</span></td></tr>{% endfor %}</tbody>
       </table>
-      {% else %}<div class="is-empty"><span class="material-symbols-outlined">inbox</span>No booking requests yet.</div>{% endif %}
+      {% else %}<div class="db-empty"><span class="material-symbols-outlined">inbox</span><div><b>No booking requests yet</b><p>When travellers send requests, they'll appear here with their dates and status.</p></div></div>{% endif %}
     </section>
 
-    <div class="is-stack">
-      <section class="is-panel">
-        <header><div><h2>Verification requests</h2><p>Check the licence, then mark as verified.</p></div></header>
-        {% if verification %}
-          <ul class="is-list">{% for l in verification %}<li><a href="{% url 'admin:directory_listing_change' l.pk %}">{{ l.name }}</a><span class="is-muted">{{ l.island.name }} · {{ l.verification_requested_at|timesince }} ago</span></li>{% endfor %}</ul>
-        {% else %}<div class="is-empty is-empty-sm">No requests waiting.</div>{% endif %}
-      </section>
-      <section class="is-panel">
-        <header><div><h2>Island suggestions</h2><p>Islands businesses asked us to add.</p></div></header>
-        {% if suggestions %}
-          <ul class="is-list">{% for s in suggestions %}<li><a href="{% url 'admin:directory_islandsuggestion_change' s.pk %}">{{ s.island_name }}</a><span class="is-muted">{{ s.atoll|default:"Atoll not given" }}</span></li>{% endfor %}</ul>
-        {% else %}<div class="is-empty is-empty-sm">No new suggestions.</div>{% endif %}
-      </section>
-      {% if islands_without_photo %}
-      <section class="is-panel is-tip">
-        <span class="material-symbols-outlined">add_photo_alternate</span>
-        <div><strong>{{ islands_without_photo }} island{{ islands_without_photo|pluralize }} without a cover photo</strong>
-        <p>Select them in <a href="{% url 'admin:directory_island_changelist' %}?photo=no">Islands</a> and run "Find photos on Wikimedia Commons". They also update automatically each time the site starts.</p></div>
-      </section>
-      {% endif %}
-    </div>
+    {# ---------- content health ---------- #}
+    <section class="db-card">
+      <header><span class="material-symbols-outlined">health_and_safety</span><div><h2>Content health</h2><p>Small fixes that make the site look its best</p></div></header>
+      <ul class="db-todo">
+        {% for title, n, href, icon in health %}
+        <li class="{% if n %}warn{% endif %}"><a href="{{ href }}"><span class="material-symbols-outlined">{{ icon }}</span><span class="db-todo-title">{{ title }}</span>{% if n %}<b>{{ n }}</b>{% else %}<em class="material-symbols-outlined">check</em>{% endif %}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
   </div>
 </div>
 {% endblock %}

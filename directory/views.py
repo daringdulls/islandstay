@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -15,7 +16,7 @@ from .forms import (
     EnquiryForm, EnquiryUpdateForm, IslandSuggestionForm, ListingForm, PhotoUploadForm, RoomFormSet, RouteFormSet,
     VerificationForm,
 )
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandPhoto, Listing, ListingPhoto, TransportRoute
+from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandPhoto, Listing, ListingPhoto, PageBanner, TransportRoute
 
 APPROVED = Listing.STATUS_APPROVED
 
@@ -210,9 +211,35 @@ def island_list(request):
     sort = request.GET.get("sort", "name")
     qs = qs.order_by({"stays": "-stay_count", "near": "distance_from_airport_km", "atoll": "atoll__order", "size": "-population"}.get(sort, "name"))
     page = Paginator(qs.distinct(), 18).get_page(request.GET.get("page"))
+    base = _islands()
+
+    def link(**kw):
+        params = {k: v for k, v in {"q": q, "atoll": atoll}.items() if v}
+        params.update(kw)
+        return urlencode(params)
+
+    chips = [
+        ("All islands", link(), not (activity or request.GET.get("bikini") or sort != "name"), "map"),
+        ("Bikini beach", link(bikini=1), bool(request.GET.get("bikini")), "umbrella"),
+        ("Closest to Malé", link(sort="near"), sort == "near", "plane-landing"),
+    ]
+    for slug, label, ic in [("whale-shark-excursion", "Whale sharks", "fish"), ("manta-ray-snorkeling", "Mantas", "waves"),
+                            ("surfing", "Surf", "waves"), ("scuba-diving", "Diving", "anchor"), ("turtle-snorkeling", "Turtles", "turtle"),
+                            ("sandbank-picnic", "Sandbanks", "sun")]:
+        if base.filter(activities__slug=slug).exists():
+            chips.append((label, link(activity=slug), activity == slug, ic))
+    chips.append(("Most places to stay", link(sort="stays"), sort == "stays", "bed-double"))
+    atoll_strip = list(Atoll.objects.filter(islands__is_published=True).annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name"))
+    auto = next((i.photo_url for i in base.filter(is_featured=True) if i.photo_url), "") or next((i.photo_url for i in base[:12] if i.photo_url), "")
+    hero_photo, hero_credit = PageBanner.for_page("islands", auto)
+    filtered = bool(q or atoll or activity or request.GET.get("bikini") or request.GET.get("type"))
     return render(request, "directory/island_list.html", {
         "page": page, "atolls": Atoll.objects.all(), "activities": ActivityType.objects.all(),
-        "q": q, "atoll_sel": atoll, "activity_sel": activity, "sort": sort,
+        "q": q, "atoll_sel": atoll, "activity_sel": activity, "sort": sort, "chips": chips,
+        "atoll_strip": atoll_strip, "hero_photo": hero_photo, "hero_credit": hero_credit, "filtered": filtered,
+        "atoll_obj": next((a for a in atoll_strip if a.slug == atoll), None),
+        "figures": {"islands": base.count(), "atolls": len(atoll_strip), "bikini": base.filter(has_bikini_beach=True).count(),
+                    "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count()},
     })
 
 

@@ -1392,3 +1392,54 @@ a.card:hover .cover img.cowrie { transform: none; }
 .st-island-note div { flex: 1; color: var(--ink-2); font-size: .92rem; }
 .st-island-note b { color: var(--ink); }
 @media (max-width: 600px) { .st-island-note { flex-wrap: wrap; } }
+
+/* ===================================================== Islands page */
+.il-hero { position: relative; overflow: hidden; isolation: isolate; background: var(--sea-2); color: #fff; }
+.il-hero-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.il-hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10, 61, 76, .8) 0%, rgba(10, 61, 76, .5) 45%, rgba(10, 61, 76, .92) 100%); }
+.il-hero-inner { padding-block: 92px 44px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.il-hero .eyebrow { color: var(--shallows); }
+.il-hero h1 { color: #fff; font-size: clamp(2.3rem, 5.2vw, 3.8rem); line-height: 1.04; margin: 10px 0 14px; }
+.il-hero h1 .accent-word { color: var(--shallows); }
+.il-hero .lead { color: rgba(255, 255, 255, .9); max-width: 640px; margin: 0 0 30px; }
+.il-search { display: grid; grid-template-columns: 1.5fr 1fr auto; width: min(780px, 100%); background: #fff; border-radius: 24px; padding: 8px; box-shadow: 0 24px 60px rgba(0, 0, 0, .3); text-align: left; }
+.il-search .st-field-q { border-right: 1px solid var(--line); }
+.il-search .st-field:last-of-type { border-right: 0; }
+.il-search .btn { border-radius: 18px; padding: 14px 24px; font-size: 1rem; }
+.il-search .btn .i { width: 18px; height: 18px; }
+@media (max-width: 640px) { .il-search { grid-template-columns: 1fr; } .il-search .st-field-q { border-right: 0; border-bottom: 1px solid var(--line); } .il-search .st-field { padding: 10px 14px; } }
+.il-figures { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 40px; margin: 30px 0 0; padding: 0; }
+.il-figures li { display: flex; flex-direction: column; align-items: center; }
+.il-figures b { font-family: var(--font-display); font-size: 1.8rem; line-height: 1; }
+.il-figures span { font-size: .82rem; color: rgba(255, 255, 255, .8); margin-top: 4px; }
+.il-atolls-wrap { background: #fff; border-bottom: 1px solid var(--line); position: relative; z-index: 2; }
+.il-atolls-head { display: flex; align-items: baseline; gap: 10px; padding-top: 16px; }
+.il-atolls-head span { font-weight: 700; color: var(--ink); }
+.il-atolls-head small { color: var(--ink-2); font-size: .82rem; }
+.il-atolls { display: flex; gap: 10px; overflow-x: auto; padding: 12px 0 16px; scrollbar-width: thin; }
+.il-atoll { flex: none; display: flex; flex-direction: column; padding: 10px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--shoal); color: var(--ink); min-width: 140px; }
+.il-atoll:hover { text-decoration: none; border-color: var(--sea); }
+.il-atoll b { font-size: .92rem; }
+.il-atoll small { font-size: .76rem; color: var(--ink-2); }
+.il-atoll.on { background: var(--sea-2); border-color: var(--sea-2); color: #fff; }
+.il-atoll.on small { color: rgba(255, 255, 255, .78); }
+.il-results { padding-top: 32px; }
+.il-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 26px; border-radius: 18px; background: var(--shoal); }
+.il-empty > .i { width: 32px; height: 32px; color: var(--sea); }
+.il-empty > div { flex: 1; min-width: 200px; }
+.il-empty p { margin: 2px 0 0; color: var(--ink-2); }
+.il-guide { background: var(--shoal); }
+.il-guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 860px) { .il-guide-grid { grid-template-columns: 1fr; } }
+.il-guide-card { display: flex; flex-direction: column; gap: 8px; padding: 22px; border-radius: 18px; background: #fff; border: 1px solid var(--line); color: var(--ink); transition: transform .15s, box-shadow .15s; }
+.il-guide-card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 14px 30px rgba(10, 61, 76, .1); }
+.il-guide-card > .i { width: 40px; height: 40px; padding: 9px; border-radius: 12px; background: rgba(11, 110, 138, .1); color: var(--sea); }
+.il-guide-card b { font-family: var(--font-display); font-size: 1.2rem; }
+.il-guide-card p { margin: 0; color: var(--ink-2); font-size: .93rem; flex: 1; }
+.il-guide-card span { display: inline-flex; align-items: center; gap: 6px; color: var(--sea); font-weight: 700; font-size: .9rem; }
+.il-guide-card span .i { width: 16px; height: 16px; }
+.il-suggest { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-top: 22px; padding: 18px 22px; border-radius: 18px; background: var(--sea-2); color: #fff; }
+.il-suggest > div { display: flex; align-items: center; gap: 14px; }
+.il-suggest .i { width: 28px; height: 28px; color: var(--shallows); }
+.il-suggest p { margin: 0; color: rgba(255, 255, 255, .8); font-size: .9rem; }
+.il-suggest .btn { background: #fff; color: var(--sea-2); }

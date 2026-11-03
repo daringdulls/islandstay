@@ -69,7 +69,43 @@ def dashboard_callback(request, context):
     live = Listing.objects.filter(status=Listing.STATUS_APPROVED)
     week_ago = timezone.now() - timedelta(days=7)
 
+    from collections import Counter
+
+    from analytics.models import Event, Visit
+    from .models import ListingClaim, Review
+
+    week_visits = Visit.objects.filter(started_at__gte=week_ago)
+    n_visitors = week_visits.values("visitor").distinct().count()
+    island_views = Counter()
+    for path in Event.objects.filter(type="pageview", ts__gte=week_ago, path__startswith="/islands/").values_list("path", flat=True)[:5000]:
+        parts = path.strip("/").split("/")
+        if len(parts) == 2:
+            island_views[parts[1]] += 1
+    names = dict(Island.objects.filter(slug__in=island_views).values_list("slug", "name"))
+    sources = Counter(week_visits.values_list("source", flat=True))
+    todo = [
+        ("Listings to review", Listing.objects.filter(status=Listing.STATUS_PENDING).count(), listing_url + "?status__exact=pending", "pending_actions"),
+        ("New booking requests", Enquiry.objects.filter(status=Enquiry.STATUS_NEW).count(), enquiry_url + "?status__exact=new", "mark_email_unread"),
+        ("Listing claims", ListingClaim.objects.filter(status="pending").count(), reverse("admin:directory_listingclaim_changelist") + "?status__exact=pending", "how_to_reg"),
+        ("Reviews to check", Review.objects.filter(status="pending").count(), reverse("admin:directory_review_changelist") + "?status__exact=pending", "reviews"),
+        ("Verification requests", Listing.objects.filter(verification_requested_at__isnull=False, is_verified=False).count(), listing_url + "?verification=requested", "verified_user"),
+        ("Island suggestions", IslandSuggestion.objects.filter(handled=False).count(), reverse("admin:directory_islandsuggestion_changelist") + "?handled__exact=0", "add_location_alt"),
+    ]
+    waiting = sum(t[1] for t in todo)
+    no_photo_listings = live.filter(cover_image="").exclude(photos__isnull=False).count()
+    health = [
+        ("Islands without a cover photo", Island.objects.filter(is_published=True).exclude(has_photo).count(), island_url + "?photo=no", "hide_image"),
+        ("Live listings without their own photo", no_photo_listings, listing_url + "?status__exact=approved", "add_photo_alternate"),
+        ("Live listings without a logo", live.filter(logo="").count(), listing_url + "?status__exact=approved", "branding_watermark"),
+        ("Unclaimed listings", live.filter(is_claimed=False).count(), listing_url + "?is_claimed__exact=0", "storefront"),
+    ]
     context.update({
+        "waiting": waiting, "todo": todo, "health": health,
+        "week": {"visitors": n_visitors, "visits": week_visits.count(),
+                 "requests": Enquiry.objects.filter(created_at__gte=week_ago).count(),
+                 "islands": [(names.get(k, k), n) for k, n in island_views.most_common(5)],
+                 "sources": [(k or "Direct", n) for k, n in sources.most_common(4)]},
+        "analytics_url": reverse("admin:analytics_dashboard"),
         "kpis": [
             {"title": "Listings to review", "value": Listing.objects.filter(status=Listing.STATUS_PENDING).count(),
              "note": "Waiting for approval", "href": listing_url + "?status__exact=pending", "icon": "pending_actions", "alert": True},

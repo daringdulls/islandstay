@@ -1,33 +1,86 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}Local islands of the Maldives{% endblock %}
+{% block title %}{% if atoll_obj %}Local islands in {{ atoll_obj.name }}{% else %}Local islands of the Maldives{% endif %}{% endblock %}
+{% block meta_description %}Guides to the inhabited local islands of the Maldives: what each island is known for, bikini beaches, facilities, local rules and how to get there from Malé.{% endblock %}
 {% block content %}
-{% page_banner "islands" as banner %}<section class="page-hero{% if banner.0 %} has-photo{% endif %}">{% if banner.0 %}<img class="page-hero-bg" src="{{ banner.0 }}" alt="" onerror="this.remove()">{% if banner.1 %}<span class="hero-credit">{{ banner.1 }}</span>{% endif %}{% endif %}<div class="container">
-  <div class="eyebrow">Island guides</div>
-  <h1>Local islands</h1>
-  <p>Inhabited islands with guest houses, local businesses and daily life. Each guide covers what the island is known for, facilities, local rules and how to get there.</p>
-</div></section>
-<div class="container" style="margin-top:28px">
-  <form class="filters">
-    <div><label for="q">Search</label><input id="q" type="search" name="q" value="{{ q }}" placeholder="Island or keyword"></div>
-    <div><label for="atoll">Atoll</label><select id="atoll" name="atoll"><option value="">All atolls</option>{% for a in atolls %}<option value="{{ a.slug }}" {% if a.slug == atoll_sel %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></div>
-    <div><label for="activity">Activity</label><select id="activity" name="activity"><option value="">Any activity</option>{% for a in activities %}<option value="{{ a.slug }}" {% if a.slug == activity_sel %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></div>
-    <div><label for="sort">Sort</label><select id="sort" name="sort">
-      <option value="name" {% if sort == 'name' %}selected{% endif %}>A–Z</option>
-      <option value="near" {% if sort == 'near' %}selected{% endif %}>Closest to Malé</option>
-      <option value="atoll" {% if sort == 'atoll' %}selected{% endif %}>North to south</option>
-      <option value="stays" {% if sort == 'stays' %}selected{% endif %}>Most places to stay</option>
-      <option value="size" {% if sort == 'size' %}selected{% endif %}>Largest population</option>
-    </select></div>
-    <div class="check-inline"><label><input type="checkbox" name="bikini" value="1" {% if request.GET.bikini %}checked{% endif %}> Bikini beach</label></div>
-    <div><button class="btn btn-block" type="submit">Apply</button></div>
-  </form>
-  <div class="result-count">{{ page.paginator.count }} island{{ page.paginator.count|pluralize }}</div>
-  {% if page.object_list %}
-    <div class="grid">{% for island in page.object_list %}{% include "partials/island_card.html" %}{% endfor %}</div>
-  {% else %}
-    <div class="empty">No islands match those filters. <a href="{% url 'directory:island_list' %}">Clear filters</a></div>
-  {% endif %}
-  {% include "partials/pagination.html" %}
-</div>
+
+{# ---------- banner ---------- #}
+<section class="il-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
+  {% if hero_photo %}<img class="il-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container il-hero-inner">
+    <div class="eyebrow">Island guides</div>
+    <h1>Find your <span class="accent-word">island</span></h1>
+    <p class="lead">Inhabited islands with guest houses, local cafés and everyday island life. Each guide covers what the island is known for, facilities, local rules and how to get there.</p>
+    <form class="il-search" method="get" action="#islands" role="search">
+      <label class="st-field st-field-q"><small>Island or keyword</small><input type="search" name="q" value="{{ q }}" placeholder="Maafushi, surf, whale sharks…"></label>
+      <label class="st-field"><small>Atoll</small><select name="atoll"><option value="">All atolls</option>{% for a in atoll_strip %}<option value="{{ a.slug }}" {% if a.slug == atoll_sel %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+      {% if activity_sel %}<input type="hidden" name="activity" value="{{ activity_sel }}">{% endif %}
+      <button class="btn btn-accent" type="submit">{% icon "search" %} Search</button>
+    </form>
+    <ul class="il-figures">
+      <li><b>{{ figures.islands }}</b><span>island guides</span></li>
+      <li><b>{{ figures.atolls }}</b><span>atolls</span></li>
+      <li><b>{{ figures.bikini }}</b><span>with a bikini beach</span></li>
+      <li><b>{{ figures.stays }}</b><span>local stays</span></li>
+    </ul>
+  </div>
+</section>
+
+{# ---------- atolls ---------- #}
+{% if atoll_strip|length > 1 %}
+<section class="il-atolls-wrap">
+  <div class="container">
+    <div class="il-atolls-head"><span>Browse by atoll</span><small>North to south</small></div>
+    <div class="il-atolls">
+      <a class="il-atoll{% if not atoll_sel %} on{% endif %}" href="?{% if q %}q={{ q|urlencode }}{% endif %}#islands"><b>All</b><small>{{ figures.islands }} islands</small></a>
+      {% for a in atoll_strip %}<a class="il-atoll{% if a.slug == atoll_sel %} on{% endif %}" href="?atoll={{ a.slug }}#islands"><b>{{ a.name }}</b><small>{% if a.official_name %}{{ a.official_name }} · {% endif %}{{ a.n }} island{{ a.n|pluralize }}</small></a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- results ---------- #}
+<section class="section il-results" id="islands">
+  <div class="container">
+    <div class="st-chips">{% for label, qs, on, ic in chips %}<a class="st-chip{% if on %} on{% endif %}" href="?{{ qs }}#islands">{% icon ic %}{{ label }}</a>{% endfor %}</div>
+    <div class="fd-results-head">
+      <div><div class="eyebrow">{% if atoll_obj %}{{ atoll_obj.name }}{% else %}Island guides{% endif %}</div>
+        <h2>{% if q %}Islands matching “{{ q }}”{% elif atoll_obj %}Local islands in {{ atoll_obj.name }}{% elif filtered %}Matching islands{% else %}All local islands{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} island{{ page.paginator.count|pluralize }}</span>{% if filtered or sort != "name" %}<a href="?#islands">{% icon "x" %} Clear</a>{% endif %}
+        <form method="get" class="fd-sort" action="#islands">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label class="sr-only" for="il-sort">Sort</label>
+          <select id="il-sort" name="sort" onchange="this.form.submit()">
+            <option value="name" {% if sort == 'name' %}selected{% endif %}>A–Z</option>
+            <option value="near" {% if sort == 'near' %}selected{% endif %}>Closest to Malé</option>
+            <option value="atoll" {% if sort == 'atoll' %}selected{% endif %}>North to south</option>
+            <option value="stays" {% if sort == 'stays' %}selected{% endif %}>Most places to stay</option>
+            <option value="size" {% if sort == 'size' %}selected{% endif %}>Largest population</option>
+          </select></form>
+      </div>
+    </div>
+    {% if page.object_list %}
+      <div class="grid">{% for island in page.object_list %}{% include "partials/island_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+    {% else %}
+      <div class="il-empty">{% icon "compass" %}<div><b>No islands match those filters</b><p>Try another atoll or activity, or browse every island guide.</p></div><a class="btn btn-ghost" href="?#islands">Show all islands</a></div>
+    {% endif %}
+  </div>
+</section>
+
+{# ---------- how to choose ---------- #}
+<section class="section il-guide">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">Not sure where to go?</div><h2>Pick an island by the trip you want</h2></div>
+    <div class="il-guide-grid">
+      <a class="il-guide-card" href="?sort=near#islands">{% icon "plane-landing" %}<b>First trip, short stay</b><p>Islands close to Malé are a short speedboat ride from the airport, with easy day trips and plenty of guest houses.</p><span>Closest to Malé {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="?bikini=1#islands">{% icon "umbrella" %}<b>Beach days</b><p>Local islands follow local dress rules. These islands have a dedicated bikini beach set aside for visitors.</p><span>Bikini beach islands {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="?sort=atoll#islands">{% icon "compass" %}<b>Further out, quieter</b><p>Head north or south for fewer visitors, bigger reefs and slower island days. Domestic flights or seaplanes help.</p><span>North to south {% icon "arrow-right" %}</span></a>
+    </div>
+    <div class="il-suggest">
+      <div>{% icon "map-pin" %}<div><b>Know an island we should cover?</b><p>Tell us about it and we'll write a guide.</p></div></div>
+      <a class="btn" href="{% url 'directory:suggest_island' %}">Suggest an island</a>
+    </div>
+  </div>
+</section>
 {% endblock %}
