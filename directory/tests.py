@@ -768,3 +768,75 @@ class ListingLogoTests(TestCase):
             self.assertIn('class="listing-logo"', page)
             self.assertIn('rq-avatar rq-logo', page)
             self.assertIn("logos/", page)
+
+
+class ClaimReviewInsightTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def setUp(self):
+        self.listing = Listing.objects.filter(status="approved", kind__in=Listing.STAY_KINDS).first()
+
+    def test_claim_flow(self):
+        from directory.models import ListingClaim
+
+        self.listing.is_claimed = False
+        self.listing.save()
+        page = self.client.get(self.listing.get_absolute_url())
+        self.assertContains(page, "Claim this listing")
+        r = self.client.get(reverse("directory:listing_claim", args=[self.listing.slug]))
+        self.assertIn("/accounts/signup/?next=", r.url)
+        owner = User.objects.create_user("new@x.mv", "new@x.mv", "pw")
+        self.client.force_login(owner)
+        r = self.client.post(reverse("directory:listing_claim", args=[self.listing.slug]),
+                             {"full_name": "Aishath", "role": "Owner", "phone": "+960 777 0000", "message": "Licence 123"})
+        self.assertEqual(r.status_code, 302)
+        claim = ListingClaim.objects.get()
+        admin_user = User.objects.create_superuser("boss2@x.mv", "boss2@x.mv", "pw")
+        self.client.force_login(admin_user)
+        self.client.post(reverse("admin:directory_listingclaim_changelist"), {"action": "approve_claims", "_selected_action": [claim.pk]})
+        self.listing.refresh_from_db()
+        self.assertEqual(self.listing.owner, owner)
+        self.assertTrue(self.listing.is_claimed)
+
+    def test_review_flow_and_rating(self):
+        from directory.models import Review
+
+        e = Enquiry.objects.create(listing=self.listing, guest_name="Lena Weber", guest_email="l@x.de", message="")
+        bad = self.client.get(reverse("directory:review_create", args=[e.reference, "nope"]))
+        self.assertEqual(bad.status_code, 404)
+        url = reverse("directory:review_create", args=[e.reference, Review.token_for(e)])
+        self.assertContains(self.client.get(url), "How was")
+        self.client.post(url, {"rating": 5, "text": "Lovely family and great snorkelling.", "name": "Lena", "country": "Germany", "visited": "Dec 2026"})
+        review = Review.objects.get()
+        self.assertEqual(review.status, "pending")
+        self.assertNotContains(self.client.get(self.listing.get_absolute_url()), "Lovely family")
+        review.status = "published"
+        review.save()
+        self.listing.refresh_from_db()
+        self.assertEqual((float(self.listing.rating_avg), self.listing.rating_count), (5.0, 1))
+        self.assertContains(self.client.get(self.listing.get_absolute_url()), "Lovely family")
+        self.assertContains(self.client.get(url), "Already reviewed")  # one review per request
+        # host reply
+        self.client.force_login(self.listing.owner)
+        self.client.post(reverse("directory:review_reply", args=[review.pk]), {"reply": "Thank you Lena!"})
+        self.assertContains(self.client.get(self.listing.get_absolute_url()), "Thank you Lena!")
+
+    def test_insights_whatsapp_bar_and_reply_time(self):
+        from datetime import timedelta
+
+        self.listing.whatsapp = "+960 777 1234"
+        self.listing.save()
+        self.assertContains(self.client.get(self.listing.get_absolute_url()), 'class="mobile-cta"')
+        for hours in (1, 3):
+            e = Enquiry.objects.create(listing=self.listing, guest_name="G", guest_email="g@x.mv", message="")
+            Enquiry.objects.filter(pk=e.pk).update(created_at=timezone.now() - timedelta(hours=hours + 1))
+            e.refresh_from_db()
+            e.status = "replied"
+            e.save()
+            self.assertIsNotNone(e.replied_at)
+        self.assertIn("Usually replies within", self.listing.response_label)
+        self.client.force_login(self.listing.owner)
+        for d in (7, 30, 90):
+            self.assertEqual(self.client.get(reverse("directory:listing_insights", args=[self.listing.pk]) + f"?days={d}").status_code, 200)

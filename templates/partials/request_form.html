@@ -1,7 +1,7 @@
 {% load ui %}{# Booking / service request form shown beside a listing #}
 {% with host=listing.contact_name|default:"the host" %}
 <div class="rq-head">
-  {% if listing.logo_url %}<span class="rq-avatar rq-logo"><img src="{{ listing.logo_url }}" alt="{{ listing.name }} logo"></span>
+  {% if listing.logo_url %}<span class="rq-avatar rq-logo"><img src="{{ listing.logo_url }}" alt="{{ listing.name }} logo" onerror="this.parentNode.remove()"></span>
   {% else %}<span class="rq-avatar" aria-hidden="true">{{ listing.name|slice:":1"|upper }}</span>{% endif %}
   <div>
     <h3>{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>

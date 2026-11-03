@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Reply to a review{% endblock %}
+{% block content %}
+<div class="container auth-wrap" style="max-width:640px">
+  <div class="panel">
+    <div class="eyebrow">{{ review.listing.name }}</div>
+    <h1 style="font-size:1.8rem;margin-top:6px">Reply to {{ review.name }}</h1>
+    <blockquote class="review" style="margin:16px 0">{% stars review.rating %}{% if review.title %}<h4>{{ review.title }}</h4>{% endif %}<p>{{ review.text|linebreaksbr }}</p></blockquote>
+    <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:14px">Save reply</button></form>
+    <p class="small muted" style="margin-top:10px">Keep it friendly and specific: thank the guest and respond to anything they raised.</p>
+  </div>
+</div>
+{% endblock %}

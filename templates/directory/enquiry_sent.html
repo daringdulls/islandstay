@@ -25,6 +25,8 @@
     </div>
     <pre class="send-preview" id="msg">{{ msg }}</pre>
 
+    <div class="review-later">{% icon "star" %}<div><b>After your trip, tell other travellers how it went</b><span>Bookmark this link to review {{ l.name }} later. Only guests who sent a request can leave a review.</span>
+      <a href="{{ review_url }}">{{ review_url }}</a></div></div>
     <div class="notice" style="margin-top:20px">{% icon "info" %}<span>{{ l.contact_name|default:"The host" }} will confirm availability, the rate and how to pay directly with you. {{ SITE_NAME }} never asks for card details.</span></div>
     <div class="row" style="margin-top:20px">
       <a class="btn btn-ghost" href="{{ l.get_absolute_url }}">Back to {{ l.name }}</a>

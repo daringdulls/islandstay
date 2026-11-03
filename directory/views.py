@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, F, Min, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import notifications
@@ -356,7 +357,9 @@ def listing_detail(request, slug):
             request.session["last_enquiry"] = enquiry.reference
             return redirect("directory:enquiry_sent", ref=enquiry.reference)
     more = _live_listings().filter(island=listing.island).exclude(pk=listing.pk)[:3]
-    return render(request, "directory/listing_detail.html", {"listing": listing, "form": form, "is_owner": is_owner, "more": more})
+    reviews = listing.reviews.filter(status="published")[:20]
+    return render(request, "directory/listing_detail.html", {"listing": listing, "form": form, "is_owner": is_owner, "more": more,
+                                                             "reviews": reviews})
 
 
 def enquiry_sent(request, ref):
@@ -366,6 +369,7 @@ def enquiry_sent(request, ref):
     return render(request, "directory/enquiry_sent.html", {
         "e": enquiry, "l": enquiry.listing, "msg": enquiry.as_message(),
         "subject": f"Request from Island Stay: {enquiry.listing.name} ({enquiry.reference})",
+        "review_url": review_link(request, enquiry),
     })
 
 
@@ -550,7 +554,127 @@ def enquiry_detail(request, ref):
         form.save()
         messages.success(request, "Request updated.")
         return redirect("directory:enquiry_detail", ref=ref)
-    return render(request, "dashboard/enquiry_detail.html", {"e": enquiry, "form": form})
+    return render(request, "dashboard/enquiry_detail.html", {"e": enquiry, "form": form, "review_url": review_link(request, enquiry)})
+
+
+# ---------------------------------------------------------------- claims, reviews, host insights
+
+def listing_claim(request, slug):
+    from .forms import ClaimForm
+
+    listing = get_object_or_404(Listing, slug=slug)
+    if listing.is_claimed:
+        messages.info(request, "This listing is already managed by its owner.")
+        return redirect(listing.get_absolute_url())
+    if not request.user.is_authenticated:
+        messages.info(request, "Create a free account (or log in) first, then we'll take you back to claim the listing.")
+        from urllib.parse import urlencode
+
+        return redirect(reverse("accounts:signup") + "?" + urlencode({"next": request.path}))
+    existing = listing.claims.filter(user=request.user, status="pending").first()
+    form = ClaimForm(request.POST or None, request.FILES or None,
+                     initial={"full_name": request.user.get_full_name(), "phone": getattr(getattr(request.user, "profile", None), "phone", "")})
+    if request.method == "POST" and not existing and form.is_valid():
+        claim = form.save(commit=False)
+        claim.listing, claim.user = listing, request.user
+        claim.save()
+        messages.success(request, "Thanks! We'll check your claim, usually within a day, and then the listing will appear in your dashboard.")
+        return redirect(listing.get_absolute_url())
+    return render(request, "directory/listing_claim.html", {"listing": listing, "form": form, "existing": existing})
+
+
+def review_create(request, ref, token):
+    from .forms import ReviewForm
+    from .models import Review
+
+    enquiry = get_object_or_404(Enquiry.objects.select_related("listing", "listing__island"), reference=ref)
+    if token != Review.token_for(enquiry):
+        raise Http404
+    existing = getattr(enquiry, "review", None)
+    if existing:
+        return render(request, "directory/review_done.html", {"e": enquiry, "review": existing, "already": True})
+    form = ReviewForm(request.POST or None, initial={"name": enquiry.guest_name.split()[0] if enquiry.guest_name else "",
+                                                     "country": enquiry.guest_country,
+                                                     "visited": enquiry.check_in.strftime("%B %Y") if enquiry.check_in else ""})
+    if request.method == "POST" and form.is_valid():
+        review = form.save(commit=False)
+        review.listing, review.enquiry = enquiry.listing, enquiry
+        review.save()
+        return render(request, "directory/review_done.html", {"e": enquiry, "review": review})
+    return render(request, "directory/review_form.html", {"e": enquiry, "form": form})
+
+
+def review_link(request, enquiry):
+    from .models import Review
+
+    return request.build_absolute_uri(reverse("directory:review_create", args=[enquiry.reference, Review.token_for(enquiry)]))
+
+
+@login_required
+def review_reply(request, pk):
+    from .forms import HostReplyForm
+    from .models import Review
+
+    qs = Review.objects.all() if request.user.is_staff else Review.objects.filter(listing__owner=request.user)
+    review = get_object_or_404(qs.select_related("listing"), pk=pk)
+    form = HostReplyForm(request.POST or None, initial={"reply": review.host_reply})
+    if request.method == "POST" and form.is_valid():
+        review.host_reply = form.cleaned_data["reply"]
+        review.host_replied_at = timezone.now()
+        review.save(update_fields=["host_reply", "host_replied_at"])
+        messages.success(request, "Reply saved. It shows under the review on your listing.")
+        return redirect("directory:listing_insights", pk=review.listing_id)
+    return render(request, "dashboard/review_reply.html", {"review": review, "form": form})
+
+
+@login_required
+def listing_insights(request, pk):
+    """How a listing is doing: views, visitors, requests, sends, replies and reviews."""
+    from datetime import timedelta
+
+    from django.db.models import Sum
+    from django.db.models.functions import TruncDate
+
+    from analytics.models import AnonymousPageview, Event
+    from analytics.utils import country_name
+
+    listing = _own_listing(request, pk)
+    try:
+        days = int(request.GET.get("days", 30))
+    except ValueError:
+        days = 30
+    days = days if days in (7, 30, 90) else 30
+    since = timezone.now() - timedelta(days=days)
+    path = listing.get_absolute_url()
+    views = Event.objects.filter(type="pageview", path=path, ts__gte=since)
+    anon = AnonymousPageview.objects.filter(path=path, date__gte=since.date()).aggregate(n=Sum("views"))["n"] or 0
+    n_views = views.count() + anon
+    visitors = views.values("visitor").distinct().count()
+    reqs = listing.enquiries.filter(created_at__gte=since)
+    n_req = reqs.count()
+    sent = reqs.exclude(sent_via="").count()
+    replied = reqs.exclude(status=Enquiry.STATUS_NEW).count()
+    by_day = dict(views.annotate(d=TruncDate("ts")).values("d").annotate(n=Count("id")).values_list("d", "n"))
+    req_day = dict(reqs.annotate(d=TruncDate("created_at")).values("d").annotate(n=Count("id")).values_list("d", "n"))
+    day_list = [(since + timedelta(days=i + 1)).date() for i in range(days)]
+    peak = max([by_day.get(d, 0) for d in day_list] + [1])
+    bars = [{"d": d, "n": by_day.get(d, 0), "r": req_day.get(d, 0), "h": round(100 * by_day.get(d, 0) / peak)} for d in day_list]
+    from collections import Counter
+
+    countries = Counter(views.values_list("visitor__country", flat=True))
+    sources = Counter(views.values_list("visit__source", flat=True))
+    pct = lambda a, b: round(100 * a / b) if b else 0  # noqa: E731
+    reviews = listing.reviews.all()
+    return render(request, "dashboard/listing_insights.html", {
+        "listing": listing, "days": days, "bars": bars,
+        "kpis": [("Page views", n_views, f"{visitors} people (who allowed analytics)"),
+                 ("Booking requests", n_req, f"{pct(n_req, visitors)}% of visitors sent one" if visitors else "in this period"),
+                 ("Sent to you", f"{pct(sent, n_req)}%", f"{sent} guests pressed WhatsApp, email…"),
+                 ("You replied", f"{pct(replied, n_req)}%", listing.response_label or "Mark requests as replied in your dashboard")],
+        "countries": [(country_name(c), n) for c, n in countries.most_common(6) if c],
+        "sources": [(s or "Direct", n) for s, n in sources.most_common(6)],
+        "reviews": reviews, "pending_reviews": reviews.filter(status="pending").count(),
+    })
 
 
 def cron_photos(request):

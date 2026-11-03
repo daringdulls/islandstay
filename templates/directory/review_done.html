@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Thank you{% endblock %}
+{% block content %}
+<div class="container auth-wrap" style="max-width:600px">
+  <div class="panel" style="text-align:center">
+    <div class="eyebrow" style="color:var(--verified)">{% icon "check" %} {% if already %}Already reviewed{% else %}Review received{% endif %}</div>
+    <h1 style="font-size:2rem;margin-top:8px">Thank you, {{ review.name }}</h1>
+    <p class="muted">{% if review.status == "published" %}Your review is live on {{ e.listing.name }}'s page.{% else %}We'll publish it after a quick check, usually within a day.{% endif %}</p>
+    <a class="btn" href="{{ e.listing.get_absolute_url }}">Back to {{ e.listing.name }}</a>
+  </div>
+</div>
+{% endblock %}

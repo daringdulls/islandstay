@@ -13,7 +13,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import HomeFeature, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import HomeFeature, ListingClaim, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -277,12 +277,19 @@ class VerificationFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(BaseAdmin):
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial.setdefault("owner", request.user.pk)  # listings you add yourself are owned by you until claimed
+        initial.setdefault("is_claimed", False)
+        initial.setdefault("status", Listing.STATUS_APPROVED)
+        return initial
+
     change_form_before_template = "admin/ai_assist_listing.html"
     list_display = ("business", "kind_label", "island_name", "status_label", "verified_label", "is_featured", "enquiry_count", "submitted")
     list_display_links = ("business",)
     list_filter = (
         ("status", ChoicesDropdownFilter), VerificationFilter, ("kind", ChoicesDropdownFilter),
-        ("island__atoll", RelatedDropdownFilter), ("island", RelatedDropdownFilter), "is_featured",
+        ("island__atoll", RelatedDropdownFilter), ("island", RelatedDropdownFilter), "is_featured", "is_claimed",
     )
     search_fields = ("name", "island__name", "owner__email", "contact_email", "registration_number")
     autocomplete_fields = ("island", "owner")
@@ -296,7 +303,7 @@ class ListingAdmin(BaseAdmin):
         ("Business", {"classes": ["tab"], "fields": (
             ("name", "slug"), ("kind", "island"), "owner", "short_description", "description", ("logo", "cover_image"))}),
         ("Review & verification", {"classes": ["tab"], "fields": (
-            ("status", "is_featured"), "admin_note", ("is_verified", "registration_number"), "verification_document",
+            ("status", "is_featured", "is_claimed"), "admin_note", ("is_verified", "registration_number"), "verification_document",
             ("verification_requested_at", "verified_at"), ("created_at", "updated_at"))}),
         ("Details", {"classes": ["tab"], "fields": (
             ("room_count", "max_guests", "star_rating"), ("distance_to_beach_m", "check_in_time", "check_out_time"), "house_rules",
@@ -606,3 +613,82 @@ class HomeFeatureAdmin(BaseAdmin):
     @action(description="View home page", icon="open_in_new", url_path="view-home")
     def view_home(self, request):
         return redirect("/")
+
+
+@admin.register(ListingClaim)
+class ListingClaimAdmin(BaseAdmin):
+    list_display = ("claim", "listing", "phone", "status_label", "created_at")
+    list_display_links = ("claim",)
+    list_filter = (("status", ChoicesDropdownFilter),)
+    search_fields = ("full_name", "phone", "listing__name", "user__email")
+    readonly_fields = ("listing", "user", "full_name", "role", "phone", "message", "document", "created_at")
+    fields = ("listing", "user", ("full_name", "role"), "phone", "message", "document", "status", "admin_note", "created_at")
+    actions = ["approve_claims", "reject_claims"]
+    actions_detail = ["approve_detail"]
+
+    @display(description="Claim", header=True)
+    def claim(self, obj):
+        return obj.full_name, f"{obj.role} · {obj.user.email}"
+
+    @display(description="Status", label={"pending": "warning", "approved": "success", "rejected": "danger"})
+    def status_label(self, obj):
+        return obj.status, obj.get_status_display()
+
+    @admin.action(description="Approve: give the listing to the claimant")
+    def approve_claims(self, request, queryset):
+        n = 0
+        for c in queryset.filter(status="pending").select_related("listing"):
+            c.approve()
+            n += 1
+        self.message_user(request, f"{n} claim{'s' if n != 1 else ''} approved; the listings are now in the owners' dashboards.", messages.SUCCESS)
+
+    @admin.action(description="Reject")
+    def reject_claims(self, request, queryset):
+        n = queryset.filter(status="pending").update(status="rejected")
+        self.message_user(request, f"{n} claim{'s' if n != 1 else ''} rejected.", messages.SUCCESS)
+
+    @action(description="Approve claim", icon="verified", url_path="approve-claim")
+    def approve_detail(self, request, object_id):
+        claim = ListingClaim.objects.get(pk=object_id)
+        if claim.status == "pending":
+            claim.approve()
+            messages.success(request, f"{claim.listing.name} now belongs to {claim.full_name}.")
+        return redirect(reverse("admin:directory_listingclaim_change", args=[object_id]))
+
+
+@admin.register(Review)
+class ReviewAdmin(BaseAdmin):
+    list_display = ("review", "listing", "stars_col", "status_label", "created_at")
+    list_display_links = ("review",)
+    list_filter = (("status", ChoicesDropdownFilter), "rating", ("listing__island", RelatedDropdownFilter))
+    search_fields = ("name", "text", "listing__name", "enquiry__reference")
+    readonly_fields = ("enquiry", "created_at", "host_replied_at")
+    autocomplete_fields = ("listing",)
+    fields = ("listing", "enquiry", ("name", "country", "visited"), "rating", "title", "text", "status", "host_reply", ("created_at", "host_replied_at"))
+    actions = ["publish", "hide"]
+
+    @display(description="Review", header=True)
+    def review(self, obj):
+        return obj.title or obj.text[:60], f"{obj.name}{' · ' + obj.country if obj.country else ''}"
+
+    @display(description="Rating")
+    def stars_col(self, obj):
+        return "★" * obj.rating + "☆" * (5 - obj.rating)
+
+    @display(description="Status", label={"pending": "warning", "published": "success", "rejected": "danger"})
+    def status_label(self, obj):
+        return obj.status, obj.get_status_display()
+
+    @admin.action(description="Publish")
+    def publish(self, request, queryset):
+        for r in queryset:
+            r.status = "published"
+            r.save()
+        self.message_user(request, f"{queryset.count()} review(s) published.", messages.SUCCESS)
+
+    @admin.action(description="Hide")
+    def hide(self, request, queryset):
+        for r in queryset:
+            r.status = "rejected"
+            r.save()
+        self.message_user(request, f"{queryset.count()} review(s) hidden.", messages.SUCCESS)

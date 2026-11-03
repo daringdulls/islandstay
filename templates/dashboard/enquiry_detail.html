@@ -34,6 +34,15 @@
         </div>
       </div>
       <div class="panel">
+        <h3>Ask for a review</h3>
+        <p class="small muted" style="margin-top:0">After the stay, send the guest their personal review link. Reviews help new guests choose you.</p>
+        <div class="stack">
+          {% if e.guest_phone %}<a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="https://wa.me/{{ e.guest_phone|cut:'+'|cut:' '|cut:'-' }}?text={{ 'Thank you for staying with us! Would you leave a short review on Island Stay? '|urlencode }}{{ review_url|urlencode }}">{% icon "message-circle" %} Send on WhatsApp</a>{% endif %}
+          <a class="btn btn-ghost btn-block" href="mailto:{{ e.guest_email }}?subject={{ 'How was your stay?'|urlencode }}&body={{ 'Thank you for staying with us! Would you leave a short review on Island Stay? '|urlencode }}{{ review_url|urlencode }}">{% icon "mail" %} Send by email</a>
+          <input class="small" readonly value="{{ review_url }}" onclick="this.select()" aria-label="Review link">
+        </div>
+      </div>
+      <div class="panel">
         <h3>Track this request</h3>
         <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:12px">Save</button></form>
         <p class="small muted" style="margin-top:10px">Status and notes are private to you.</p>

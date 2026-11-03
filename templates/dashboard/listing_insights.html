@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Performance · {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="dash-head">
+    <div><div class="eyebrow">Performance</div><h1 style="margin:0">{{ listing.name }}</h1><p class="muted" style="margin:0">{{ listing.get_kind_display }} on {{ listing.island.name }}</p></div>
+    <div class="row">
+      <a class="btn btn-sm {% if days != 7 %}btn-ghost{% endif %}" href="?days=7">7 days</a>
+      <a class="btn btn-sm {% if days != 30 %}btn-ghost{% endif %}" href="?days=30">30 days</a>
+      <a class="btn btn-sm {% if days != 90 %}btn-ghost{% endif %}" href="?days=90">90 days</a>
+      <a class="btn btn-ghost btn-sm" href="{{ listing.get_absolute_url }}">View listing</a></div>
+  </div>
+
+  <div class="perf-kpis">
+    {% for title, value, note in kpis %}<div class="perf-kpi"><span>{{ title }}</span><b>{{ value }}</b><small>{{ note }}</small></div>{% endfor %}
+    <div class="perf-kpi"><span>Rating</span><b>{% if listing.rating_count %}{{ listing.rating_avg|floatformat:1 }}{% else %}–{% endif %}</b><small>{{ listing.rating_count }} published review{{ listing.rating_count|pluralize }}</small></div>
+  </div>
+
+  <div class="panel">
+    <h3>{% icon "gauge" %} Views per day</h3>
+    <div class="perf-bars" role="img" aria-label="Page views per day">
+      {% for b in bars %}<div class="perf-bar" title="{{ b.d|date:'D j M' }}: {{ b.n }} view{{ b.n|pluralize }}{% if b.r %}, {{ b.r }} request{{ b.r|pluralize }}{% endif %}"><i style="height:{{ b.h }}%"></i>{% if b.r %}<em></em>{% endif %}</div>{% endfor %}
+    </div>
+    <div class="perf-axis"><span>{{ bars.0.d|date:"j M" }}</span><span><em class="perf-dot"></em> day with a booking request</span>{% with last=bars|last %}<span>{{ last.d|date:"j M" }}</span>{% endwith %}</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel"><h3>{% icon "globe" %} Where viewers are from</h3>
+      {% if countries %}<ul class="perf-list">{% for name, n in countries %}<li><span>{{ name }}</span><b>{{ n }}</b></li>{% endfor %}</ul>{% else %}<p class="muted small">Not enough data yet.</p>{% endif %}</div>
+    <div class="panel"><h3>{% icon "route" %} How they found you</h3>
+      {% if sources %}<ul class="perf-list">{% for name, n in sources %}<li><span>{{ name }}</span><b>{{ n }}</b></li>{% endfor %}</ul>{% else %}<p class="muted small">Not enough data yet.</p>{% endif %}</div>
+  </div>
+
+  <div class="panel" id="reviews">
+    <h3>{% icon "star" %} Reviews{% if pending_reviews %} <span class="badge-count">{{ pending_reviews }} waiting for our check</span>{% endif %}</h3>
+    {% if reviews %}
+      {% for r in reviews %}
+      <div class="perf-review">
+        <div><b>{{ r.name }}</b> {% stars r.rating %} <span class="muted small">{{ r.created_at|date:"j M Y" }} · {{ r.get_status_display }}</span>
+          {% if r.title %}<p style="margin:6px 0 0"><b>{{ r.title }}</b></p>{% endif %}<p style="margin:4px 0">{{ r.text|truncatechars:300 }}</p>
+          {% if r.host_reply %}<p class="small muted" style="margin:0">Your reply: {{ r.host_reply|truncatechars:160 }}</p>{% endif %}</div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'directory:review_reply' r.pk %}">{% if r.host_reply %}Edit reply{% else %}Reply{% endif %}</a>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted" style="margin:0">No reviews yet. Open a booking request and use <b>Ask for a review</b> to send the guest their link after the stay.</p>
+    {% endif %}
+  </div>
+  <p class="small muted">Views and visitors count people who allowed analytics cookies on the website, plus anonymous page counts; real numbers are a little higher.</p>
+</div>
+{% endblock %}

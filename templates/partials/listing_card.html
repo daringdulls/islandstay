@@ -6,10 +6,11 @@
       {% if l.is_featured %}<span class="badge badge-rec">{% icon "star" %}Recommended</span>{% endif %}
       {% if l.is_verified %}<span class="badge badge-ok">{% cowrie %}Verified host</span>{% endif %}
     </span>{% endif %}
-    {% if l.logo_url %}<span class="kind-mark has-logo"><img src="{{ l.logo_url }}" alt="" loading="lazy"></span>{% else %}<span class="kind-mark">{% icon l.kind_icon %}</span>{% endif %}
+    {% if l.logo_url %}<span class="kind-mark has-logo"><img src="{{ l.logo_url }}" alt="" loading="lazy" onerror="this.remove()"></span>{% else %}<span class="kind-mark">{% icon l.kind_icon %}</span>{% endif %}
   </div>
   <div class="card-body">
     <h3>{{ l.name }}</h3>
+    {% if l.rating_count %}<div class="card-rating">{% icon "star" %}<b>{{ l.rating_avg|floatformat:1 }}</b><span>({{ l.rating_count }})</span></div>{% endif %}
     <div class="meta">{% icon "map-pin" %} {{ l.island.name }}, {{ l.island.atoll.name }}</div>
     {% if l.is_food and l.cuisine %}<div class="small" style="font-weight:600">{{ l.cuisine }}</div>{% endif %}
     <p class="small muted" style="margin:0">{{ l.short_description|truncatechars:110 }}</p>

@@ -359,6 +359,10 @@ class Listing(models.Model):
     delivery = models.BooleanField("Delivers to guest houses", default=False)
 
     cover_image = models.ImageField(upload_to="listings/", blank=True)
+    is_claimed = models.BooleanField("Claimed by the owner", default=True,
+                                     help_text="Untick for listings you add on the owner's behalf: the page then invites the owner to claim it.")
+    rating_avg = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, editable=False)
+    rating_count = models.PositiveIntegerField(default=0, editable=False)
     logo = models.ImageField(upload_to="logos/", blank=True,
                              help_text="Your business logo. Square works best (at least 200 × 200 px); PNG with a transparent background is ideal.")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -431,6 +435,29 @@ class Listing(models.Model):
     @property
     def whatsapp_digits(self):
         return "".join(c for c in self.whatsapp if c.isdigit())
+
+    def refresh_rating(self):
+        from django.db.models import Avg, Count as _Count
+
+        agg = self.reviews.filter(status="published").aggregate(avg=Avg("rating"), n=_Count("id"))
+        type(self).objects.filter(pk=self.pk).update(rating_avg=agg["avg"], rating_count=agg["n"])
+        self.rating_avg, self.rating_count = agg["avg"], agg["n"]
+
+    @property
+    def response_label(self):
+        """'Usually replies within 2 hours', from the last replied requests. Empty when there isn't enough data."""
+        from django.db.models import F
+
+        replied = list(self.enquiries.exclude(replied_at=None).order_by("-created_at")
+                       .annotate(delay=F("replied_at") - F("created_at")).values_list("delay", flat=True)[:10])
+        if len(replied) < 2:
+            return ""
+        hours = sorted(d.total_seconds() / 3600 for d in replied)[len(replied) // 2]
+        if hours <= 1:
+            return "Usually replies within an hour"
+        if hours <= 24:
+            return f"Usually replies within {max(2, round(hours))} hours"
+        return f"Usually replies within {round(hours / 24)} days"
 
     @property
     def logo_url(self):
@@ -586,6 +613,8 @@ class Enquiry(models.Model):
     sent_via = models.CharField("Sent to host via", max_length=10, choices=SENT_VIA_CHOICES, blank=True,
                                 help_text="Which button the guest pressed after saving the request")
     sent_at = models.DateTimeField("Sent to host at", null=True, blank=True)
+    replied_at = models.DateTimeField("Host replied at", null=True, blank=True,
+                                      help_text="Set when the host first marks the request as replied, confirmed or declined")
     # Where the guest came from and what they used (recorded when the request is made)
     visitor = models.ForeignKey("analytics.Visitor", on_delete=models.SET_NULL, null=True, blank=True, related_name="enquiry_set")
     source = models.CharField("Found us via", max_length=60, blank=True)
@@ -620,6 +649,10 @@ class Enquiry(models.Model):
                 if not Enquiry.objects.filter(reference=ref).exists():
                     break
             self.reference = ref
+        if self.status not in (self.STATUS_NEW, "") and not self.replied_at:
+            from django.utils import timezone
+
+            self.replied_at = timezone.now()
         super().save(*args, **kwargs)
 
     @property
@@ -717,3 +750,72 @@ class HomeFeature(models.Model):
         rows = (cls.objects.filter(section=section, is_active=True, island__is_published=True)
                 .select_related("island", "island__atoll").order_by("order", "id")[: cls.LIMITS[section]])
         return [r.island for r in rows] or None
+
+
+
+class ListingClaim(models.Model):
+    """An owner asking to take over a listing that Island Stay added on their behalf."""
+    STATUS_CHOICES = [("pending", "Waiting for review"), ("approved", "Approved"), ("rejected", "Rejected")]
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="claims")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="listing_claims")
+    full_name = models.CharField(max_length=100)
+    role = models.CharField("Your role", max_length=60, help_text="e.g. Owner, Manager")
+    phone = models.CharField("Phone / WhatsApp", max_length=30)
+    message = models.TextField("How can we confirm it's your business?", blank=True,
+                               help_text="e.g. the phone number on your tourism licence, your business email, or anything that helps us check")
+    document = models.FileField("Licence or registration (optional)", upload_to="verification/", blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+    admin_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Claim for {self.listing} by {self.full_name}"
+
+    def approve(self):
+        listing = self.listing
+        listing.owner = self.user
+        listing.is_claimed = True
+        listing.save(update_fields=["owner", "is_claimed"])
+        self.status = "approved"
+        self.save(update_fields=["status"])
+        ListingClaim.objects.filter(listing=listing, status="pending").exclude(pk=self.pk).update(status="rejected")
+
+
+class Review(models.Model):
+    """A review from a guest who sent a request through Island Stay. Published after moderation."""
+    STATUS_CHOICES = [("pending", "Waiting for review"), ("published", "Published"), ("rejected", "Hidden")]
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="reviews")
+    enquiry = models.OneToOneField(Enquiry, on_delete=models.SET_NULL, null=True, blank=True, related_name="review")
+    name = models.CharField("Your name", max_length=60)
+    country = models.CharField(max_length=60, blank=True)
+    rating = models.PositiveSmallIntegerField(choices=[(i, f"{i} star{'s' if i > 1 else ''}") for i in range(5, 0, -1)])
+    title = models.CharField(max_length=100, blank=True)
+    text = models.TextField("Your review")
+    visited = models.CharField("When did you go?", max_length=30, blank=True, help_text="e.g. December 2026")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+    host_reply = models.TextField(blank=True)
+    host_replied_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.rating}★ {self.listing} by {self.name}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.listing.refresh_rating()
+
+    def delete(self, *args, **kwargs):
+        listing = self.listing
+        super().delete(*args, **kwargs)
+        listing.refresh_rating()
+
+    @staticmethod
+    def token_for(enquiry):
+        from django.core import signing
+        return signing.Signer(salt="review").sign(enquiry.reference).split(":", 1)[1]

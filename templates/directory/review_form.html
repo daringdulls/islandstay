@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Review {{ e.listing.name }}{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var box = document.getElementById('star-pick'); if (!box) return;
+  var labels = Array.prototype.slice.call(box.querySelectorAll('label')), word = document.getElementById('star-word');
+  var words = ['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
+  function paint(n) { labels.forEach(function (l, i) { l.classList.toggle('on', i < n); }); word.textContent = words[n] || ''; }
+  function chosen() { var c = box.querySelector('input:checked'); return c ? +c.value : 0; }
+  labels.forEach(function (l, i) {
+    l.addEventListener('mouseenter', function () { paint(i + 1); });
+    l.querySelector('input').addEventListener('change', function () { paint(chosen()); });
+  });
+  box.addEventListener('mouseleave', function () { paint(chosen()); });
+  paint(chosen());
+})();
+</script>
+{% endblock %}
+{% block content %}
+<div class="container auth-wrap" style="max-width:640px">
+  <div class="panel">
+    <div class="eyebrow">Your review · {{ e.reference }}</div>
+    <h1 style="font-size:2rem;margin-top:6px">How was {{ e.listing.name }}?</h1>
+    <p class="muted">Your review helps other travellers choose where to stay on {{ e.listing.island.name }}. It appears with your first name after a quick check by our team.</p>
+    <form method="post" class="review-form">{% csrf_token %}
+      <p class="star-label">Your rating <span class="req">*</span> <span class="star-word" id="star-word"></span></p>
+      <div class="star-pick" id="star-pick" role="radiogroup" aria-label="Your rating">
+        {% for radio in form.rating reversed %}<label title="{{ radio.choice_label }}">{{ radio.tag }}<span>{% icon "star" %}</span><em>{{ radio.choice_label }}</em></label>{% endfor %}
+      </div>{{ form.rating.errors }}
+      {% for f in form %}{% if f.name != "rating" %}<div class="field"><label for="{{ f.id_for_label }}">{{ f.label }}{% if f.field.required %} <span class="req">*</span>{% endif %}</label>{{ f }}{% if f.help_text %}<span class="helptext">{{ f.help_text }}</span>{% endif %}{{ f.errors }}</div>{% endif %}{% endfor %}
+      <button class="btn btn-block" style="margin-top:16px">Send review</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

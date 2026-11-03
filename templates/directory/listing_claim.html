@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Claim {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container auth-wrap" style="max-width:640px">
+  <div class="panel">
+    <div class="eyebrow">Claim your listing</div>
+    <h1 style="font-size:2rem;margin-top:6px">{{ listing.name }}</h1>
+    <p class="muted">{{ listing.get_kind_display }} on {{ listing.island.name }}. Once we confirm it's yours, the listing moves to your dashboard: you can update details, add photos and your logo, see requests and how it performs. It's free.</p>
+    {% if existing %}
+      <div class="notice ok">{% icon "check" %}<span>Your claim from {{ existing.created_at|date:"j M" }} is with our team. We'll contact you on {{ existing.phone }}.</span></div>
+    {% else %}
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}{% include "partials/form_fields.html" %}
+        <button class="btn btn-block" style="margin-top:16px">Send claim</button></form>
+      <p class="small muted" style="margin-top:12px">We check every claim, usually within a day, by calling the business or matching your licence.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

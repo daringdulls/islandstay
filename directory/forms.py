@@ -179,3 +179,28 @@ class IslandSuggestionForm(forms.ModelForm):
         model = IslandSuggestion
         fields = ["island_name", "atoll", "contact_email", "notes"]
         widgets = {"notes": forms.Textarea(attrs={"rows": 3})}
+
+
+
+class ClaimForm(forms.ModelForm):
+    class Meta:
+        from .models import ListingClaim
+
+        model = ListingClaim
+        fields = ["full_name", "role", "phone", "message", "document"]
+        widgets = {"message": forms.Textarea(attrs={"rows": 3})}
+
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        from .models import Review
+
+        model = Review
+        fields = ["rating", "title", "text", "name", "country", "visited"]
+        widgets = {"rating": forms.RadioSelect(), "text": forms.Textarea(attrs={"rows": 5, "placeholder": "What was it like? The room, the host, the island, the trips…"}),
+                   "title": forms.TextInput(attrs={"placeholder": "Sum it up in a few words"})}
+        labels = {"title": "Title (optional)"}
+
+
+class HostReplyForm(forms.Form):
+    reply = forms.CharField(label="Your reply (shown under the review)", widget=forms.Textarea(attrs={"rows": 3}), max_length=1500)

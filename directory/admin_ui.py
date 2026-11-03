@@ -24,6 +24,18 @@ def badge_verification(request):
     return _badge(Listing.objects.filter(verification_requested_at__isnull=False, is_verified=False).count())
 
 
+def badge_claims(request):
+    from .models import ListingClaim
+
+    return _badge(ListingClaim.objects.filter(status="pending").count())
+
+
+def badge_reviews(request):
+    from .models import Review
+
+    return _badge(Review.objects.filter(status="pending").count())
+
+
 def badge_new_enquiries(request):
     return _badge(Enquiry.objects.filter(status=Enquiry.STATUS_NEW).count())
 

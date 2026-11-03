@@ -9,7 +9,7 @@
   <div class="row" style="align-items:flex-end;margin-bottom:20px">
     <div>
       <div class="listing-title">
-        {% if listing.logo_url %}<img class="listing-logo" src="{{ listing.logo_url }}" alt="{{ listing.name }} logo">{% endif %}
+        {% if listing.logo_url %}<img class="listing-logo" src="{{ listing.logo_url }}" alt="{{ listing.name }} logo" onerror="this.remove()">{% endif %}
         <div><div class="eyebrow">{{ listing.get_kind_display }}</div>
         <h1 style="margin-bottom:8px">{{ listing.name }}</h1></div>
       </div>
@@ -18,11 +18,18 @@
         {% if listing.is_verified %}<span class="verified-badge" title="Licence checked by our team{% if listing.verified_at %} on {{ listing.verified_at|date:'j M Y' }}{% endif %}">{% cowrie %} Verified host</span>{% endif %}
         {% if listing.is_featured %}<span class="badge badge-rec" title="Recommended by the Island Stay team">{% icon "star" %}Recommended</span>{% endif %}
         {% if listing.star_rating %}{% stars listing.star_rating %}{% endif %}
+        {% if listing.rating_count %}<a class="rating-link" href="#reviews">{% icon "star" %}<b>{{ listing.rating_avg|floatformat:1 }}</b> ({{ listing.rating_count }} review{{ listing.rating_count|pluralize }})</a>{% endif %}
+        {% if listing.response_label %}<span class="reply-badge">{% icon "clock" %}{{ listing.response_label }}</span>{% endif %}
       </div>
     </div>
     <span class="spacer"></span>
     {% if is_owner %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' listing.pk %}">{% icon "pencil" %} Edit listing</a>{% endif %}
   </div>
+
+  {% if not listing.is_claimed %}
+  <div class="claim-bar">{% icon "store" %}<div><b>Is this your business?</b><span>Island Stay added this listing from public information. Claim it free to update the details, add photos and manage requests.</span></div>
+    <a class="btn btn-sm" href="{% url 'directory:listing_claim' listing.slug %}">Claim this listing</a></div>
+  {% endif %}
 
   {% with photos=listing.photos.all %}
   <div class="gallery {% if not photos %}single{% endif %}">
@@ -101,6 +108,25 @@
         <p style="margin:14px 0 0"><a class="link-arrow" href="{{ listing.island.get_absolute_url }}">Read the {{ listing.island.name }} island guide {% icon "arrow-right" %}</a></p>
       </section>
 
+      <section class="panel" id="reviews">
+        <h3>{% icon "star" %} Guest reviews</h3>
+        {% if reviews %}
+        <div class="review-summary"><b>{{ listing.rating_avg|floatformat:1 }}</b><div>{% stars listing.rating_avg|floatformat:0 %}<span class="muted small">{{ listing.rating_count }} review{{ listing.rating_count|pluralize }} from guests who sent a request through Island Stay</span></div></div>
+        <div class="reviews">
+          {% for r in reviews %}
+          <article class="review">
+            <header><span class="review-avatar">{{ r.name|slice:":1"|upper }}</span><div><b>{{ r.name }}</b><small>{% if r.country %}{{ r.country }} · {% endif %}{% if r.visited %}{{ r.visited }}{% else %}{{ r.created_at|date:"F Y" }}{% endif %}</small></div>{% stars r.rating %}</header>
+            {% if r.title %}<h4>{{ r.title }}</h4>{% endif %}
+            <p>{{ r.text|linebreaksbr }}</p>
+            {% if r.host_reply %}<div class="review-reply"><b>Reply from {{ listing.name }}</b><p>{{ r.host_reply|linebreaksbr }}</p></div>{% endif %}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted" style="margin:0">No reviews yet. Guests who send a request through Island Stay get a link to review their stay afterwards, so every review comes from a real guest.</p>
+        {% endif %}
+      </section>
+
       {% if more %}
       <section><div class="section-title"><h2>More on {{ listing.island.name }}</h2></div><div class="grid">{% for l in more %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>
       {% endif %}
@@ -126,5 +152,9 @@
       </div>
     </aside>
   </div>
+</div>
+<div class="mobile-cta" role="region" aria-label="Contact {{ listing.name }}">
+  {% if listing.whatsapp_digits %}<a class="btn btn-wa" data-track="WhatsApp bar" target="_blank" rel="noopener" href="https://wa.me/{{ listing.whatsapp_digits }}?text={{ 'Hello, I found you on Island Stay and would like to ask about '|urlencode }}{{ listing.name|urlencode }}">{% icon "message-circle" %} WhatsApp</a>{% endif %}
+  <a class="btn btn-accent" data-track="Request bar" href="#request">{% if listing.is_stay %}Check availability{% else %}Send a request{% endif %}</a>
 </div>
 {% endblock %}
