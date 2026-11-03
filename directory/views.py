@@ -321,11 +321,39 @@ def transport_list(request):
         island = Island.objects.filter(slug=island_slug).first()
         routes = routes.filter(island__slug=island_slug)
         operators = operators.filter(Q(island__slug=island_slug) | Q(routes__island__slug=island_slug)).distinct()
+    all_routes = routes
     if mode:
         routes = routes.filter(mode=mode)
+    # Group routes by destination island, fastest-looking first within each
+    groups, by_island = [], {}
+    for r in routes:
+        if r.island_id not in by_island:
+            by_island[r.island_id] = {"island": r.island, "routes": []}
+            groups.append(by_island[r.island_id])
+        by_island[r.island_id]["routes"].append(r)
+    priority = {"speedboat": 0, "flight": 1, "private": 2, "ferry": 3, "seaplane": 4}
+    for g in groups:
+        g["routes"].sort(key=lambda r: (priority.get(r.mode, 9), r.order))
+    counts = dict(all_routes.order_by().values_list("mode").annotate(n=Count("id")))
+    mode_info = {
+        "ferry": ("Cheapest way to travel, on fixed timetables between Malé and the islands.", "Slow", "$", "No service on most Fridays"),
+        "speedboat": ("Shared boats timed around international flights. The usual choice for nearby atolls.", "Fast", "$$", "Book a day ahead"),
+        "private": ("Your own boat, any time of day. Good for families, late flights and groups.", "Fastest by sea", "$$$", "Price per boat"),
+        "flight": ("Domestic flights to regional airports, then a short boat ride. Best for far atolls.", "Fast over distance", "$$$", "20 kg bags is common"),
+        "seaplane": ("Scenic flights, mostly to resorts. Daylight only.", "Fast", "$$$$", "Daylight only"),
+    }
+    modes = [{"key": k, "label": lbl, "icon": TransportRoute.MODE_ICONS.get(k, "ship"), "n": counts.get(k, 0),
+              "text": mode_info.get(k, ("", "", "", ""))[0], "speed": mode_info.get(k, ("", "", "", ""))[1],
+              "cost": mode_info.get(k, ("", "", "", ""))[2], "note": mode_info.get(k, ("", "", "", ""))[3]}
+             for k, lbl in TransportRoute.MODE_CHOICES]
+    acts = {a.slug: a.image_url for a in ActivityType.objects.exclude(image_url="")}
+    hero_photo = (island.photo_url if island and island.photo_url else "") or acts.get("island-hopping") or acts.get("dolphin-cruise") or next(
+        (i.photo_url for i in _islands().filter(is_featured=True) if i.photo_url), "")
     return render(request, "directory/transport_list.html", {
-        "routes": routes, "operators": operators, "island": island, "mode": mode,
-        "modes": TransportRoute.MODE_CHOICES, "islands": Island.objects.filter(is_published=True),
+        "routes": routes, "groups": groups, "operators": operators.select_related("island"), "island": island, "mode": mode,
+        "modes": modes, "mode_label": dict(TransportRoute.MODE_CHOICES).get(mode, ""),
+        "islands": Island.objects.filter(is_published=True).select_related("atoll").order_by("name"),
+        "hero_photo": hero_photo, "n_routes": all_routes.count(), "n_islands": all_routes.order_by().values("island").distinct().count(),
     })
 
 

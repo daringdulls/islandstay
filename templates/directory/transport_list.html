@@ -1,42 +1,128 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}Transport{% if island %} to {{ island.name }}{% endif %} — ferries, speedboats & flights{% endblock %}
+{% block title %}{% if island %}Getting to {{ island.name }}{% else %}Getting around the Maldives{% endif %}: ferries, speedboats and flights{% endblock %}
+{% block meta_description %}How to reach the local islands of the Maldives from Velana Airport and Malé: public ferries, shared and private speedboats, domestic flights and seaplanes, with journey times and transfer operators.{% endblock %}
 {% block content %}
-<section class="page-hero"><div class="container">
-  <div class="eyebrow">Transport</div>
-  <h1>{% if island %}Getting to {{ island.name }}{% else %}Transport{% endif %}</h1>
-  <p>Public ferries, shared and private speedboats, domestic flights and seaplanes to the local islands. Pick an island to see how to reach it, then contact a transfer operator directly.</p>
-</div></section>
-<div class="container" style="margin-top:24px">
-  <form class="filters">
-    <div><label for="island">Island</label><select id="island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if island and i.slug == island.slug %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select></div>
-    <div><label for="mode">Type</label><select id="mode" name="mode"><option value="">All transport</option>{% for k, label in modes %}<option value="{{ k }}" {% if k == mode %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div><button class="btn btn-block" type="submit">Show routes</button></div>
-  </form>
-  <div class="layout">
-    <div>
-      <div class="section-title"><h2>Routes</h2><span class="label">{{ routes|length }} listed</span></div>
-      {% if routes %}<div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" with show_island=True %}{% endfor %}</div>
-      <p class="small muted" style="margin-top:8px">Schedules and fares are indicative and change with the season — always confirm with the operator or your host.</p>
-      {% else %}<div class="empty">No routes listed for this selection yet.</div>{% endif %}
+
+{# ---------- banner with route finder ---------- #}
+<section class="tr-hero">
+  {% if hero_photo %}<img class="tr-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container tr-hero-grid">
+    <div class="tr-hero-text">
+      <div class="eyebrow">Transport</div>
+      <h1>{% if island %}Getting to <span class="accent-word">{{ island.name }}</span>{% else %}Getting <span class="accent-word">around</span> the Maldives{% endif %}</h1>
+      <p class="lead">{% if island %}{{ island.atoll.name }} atoll{% if island.transfer_time %} · {{ island.transfer_time }} from Velana Airport{% endif %}. Compare the ways to get there, then contact the operator or ask your host to arrange it.{% else %}Public ferries, speedboats, domestic flights and seaplanes from Velana Airport and Malé to {{ n_islands }} local islands. Compare journey times, then contact the operator directly.{% endif %}</p>
+      <ul class="tr-hero-facts">
+        <li><b>{{ n_routes }}</b><span>routes</span></li>
+        <li><b>{{ n_islands }}</b><span>islands</span></li>
+        <li><b>{{ operators|length }}</b><span>transfer operator{{ operators|length|pluralize }}</span></li>
+      </ul>
     </div>
-    <aside class="sticky">
-      <div class="panel">
-        <h3>Transfer operators{% if island %} for {{ island.name }}{% endif %}</h3>
-        {% if operators %}<ul class="contact-list">{% for o in operators %}<li>{% icon "ship" %}<span><a href="{{ o.get_absolute_url }}">{{ o.name }}</a>{% if o.is_verified %} <span class="verified-badge">{% cowrie %}</span>{% endif %}<br><span class="small muted">Based on {{ o.island.name }}</span></span></li>{% endfor %}</ul>
-        {% else %}<p class="muted small">None listed yet. Your guest house can arrange transfers for you.</p>{% endif %}
+    <form class="tr-finder" method="get" action="{% url 'directory:transport_list' %}">
+      <h2>Where are you going?</h2>
+      <label for="tr-island">Island</label>
+      <select id="tr-island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if island and i.slug == island.slug %}selected{% endif %}>{{ i.name }} · {{ i.atoll.name }}</option>{% endfor %}</select>
+      <span class="tr-finder-label">How do you want to travel?</span>
+      <div class="tr-finder-modes">
+        <label><input type="radio" name="mode" value="" {% if not mode %}checked{% endif %}><span>Any</span></label>
+        {% for m in modes %}<label><input type="radio" name="mode" value="{{ m.key }}" {% if m.key == mode %}checked{% endif %}><span>{% icon m.icon %}{{ m.label }}</span></label>{% endfor %}
       </div>
-      <div class="panel">
-        <h3>Transport tips</h3>
-        <ul class="list-check expect small">
-          <li>Speedboats are timed around international flights; tell your host your flight number.</li>
-          <li>Public ferries are the cheapest option but don't run on Fridays.</li>
-          <li>Domestic flights have lower baggage allowances (often 20 kg) — check before you fly.</li>
-          <li>Rough seas (May–October) can delay boats; plan a buffer before your flight home.</li>
+      <button class="btn btn-accent btn-block" type="submit">{% icon "search" %} Show routes</button>
+      <p class="tr-finder-note">From Velana International Airport (MLE) unless stated.</p>
+    </form>
+  </div>
+</section>
+
+{# ---------- ways to travel ---------- #}
+<section class="section" style="padding-bottom:0">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Ways to travel</div><h2>Ferry, speedboat or flight?</h2></div></div>
+    <div class="tr-modes">
+      {% for m in modes %}
+      <a class="tr-mode{% if m.key == mode %} on{% endif %}" href="?{% if island %}island={{ island.slug }}&amp;{% endif %}mode={{ m.key }}#routes">
+        <span class="tr-mode-ico">{% icon m.icon %}</span>
+        <b>{{ m.label }}</b>
+        <p>{{ m.text }}</p>
+        <dl><div><dt>Speed</dt><dd>{{ m.speed }}</dd></div><div><dt>Cost</dt><dd class="tr-cost" aria-label="Cost level {{ m.cost|length }} of 4">{{ m.cost }}</dd></div></dl>
+        <span class="tr-mode-foot"><span>{{ m.n }} route{{ m.n|pluralize }}</span><em>{{ m.note }}</em></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- routes ---------- #}
+<section class="section" id="routes">
+  <div class="container tr-layout">
+    <div>
+      <div class="tr-results-head">
+        <h2>{% if island %}Routes to {{ island.name }}{% else %}Routes by island{% endif %}{% if mode_label %} · {{ mode_label }}{% endif %}</h2>
+        <span>{{ routes|length }} route{{ routes|length|pluralize }}</span>
+        {% if island or mode %}<a class="tr-clear" href="{% url 'directory:transport_list' %}#routes">{% icon "x" %} Clear</a>{% endif %}
+      </div>
+      {% for g in groups %}
+      <article class="tr-group">
+        <a class="tr-group-head" href="{{ g.island.get_absolute_url }}#transport">
+          <span class="tr-group-img">{% if g.island.photo_url %}<img src="{{ g.island.card_photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}</span>
+          <span class="tr-group-title"><small>{{ g.island.atoll.name }}</small><b>{{ g.island.name }}</b>{% if g.island.transfer_time %}<em>{% icon "clock" %}{{ g.island.transfer_time }}</em>{% endif %}</span>
+          <span class="tr-group-link">Island guide {% icon "arrow-right" %}</span>
+        </a>
+        <ul class="tr-routes">
+          {% for r in g.routes %}
+          {% if forloop.counter == 3 and not island %}</ul><details class="tr-more"><summary>Show {{ g.routes|length|add:"-2" }} more way{{ g.routes|length|add:"-2"|pluralize }} to get to {{ g.island.name }}</summary><ul class="tr-routes">{% endif %}
+          <li class="tr-route mode-{{ r.mode }}">
+            <span class="tr-route-mode">{% icon r.mode_icon %}<span>{{ r.mode_label }}</span></span>
+            <div class="tr-route-main">
+              <div class="tr-journey"><span>{{ r.origin }}</span>{% if r.via %}<i></i><span class="via">{{ r.via }}</span>{% endif %}<i></i><span><b>{{ r.island.name }}</b></span></div>
+              <div class="tr-route-meta">
+                <span class="tr-time">{% icon "clock" %}{{ r.duration }}</span>
+                {% if r.schedule %}<span>{% icon "calendar" %}{{ r.schedule }}</span>{% endif %}
+                {% if SHOW_PRICES and r.price_from %}<span class="price">from <b>{% if r.currency == 'USD' %}${% else %}MVR {% endif %}{{ r.price_from|floatformat:0 }}</b>{% if r.price_note %} {{ r.price_note }}{% endif %}</span>{% endif %}
+              </div>
+              {% if r.notes %}<p class="tr-note">{{ r.notes }}</p>{% endif %}
+            </div>
+            <div class="tr-route-side">
+              {% if r.operator %}
+                <a class="tr-operator" href="{{ r.operator.get_absolute_url }}">{% if r.operator.logo_url %}<img src="{{ r.operator.logo_url }}" alt="" onerror="this.remove()">{% endif %}<span>{{ r.operator.name }}{% if r.operator.is_verified %} {% cowrie %}{% endif %}</span></a>
+                <a class="btn btn-sm" href="{{ r.operator.get_absolute_url }}#request">Request</a>
+              {% elif r.operator_name %}<span class="tr-operator plain">{{ r.operator_name }}</span>
+              {% else %}<span class="tr-operator plain">Ask your host to arrange</span>{% endif %}
+            </div>
+          </li>
+          {% if forloop.last and forloop.counter > 2 and not island %}</ul></details><ul class="tr-routes">{% endif %}
+          {% endfor %}
+        </ul>
+      </article>
+      {% empty %}
+      <div class="tr-empty">{% icon "ship" %}<h3>No routes listed for this choice yet</h3><p>Try another way to travel, or ask your guest house: hosts arrange transfers for their guests every day.</p><a class="btn btn-sm" href="{% url 'directory:transport_list' %}">See all routes</a></div>
+      {% endfor %}
+      <p class="small muted" style="margin-top:12px">Schedules and fares change with the season and the weather. Always confirm with the operator or your host before you travel.</p>
+    </div>
+
+    <aside class="tr-side">
+      <div class="tr-card">
+        <h3>{% icon "ship-wheel" %} Transfer operators{% if island %} for {{ island.name }}{% endif %}</h3>
+        {% if operators %}<ul class="tr-ops">{% for o in operators %}<li><a href="{{ o.get_absolute_url }}">
+          <span class="tr-op-logo">{% if o.logo_url %}<img src="{{ o.logo_url }}" alt="" onerror="this.remove()">{% else %}{% icon "ship" %}{% endif %}</span>
+          <span><b>{{ o.name }}</b><small>Based on {{ o.island.name }}{% if o.rating_count %} · ★ {{ o.rating_avg|floatformat:1 }}{% endif %}</small></span>
+          {% if o.is_verified %}<span class="tr-op-ok" title="Verified host">{% cowrie %}</span>{% endif %}</a></li>{% endfor %}</ul>
+        {% else %}<p class="muted small" style="margin:0">None listed yet. Your guest house can arrange transfers for you.</p>{% endif %}
+      </div>
+      <div class="tr-card">
+        <h3>{% icon "info" %} Before you travel</h3>
+        <ul class="tr-tips">
+          <li>{% icon "plane-landing" %}<span><b>Send your flight number</b> to your host or operator so the boat waits for you.</span></li>
+          <li>{% icon "calendar" %}<span><b>Fridays are quiet:</b> most public ferries don't run.</span></li>
+          <li>{% icon "shirt" %}<span><b>Check baggage:</b> domestic flights often allow 20 kg.</span></li>
+          <li>{% icon "waves" %}<span><b>May to October</b> seas can be rough. Leave time before your flight home.</span></li>
         </ul>
       </div>
-      <div class="panel"><h3>Run a transfer service?</h3><p class="small muted">List your speedboat or transfer service and your routes for free.</p><a class="btn btn-block" href="{% url 'directory:list_your_business' %}">List your service</a></div>
+      <div class="tr-card tr-card-cta">
+        <h3>Run a speedboat or transfer service?</h3>
+        <p>List it free, add your routes once, and appear on every island you serve.</p>
+        <a class="btn btn-block" href="{% url 'directory:list_your_business' %}">List your service</a>
+      </div>
     </aside>
   </div>
-</div>
+</section>
 {% endblock %}
