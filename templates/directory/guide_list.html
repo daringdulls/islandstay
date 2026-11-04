@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if cat_label %}{{ cat_label }}: {% endif %}Maldives local island travel guides{% endblock %}
+{% block meta_description %}Practical guides to the local islands of the Maldives: local rules, airport transfers, the best time for whale sharks, mantas and surf, money and SIM cards.{% endblock %}
+{% block content %}
+<section class="il-hero gd-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
+  {% if hero_photo %}<img class="il-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container il-hero-inner">
+    <div class="eyebrow">Travel guides</div>
+    <h1>Know before you <span class="accent-word">go</span></h1>
+    <p class="lead">Straight answers for a stay on a local island: what to wear, how to get there, when to see whale sharks and mantas, and what to bring.</p>
+  </div>
+</section>
+<section class="section" id="guides">
+  <div class="container">
+    {% if chips|length > 2 %}<div class="st-chips">{% for key, label in chips %}<a class="st-chip{% if key == cat %} on{% endif %}" href="{% if key %}?category={{ key }}{% else %}?{% endif %}#guides">{{ label }}</a>{% endfor %}</div>{% endif %}
+    {% if lead %}
+    <a class="gd-lead" href="{{ lead.get_absolute_url }}">
+      <div class="gd-lead-photo">{% if lead.photo_url %}<img src="{{ lead.photo_url }}" alt="" onerror="this.remove()">{% endif %}</div>
+      <div class="gd-lead-body">
+        <span class="gd-cat">{{ lead.get_category_display }}</span>
+        <h2>{{ lead.title }}</h2>
+        <p>{{ lead.summary }}</p>
+        <span class="gd-meta">{% icon "clock" %} {{ lead.reading_minutes }} min read</span>
+        <span class="link-arrow">Read the guide {% icon "arrow-right" %}</span>
+      </div>
+    </a>
+    {% endif %}
+    {% if guides %}
+    <div class="gd-grid">
+      {% for g in guides %}
+      <a class="gd-card" href="{{ g.get_absolute_url }}">
+        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
+        <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:150 }}</p><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% elif not lead %}
+    <div class="il-empty">{% icon "book-open" %}<div><b>No guides here yet</b><p>We're writing more every month.</p></div><a class="btn btn-ghost" href="?">All guides</a></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

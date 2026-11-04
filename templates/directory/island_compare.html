@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if islands %}Compare {% for i in islands %}{{ i.name }}{% if not forloop.last %} vs {% endif %}{% endfor %}{% else %}Compare local islands{% endif %}{% endblock %}
+{% block meta_description %}Compare local islands of the Maldives side by side: transfer time, bikini beach, ATM, health care, mobile data, places to stay and activities.{% endblock %}
+{% block content %}
+<section class="sv-head">
+  <div class="container">
+    <div class="crumbs"><a href="{% url 'directory:island_list' %}">Islands</a> / Compare</div>
+    <h1>{% if islands|length > 1 %}{% for i in islands %}{{ i.name }}{% if not forloop.last %} <span class="cmp-vs">vs</span> {% endif %}{% endfor %}{% else %}Compare islands{% endif %}</h1>
+    <p class="lead">Put up to four islands side by side: getting there, beaches, facilities, places to stay and what you can do.</p>
+    {% if others %}
+    <form class="cmp-add" method="get">
+      <input type="hidden" name="i" value="{{ slugs }}">
+      <label class="sr-only" for="cmp-add">Add an island</label>
+      <select id="cmp-add" name="add" required onchange="this.form.submit()"><option value="">{% if islands %}Add another island…{% else %}Choose an island…{% endif %}</option>{% for o in others %}<option value="{{ o.slug }}">{{ o.name }} · {{ o.atoll.name }}</option>{% endfor %}</select>
+      <button class="btn btn-sm" type="submit">{% icon "plus" %} Add</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+<div class="container sv-body">
+  {% if islands %}
+  <div class="cmp-scroll">
+    <table class="cmp" style="--cols:{{ islands|length }}">
+      <thead><tr><th class="cmp-label"></th>{% for i in islands %}<th>
+        <div class="cmp-island">
+          <div class="cmp-photo">{% if i.photo_url %}<img src="{{ i.card_photo_url }}" alt="" onerror="this.remove()">{% else %}<div class="chart" style="{{ i.chart_style }}"></div>{% endif %}
+            <a class="cmp-x" href="?i={{ i.remove_qs }}" aria-label="Remove {{ i.name }}" title="Remove">{% icon "x" %}</a></div>
+          <a class="cmp-name" href="{{ i.get_absolute_url }}">{{ i.name }}</a>
+          <span class="cmp-tag">{{ i.tagline }}</span>
+        </div></th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for label, values, kind in rows %}<tr><th class="cmp-label">{{ label }}</th>{% for v in values %}<td>{% if kind == "flag" %}{% if v == "yes" %}<span class="cmp-yes">{% icon "check" %} Yes</span>{% else %}<span class="cmp-no">No</span>{% endif %}{% else %}{{ v }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+        {% if activity_rows %}<tr class="cmp-group"><th colspan="{{ islands|length|add:1 }}">Things to do</th></tr>
+        {% for a, have in activity_rows %}<tr><th class="cmp-label">{{ a.name }}</th>{% for i in islands %}<td>{% if i.pk in have %}<span class="cmp-yes">{% icon "check" %}</span>{% else %}<span class="cmp-no">–</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endif %}
+        <tr class="cmp-foot"><th class="cmp-label"></th>{% for i in islands %}<td><a class="btn btn-sm btn-block" href="{% url 'directory:stay_list' %}?island={{ i.slug }}">Stays on {{ i.name }}</a>
+          <button type="button" class="tool-btn light cmp-save" data-save="i:{{ i.slug }}" aria-pressed="false">{% icon "heart" %}<span data-save-label>Save</span></button></td>{% endfor %}</tr>
+      </tbody>
+    </table>
+  </div>
+  {% if islands|length == 1 %}<p class="cmp-hint">{% icon "info" %} Add one or two more islands above to see them side by side.</p>{% endif %}
+  {% else %}
+  <div class="sv-empty"><span class="sv-empty-icon">{% icon "columns-3" %}</span><h2>Pick islands to compare</h2><p>Choose an island above, or tap Compare on any island guide.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

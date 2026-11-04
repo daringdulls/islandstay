@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Saved islands and places{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="sv-head">
+  <div class="container">
+    <div class="eyebrow">Your list</div>
+    <h1>Saved islands and places</h1>
+    <p class="lead">Tap the heart on any island, stay, experience or café to keep it here. No account needed. Share the list with whoever you're travelling with.</p>
+    {% if islands or listings %}
+    <div class="sv-actions">
+      <a class="btn sv-wa" href="https://wa.me/?text={{ 'My Maldives shortlist on Island Stay: '|urlencode }}{{ share_url|urlencode }}" target="_blank" rel="noopener">{% icon "message-circle" %} Share on WhatsApp</a>
+      <button type="button" class="btn btn-ghost" data-copy="{{ share_url }}">{% icon "copy" %} Copy link</button>
+      {% if islands|length > 1 %}<a class="btn btn-ghost" href="{% url 'directory:island_compare' %}?i={{ compare_slugs }}">{% icon "columns-3" %} Compare these islands</a>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+<div class="container sv-body">
+  {% if islands %}
+  <section class="sv-section"><h2>Islands <span>{{ islands|length }}</span></h2>
+    <div class="grid">{% for island in islands %}<div data-saved-item>{% include "partials/island_card.html" %}</div>{% endfor %}</div></section>
+  {% endif %}
+  {% if listings %}
+  <section class="sv-section"><h2>Places <span>{{ listings|length }}</span></h2>
+    <div class="grid">{% for l in listings %}<div data-saved-item>{% include "partials/listing_card.html" %}</div>{% endfor %}</div></section>
+  {% endif %}
+  {% if not islands and not listings %}
+  <div class="sv-empty">
+    <span class="sv-empty-icon">{% icon "heart" %}</span>
+    <h2>Nothing saved yet</h2>
+    <p>Tap the heart on an island or a place to stay and it will appear here.</p>
+    <div class="sv-actions" style="justify-content:center"><a class="btn" href="{% url 'directory:island_list' %}">Browse islands</a><a class="btn btn-ghost" href="{% url 'directory:stay_list' %}">Find a stay</a></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

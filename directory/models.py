@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -826,7 +827,7 @@ class PageBanner(models.Model):
     PAGE_CHOICES = [
         ("stays", "Stays"), ("experiences", "Experiences"), ("transport", "Transport"), ("food", "Food"),
         ("list_business", "List your business"), ("islands", "Islands"), ("atolls", "Atolls"),
-        ("how_it_works", "How it works"),
+        ("how_it_works", "How it works"), ("guides", "Travel guides"),
     ]
     page = models.CharField(max_length=20, choices=PAGE_CHOICES, unique=True)
     image = models.ImageField(upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")
@@ -858,3 +859,79 @@ class PageBanner(models.Model):
         if b and b.url:
             return b.url, b.credit
         return fallback, ""
+
+
+class Guide(models.Model):
+    """A travel guide / blog article, written in the back office."""
+    CATEGORY_CHOICES = [
+        ("planning", "Trip planning"), ("islands", "Choosing an island"), ("rules", "Local life and rules"),
+        ("transport", "Getting around"), ("activities", "Things to do"), ("money", "Money and practical"),
+    ]
+    title = models.CharField(max_length=140)
+    slug = models.SlugField(unique=True, blank=True)
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, default="planning")
+    summary = models.CharField(max_length=240, help_text="One or two sentences. Shown on cards and in Google results.")
+    body = models.TextField(help_text=(
+        "Write in plain text. Leave an empty line between paragraphs. "
+        "Start a line with '## ' for a heading, '- ' for a bullet point. Links: [text](/islands/maafushi/)."
+    ))
+    faqs = models.TextField("Questions and answers", blank=True, help_text=(
+        "Optional. One question per line starting with 'Q: ', followed by its answer on the next line starting with 'A: '. "
+        "These can appear in Google results."
+    ))
+    islands = models.ManyToManyField(Island, blank=True, related_name="guides", help_text="Islands this guide is about")
+    cover_image = models.ImageField(upload_to="guides/", blank=True)
+    cover_image_url = models.URLField(max_length=500, blank=True, help_text="Or paste a photo link")
+    cover_credit = models.CharField("Photo credit", max_length=160, blank=True)
+    author = models.CharField(max_length=80, default="Island Stay team")
+    is_published = models.BooleanField("Published", default=True)
+    is_featured = models.BooleanField("Featured", default=False, help_text="Shown first on the guides page")
+    published_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-is_featured", "-published_at"]
+        verbose_name = "travel guide"
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = unique_slug(self, self.title)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("directory:guide_detail", args=[self.slug])
+
+    @property
+    def photo_url(self):
+        if self.cover_image:
+            try:
+                return self.cover_image.url
+            except Exception:
+                pass
+        if self.cover_image_url:
+            return self.cover_image_url
+        island = next((i for i in self.islands.all() if i.photo_url), None)
+        return island.photo_url if island else ""
+
+    @property
+    def reading_minutes(self):
+        return max(1, round(len((self.body + self.faqs).split()) / 220))
+
+    @property
+    def faq_list(self):
+        out, q = [], None
+        for line in self.faqs.splitlines():
+            line = line.strip()
+            if line[:2].upper() == "Q:":
+                q = line[2:].strip()
+            elif line[:2].upper() == "A:" and q:
+                out.append((q, line[2:].strip()))
+                q = None
+        return out
+
+    @property
+    def headings(self):
+        return [(slugify(l[3:].strip()), l[3:].strip()) for l in self.body.splitlines() if l.startswith("## ")]

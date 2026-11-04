@@ -1,4 +1,4 @@
-{% load ui %}<a class="card" href="{{ l.get_absolute_url }}">
+{% load ui %}<div class="save-wrap"><a class="card" href="{{ l.get_absolute_url }}">
   {% if l.photo_url %}<div class="cover has-photo"><img src="{{ l.photo_url }}" alt="{% if l.has_own_photo %}{{ l.name }}{% else %}{{ l.island.name }}{% endif %}" loading="lazy"><span class="shade"></span>
   {% else %}<div class="cover chart" style="{{ l.island.chart_style }}">{% endif %}
     <span class="tag pill white">{{ l.get_kind_display }}</span>
@@ -21,3 +21,4 @@
     <span class="link-arrow">{% if l.is_food %}View{% else %}Send request{% endif %} {% icon "arrow-right" %}</span>
   </div>
 </a>
+<button type="button" class="save-btn" data-save="l:{{ l.slug }}" aria-pressed="false" aria-label="Save {{ l.name }}" title="Save">{% icon "heart" %}</button></div>

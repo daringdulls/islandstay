@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ guide.title }}{% endblock %}
+{% block meta_description %}{{ guide.summary }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ guide.title }}{% endblock %}
+{% block og_description %}{{ guide.summary }}{% endblock %}
+{% block og_image %}{% if guide.photo_url %}<meta property="og:image" content="{% if guide.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ guide.photo_url }}">{% endif %}{% endblock %}
+{% block content %}
+<section class="gd-head{% if guide.photo_url %} has-photo{% endif %}">
+  {% if guide.photo_url %}<img class="il-hero-bg" src="{{ guide.photo_url }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  {% if guide.cover_credit %}<span class="hero-credit">{{ guide.cover_credit }}</span>{% endif %}
+  <div class="container gd-head-inner">
+    <div class="crumbs"><a href="{% url 'directory:guide_list' %}">Travel guides</a> / <a href="{% url 'directory:guide_list' %}?category={{ guide.category }}">{{ guide.get_category_display }}</a></div>
+    <h1>{{ guide.title }}</h1>
+    <p class="lead">{{ guide.summary }}</p>
+    <div class="gd-byline"><span>{{ guide.author }}</span><span>Updated {{ guide.updated_at|date:"j F Y" }}</span><span>{% icon "clock" %} {{ guide.reading_minutes }} min read</span>
+      <a class="tool-btn" href="https://wa.me/?text={{ guide.title|urlencode }}%20{{ request.scheme }}%3A%2F%2F{{ request.get_host }}{{ guide.get_absolute_url|urlencode }}" target="_blank" rel="noopener">{% icon "share-2" %}<span>Share</span></a></div>
+  </div>
+</section>
+<div class="container gd-layout">
+  <article class="gd-body">
+    {{ guide.body|guide_body }}
+    {% if guide.faq_list %}
+    <section class="gd-faq">
+      <h2 id="questions">Questions travellers ask</h2>
+      {% for q, a in guide.faq_list %}<details{% if forloop.first %} open{% endif %}><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}
+    </section>
+    {% endif %}
+  </article>
+  <aside class="gd-side">
+    {% if guide.headings|length > 2 %}
+    <nav class="panel gd-toc" aria-label="In this guide"><h3>In this guide</h3><ol>{% for id, text in guide.headings %}<li><a href="#{{ id }}">{{ text }}</a></li>{% endfor %}{% if guide.faq_list %}<li><a href="#questions">Questions travellers ask</a></li>{% endif %}</ol></nav>
+    {% endif %}
+    <div class="panel gd-cta"><h3>Ready to plan?</h3><p class="small muted">Message guest houses and local operators directly. No booking fees.</p>
+      <a class="btn btn-block" href="{% url 'directory:stay_list' %}">Find a place to stay</a>
+      <a class="btn btn-ghost btn-block" href="{% url 'directory:island_list' %}" style="margin-top:8px">Browse islands</a></div>
+  </aside>
+</div>
+{% if islands %}
+<section class="section il-guide">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">Islands in this guide</div><h2>Read the island guides</h2></div>
+    <div class="grid">{% for island in islands %}{% include "partials/island_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+{% if more %}
+<section class="section">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">Keep reading</div><h2>More travel guides</h2></div>
+    <div class="gd-grid">{% for g in more %}
+      <a class="gd-card" href="{{ g.get_absolute_url }}">
+        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
+        <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:130 }}</p><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span></div>
+      </a>{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

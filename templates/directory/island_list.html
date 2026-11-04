@@ -22,7 +22,7 @@
       <li><b>{{ figures.islands }}</b><span>island guides</span></li>
       <li><b>{{ figures.atolls }}</b><span>atolls</span></li>
       <li><b>{{ figures.bikini }}</b><span>with a bikini beach</span></li>
-      <li><b>{{ figures.stays }}</b><span>local stays</span></li>
+      {% if figures.stays >= figures.min_shown %}<li><b>{{ figures.stays }}</b><span>local stays</span></li>{% else %}<li><b>0%</b><span>booking fees</span></li>{% endif %}
     </ul>
   </div>
 </section>
@@ -47,7 +47,7 @@
     <div class="fd-results-head">
       <div><div class="eyebrow">{% if atoll_obj %}{{ atoll_obj.name }}{% else %}Island guides{% endif %}</div>
         <h2>{% if q %}Islands matching “{{ q }}”{% elif atoll_obj %}Local islands in {{ atoll_obj.name }}{% elif filtered %}Matching islands{% else %}All local islands{% endif %}</h2></div>
-      <div class="fd-results-meta"><span>{{ page.paginator.count }} island{{ page.paginator.count|pluralize }}</span>{% if filtered or sort != "name" %}<a href="?#islands">{% icon "x" %} Clear</a>{% endif %}
+      <div class="fd-results-meta"><a class="il-compare-link" href="{% url 'directory:island_compare' %}">{% icon "columns-3" %} Compare islands</a><span>{{ page.paginator.count }} island{{ page.paginator.count|pluralize }}</span>{% if filtered or sort != "name" %}<a href="?#islands">{% icon "x" %} Clear</a>{% endif %}
         <form method="get" class="fd-sort" action="#islands">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
           <label class="sr-only" for="il-sort">Sort</label>
           <select id="il-sort" name="sort" onchange="this.form.submit()">
@@ -72,9 +72,10 @@
 <section class="section il-guide">
   <div class="container">
     <div class="section-head"><div class="eyebrow">Not sure where to go?</div><h2>Pick an island by the trip you want</h2></div>
-    <div class="il-guide-grid">
+    <div class="il-guide-grid il-guide-4">
       <a class="il-guide-card" href="?sort=near#islands">{% icon "plane-landing" %}<b>First trip, short stay</b><p>Islands close to Malé are a short speedboat ride from the airport, with easy day trips and plenty of guest houses.</p><span>Closest to Malé {% icon "arrow-right" %}</span></a>
       <a class="il-guide-card" href="?bikini=1#islands">{% icon "umbrella" %}<b>Beach days</b><p>Local islands follow local dress rules. These islands have a dedicated bikini beach set aside for visitors.</p><span>Bikini beach islands {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="{% url 'directory:guide_list' %}">{% icon "book-open" %}<b>Read the travel guides</b><p>Local rules, transfers from the airport, seasons for whale sharks, mantas and surf, money and SIM cards.</p><span>Travel guides {% icon "arrow-right" %}</span></a>
       <a class="il-guide-card" href="?sort=atoll#islands">{% icon "compass" %}<b>Further out, quieter</b><p>Head north or south for fewer visitors, bigger reefs and slower island days. Domestic flights or seaplanes help.</p><span>North to south {% icon "arrow-right" %}</span></a>
     </div>
     <div class="il-suggest">

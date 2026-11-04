@@ -2,6 +2,9 @@
 {% load ui %}
 {% block title %}{{ listing.name }}, {{ listing.island.name }}{% endblock %}
 {% block meta_description %}{{ listing.short_description }}{% endblock %}
+{% block og_title %}{{ listing.name }}, {{ listing.island.name }}{% endblock %}
+{% block og_description %}{{ listing.short_description }}{% endblock %}
+{% block og_image %}{% if listing.photo_url %}<meta property="og:image" content="{% if listing.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ listing.photo_url }}">{% endif %}{% endblock %}
 {% block content %}
 <div class="container" style="padding-top:28px">
   {% if not listing.is_live %}<div class="notice warn" style="margin-bottom:16px">{% icon "info" %}<span>Preview: this listing is <b>{{ listing.get_status_display|lower }}</b> and not visible to the public.{% if listing.admin_note %} Note from our team: {{ listing.admin_note }}{% endif %}</span></div>{% endif %}
@@ -23,6 +26,7 @@
       </div>
     </div>
     <span class="spacer"></span>
+    <button type="button" class="tool-btn light" data-save="l:{{ listing.slug }}" aria-pressed="false">{% icon "heart" %}<span data-save-label>Save</span></button>
     {% if is_owner %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' listing.pk %}">{% icon "pencil" %} Edit listing</a>{% endif %}
   </div>
 

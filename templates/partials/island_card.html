@@ -1,4 +1,4 @@
-{% load ui humanize %}<a class="island-card" href="{{ island.get_absolute_url }}">
+{% load ui humanize %}<div class="save-wrap"><a class="island-card" href="{{ island.get_absolute_url }}">
   <div class="island-card-photo">
     {% if island.photo_url %}<img src="{{ island.card_photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}" loading="lazy" onerror="this.remove()">{% else %}<div class="chart" style="{{ island.chart_style }}"></div>{% endif %}
     <span class="island-card-tag">{{ island.atoll.name }}</span>
@@ -13,3 +13,4 @@
     </ul>
   </div>
 </a>
+<button type="button" class="save-btn" data-save="i:{{ island.slug }}" aria-pressed="false" aria-label="Save {{ island.name }}" title="Save">{% icon "heart" %}</button></div>

@@ -13,7 +13,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import Guide, HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -703,7 +703,7 @@ class PageBannerAdmin(BaseAdmin):
     readonly_fields = ("preview_large",)
 
     PATHS = {"stays": "/stays/", "experiences": "/experiences/", "transport": "/transport/", "food": "/food/",
-             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/"}
+             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/", "guides": "/guides/"}
 
     @display(description="Page", header=True)
     def page_col(self, obj):
@@ -720,3 +720,24 @@ class PageBannerAdmin(BaseAdmin):
         if not obj or not obj.url:
             return "No photo yet: the page uses an automatic island or activity photo."
         return format_html('<img src="{}" style="max-width:520px;width:100%;aspect-ratio:16/7;object-fit:cover;border-radius:12px">', obj.url)
+
+
+@admin.register(Guide)
+class GuideAdmin(BaseAdmin):
+    list_display = ("title_col", "category", "is_published", "is_featured", "published_at")
+    list_display_links = ("title_col",)
+    list_editable = ("is_published", "is_featured")
+    list_filter = ("category", "is_published", "is_featured")
+    search_fields = ("title", "summary", "body")
+    filter_horizontal = ("islands",)
+    prepopulated_fields = {"slug": ("title",)}
+    fieldsets = (
+        (None, {"fields": ("title", "slug", "category", "summary", "body")}),
+        ("Questions and answers", {"fields": ("faqs",)}),
+        ("Islands and photo", {"fields": ("islands", "cover_image", "cover_image_url", "cover_credit")}),
+        ("Publishing", {"fields": ("author", "is_published", "is_featured", "published_at")}),
+    )
+
+    @display(description="Guide", header=True)
+    def title_col(self, obj):
+        return obj.title, obj.get_absolute_url()

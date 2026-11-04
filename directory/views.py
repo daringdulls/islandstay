@@ -16,7 +16,7 @@ from .forms import (
     EnquiryForm, EnquiryUpdateForm, IslandSuggestionForm, ListingForm, PhotoUploadForm, RoomFormSet, RouteFormSet,
     VerificationForm,
 )
-from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandPhoto, Listing, ListingPhoto, PageBanner, TransportRoute
+from .models import ActivityType, Amenity, Atoll, Enquiry, Island, IslandPhoto, Listing, ListingPhoto, PageBanner, TransportRoute, Guide
 
 APPROVED = Listing.STATUS_APPROVED
 
@@ -239,7 +239,7 @@ def island_list(request):
         "atoll_strip": atoll_strip, "hero_photo": hero_photo, "hero_credit": hero_credit, "filtered": filtered,
         "atoll_obj": next((a for a in atoll_strip if a.slug == atoll), None),
         "figures": {"islands": base.count(), "atolls": len(atoll_strip), "bikini": base.filter(has_bikini_beach=True).count(),
-                    "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count()},
+                    "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(), "min_shown": 20},
     })
 
 
@@ -251,8 +251,22 @@ def island_detail(request, slug):
     if kind:
         stays = stays.filter(kind=kind)
     nearby = _islands().filter(atoll=island.atoll).exclude(pk=island.pk)[:4]
+    url = request.build_absolute_uri(island.get_absolute_url())
+    place = {"@context": "https://schema.org", "@type": "TouristDestination", "name": f"{island.name}, {island.atoll.name}",
+             "description": island.tagline or island.overview[:200], "url": url,
+             "containedInPlace": {"@type": "AdministrativeArea", "name": island.atoll.official_name or island.atoll.name,
+                                  "containedInPlace": {"@type": "Country", "name": "Maldives"}}}
+    if island.photo_url:
+        place["image"] = request.build_absolute_uri(island.photo_url)
+    if island.latitude and island.longitude:
+        place["geo"] = {"@type": "GeoCoordinates", "latitude": float(island.latitude), "longitude": float(island.longitude)}
+    crumbs = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Islands", "item": request.build_absolute_uri(reverse("directory:island_list"))},
+        {"@type": "ListItem", "position": 2, "name": island.atoll.name, "item": request.build_absolute_uri(island.atoll.get_absolute_url())},
+        {"@type": "ListItem", "position": 3, "name": island.name, "item": url}]}
     return render(request, "directory/island_detail.html", {
-        "island": island, "stays": stays, "kind": kind, "nearby": nearby,
+        "island": island, "stays": stays, "kind": kind, "nearby": nearby, "ld": [place, crumbs],
+        "guides": island.guides.filter(is_published=True)[:3],
         "services": listings.filter(kind__in=Listing.EXPERIENCE_KINDS),
         "food": listings.filter(kind__in=Listing.FOOD_KINDS),
         "transport": listings.filter(kind__in=Listing.TRANSPORT_KINDS),
@@ -490,7 +504,37 @@ def listing_detail(request, slug):
     more = _live_listings().filter(island=listing.island).exclude(pk=listing.pk)[:3]
     reviews = listing.reviews.filter(status="published")[:20]
     return render(request, "directory/listing_detail.html", {"listing": listing, "form": form, "is_owner": is_owner, "more": more,
-                                                             "reviews": reviews})
+                                                             "reviews": reviews, "ld": [_listing_ld(request, listing, reviews)]})
+
+
+def _listing_ld(request, listing, reviews):
+    """schema.org data so search engines can show the business, its location and its star rating."""
+    kind = "LodgingBusiness" if listing.is_stay else ("Restaurant" if listing.kind in Listing.FOOD_KINDS else "TouristAttraction" if listing.kind == Listing.KIND_ACTIVITY else "LocalBusiness")
+    if listing.kind == Listing.KIND_GUESTHOUSE:
+        kind = "BedAndBreakfast"
+    elif listing.kind == Listing.KIND_HOTEL:
+        kind = "Hotel"
+    elif listing.kind == Listing.KIND_RESORT:
+        kind = "Resort"
+    elif listing.kind == Listing.KIND_DIVE:
+        kind = "SportsActivityLocation"
+    data = {"@context": "https://schema.org", "@type": kind, "name": listing.name, "description": listing.short_description,
+            "url": request.build_absolute_uri(listing.get_absolute_url()),
+            "address": {"@type": "PostalAddress", "streetAddress": listing.address or listing.island.name,
+                        "addressLocality": listing.island.name, "addressRegion": listing.island.atoll.official_name or listing.island.atoll.name,
+                        "addressCountry": "MV"}}
+    if listing.photo_url:
+        data["image"] = request.build_absolute_uri(listing.photo_url)
+    if listing.island.latitude and listing.island.longitude:
+        data["geo"] = {"@type": "GeoCoordinates", "latitude": float(listing.island.latitude), "longitude": float(listing.island.longitude)}
+    if listing.kind in Listing.FOOD_KINDS and listing.cuisine:
+        data["servesCuisine"] = listing.cuisine
+    if listing.rating_count:
+        data["aggregateRating"] = {"@type": "AggregateRating", "ratingValue": float(listing.rating_avg), "reviewCount": listing.rating_count, "bestRating": 5}
+        data["review"] = [{"@type": "Review", "author": {"@type": "Person", "name": r.name},
+                           "reviewRating": {"@type": "Rating", "ratingValue": r.rating, "bestRating": 5},
+                           "reviewBody": r.text[:500]} for r in list(reviews)[:5]]
+    return data
 
 
 def enquiry_sent(request, ref):
@@ -850,3 +894,95 @@ def cron_photos(request):
 
     purge()  # analytics older than about 13 months
     return JsonResponse({"log": out.getvalue().splitlines()[-30:]})
+
+
+# ---------------------------------------------------------------- guides, saved lists, compare
+def guide_list(request):
+    qs = Guide.objects.filter(is_published=True, published_at__lte=timezone.now()).prefetch_related("islands")
+    cat = request.GET.get("category", "")
+    cats = dict(Guide.CATEGORY_CHOICES)
+    used = set(qs.values_list("category", flat=True))
+    chips = [("", "All guides")] + [(k, v) for k, v in Guide.CATEGORY_CHOICES if k in used]
+    if cat in cats:
+        qs = qs.filter(category=cat)
+    guides = list(qs)
+    lead = guides[0] if guides and not cat else None
+    auto = lead.photo_url if lead else ""
+    hero_photo, hero_credit = PageBanner.for_page("guides", auto)
+    return render(request, "directory/guide_list.html", {
+        "guides": guides[1:] if lead else guides, "lead": lead, "chips": chips, "cat": cat,
+        "cat_label": cats.get(cat, ""), "hero_photo": hero_photo, "hero_credit": hero_credit,
+    })
+
+
+def guide_detail(request, slug):
+    guide = get_object_or_404(Guide.objects.prefetch_related("islands__atoll"), slug=slug, is_published=True)
+    islands = _islands().filter(pk__in=[i.pk for i in guide.islands.all()])
+    more = Guide.objects.filter(is_published=True).exclude(pk=guide.pk).order_by("-published_at")
+    more = list(more.filter(category=guide.category)[:3]) or list(more[:3])
+    if len(more) < 3:
+        more += list(Guide.objects.filter(is_published=True).exclude(pk__in=[guide.pk] + [m.pk for m in more])[: 3 - len(more)])
+    url = request.build_absolute_uri(guide.get_absolute_url())
+    ld = [{
+        "@context": "https://schema.org", "@type": "Article", "headline": guide.title, "description": guide.summary,
+        "datePublished": guide.published_at.isoformat(), "dateModified": guide.updated_at.isoformat(),
+        "author": {"@type": "Organization", "name": guide.author}, "mainEntityOfPage": url,
+        "publisher": {"@type": "Organization", "name": settings.SITE_NAME},
+        **({"image": [request.build_absolute_uri(guide.photo_url)]} if guide.photo_url else {}),
+    }]
+    if guide.faq_list:
+        ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+            {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in guide.faq_list]})
+    return render(request, "directory/guide_detail.html", {"guide": guide, "islands": islands, "more": more, "ld": ld})
+
+
+def _slugs(value, limit=24):
+    return [s for s in dict.fromkeys(x.strip() for x in (value or "").split(",")) if s][:limit]
+
+
+def saved(request):
+    """A visitor's saved islands and listings. The list lives in the browser and is passed in the URL, so it can be shared."""
+    i_slugs, l_slugs = _slugs(request.GET.get("i")), _slugs(request.GET.get("l"))
+    islands = sorted(_islands().filter(slug__in=i_slugs), key=lambda x: i_slugs.index(x.slug))
+    listings = sorted(_live_listings().filter(slug__in=l_slugs), key=lambda x: l_slugs.index(x.slug))
+    share_url = request.build_absolute_uri()
+    return render(request, "directory/saved.html", {
+        "islands": islands, "listings": listings, "has_query": "i" in request.GET or "l" in request.GET,
+        "share_url": share_url, "compare_slugs": ",".join(i.slug for i in islands[:4]),
+    })
+
+
+def island_compare(request):
+    slugs = _slugs(request.GET.get("i"), 4)
+    if request.GET.get("add"):
+        slugs = _slugs(",".join(slugs + [request.GET["add"]]), 4)
+        return redirect(reverse("directory:island_compare") + "?" + urlencode({"i": ",".join(slugs)}))
+    islands = sorted(_islands().filter(slug__in=slugs).prefetch_related("activities"), key=lambda x: slugs.index(x.slug))
+    acts = {}
+    for i in islands:
+        for a in i.activities.all():
+            acts.setdefault(a.pk, [a, set()])[1].add(i.pk)
+    for i in islands:
+        i.remove_qs = ",".join(x.slug for x in islands if x.pk != i.pk)
+    activity_rows = sorted(acts.values(), key=lambda r: (-len(r[1]), r[0].name))
+    yes_no = lambda v: "yes" if v else "no"
+    rows = [
+        ("Atoll", [i.atoll.name for i in islands], None),
+        ("Getting there", [i.transfer_time or "–" for i in islands], None),
+        ("Distance from the airport", [f"{i.distance_from_airport_km} km" if i.distance_from_airport_km else "–" for i in islands], None),
+        ("Population", [f"{i.population:,}" if i.population else "–" for i in islands], None),
+        ("Bikini beach", [yes_no(i.has_bikini_beach) for i in islands], "flag"),
+        ("ATM", [yes_no(i.has_atm) for i in islands], "flag"),
+        ("Health care", [i.healthcare_label for i in islands], None),
+        ("Pharmacy", [yes_no(i.has_pharmacy) for i in islands], "flag"),
+        ("Mobile data", [i.mobile_data_label for i in islands], None),
+        ("Places to stay", [i.stay_count or "–" for i in islands], None),
+        ("Experiences", [i.service_count or "–" for i in islands], None),
+        ("Places to eat", [i.food_count or "–" for i in islands], None),
+        ("Best time to visit", [i.best_time_to_visit or "–" for i in islands], None),
+    ]
+    others = _islands().exclude(slug__in=slugs).order_by("name") if len(islands) < 4 else []
+    return render(request, "directory/island_compare.html", {
+        "islands": islands, "rows": rows, "activity_rows": activity_rows, "others": others,
+        "slugs": ",".join(i.slug for i in islands),
+    })

@@ -10,6 +10,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <script>if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
+  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <meta property="og:site_name" content="{{ SITE_NAME }}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}: local islands of the Maldives{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Guest houses, experiences, transport and food on the local islands of the Maldives. Contact local hosts directly, with no booking fees.{% endblock %}">
+  <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  {% block og_image %}{% endblock %}
+  <meta name="twitter:card" content="summary_large_image">
+  {% for item in ld %}<script type="application/ld+json">{{ item|jsonld }}</script>
+  {% endfor %}
   {% block extra_head %}{% endblock %}
   <link rel="icon" type="image/svg+xml" href="{% static 'img/brand/favicon.svg' %}">
 </head>
@@ -25,6 +35,8 @@
       <a href="{% url 'directory:service_list' %}" class="{% if p|slice:':12' == '/experiences' %}active{% endif %}">Experiences</a>
       <a href="{% url 'directory:transport_list' %}" class="{% if p|slice:':10' == '/transport' %}active{% endif %}">Transport</a>
       <a href="{% url 'directory:food_list' %}" class="{% if p|slice:':5' == '/food' %}active{% endif %}">Food</a>
+      <a href="{% url 'directory:guide_list' %}" class="{% if p|slice:':7' == '/guides' %}active{% endif %}">Guides</a>
+      <a href="{% url 'directory:saved' %}" class="nav-saved{% if p == '/saved/' %} active{% endif %}" data-saved-link aria-label="Saved">{% icon "heart" %}<span class="nav-saved-n" data-saved-count hidden></span><span class="nav-saved-label">Saved</span></a>
       {% endwith %}
       <span class="sep"></span>
       {% if user.is_authenticated %}
@@ -60,6 +72,8 @@
         <li><a href="{% url 'directory:service_list' %}">Experiences</a></li>
         <li><a href="{% url 'directory:transport_list' %}">Transport</a></li>
         <li><a href="{% url 'directory:food_list' %}">Food</a></li>
+        <li><a href="{% url 'directory:guide_list' %}">Travel guides</a></li>
+        <li><a href="{% url 'directory:island_compare' %}">Compare islands</a></li>
       </ul></div>
       <div><h4>For businesses</h4><ul>
         <li><a href="{% url 'directory:list_your_business' %}">List your business</a></li>

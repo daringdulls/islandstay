@@ -896,3 +896,42 @@ class PageBannerTests(TestCase):
         admin_user = User.objects.create_superuser("pb@x.mv", "pb@x.mv", "pw")
         self.client.force_login(admin_user)
         self.assertEqual(self.client.get(reverse("admin:directory_pagebanner_changelist")).status_code, 200)
+
+
+class EngagementTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_guides_list_and_detail(self):
+        from .models import Guide
+        g = Guide.objects.create(title="Test guide about Maafushi", summary="Short summary", body="Intro <script>\n\n## First part\n- point [link](/islands/)",
+                                 faqs="Q: Is it nice?\nA: Yes.")
+        g.islands.set(Island.objects.filter(slug="maafushi"))
+        self.assertContains(self.client.get(reverse("directory:guide_list")), "Test guide about Maafushi")
+        r = self.client.get(g.get_absolute_url())
+        self.assertContains(r, '<h2 id="first-part">First part</h2>', html=False)
+        self.assertContains(r, '"@type": "FAQPage"')
+        self.assertNotContains(r, "Intro <script>")
+        self.assertContains(self.client.get(reverse("directory:island_detail", args=["maafushi"])), "Test guide about Maafushi")
+
+    def test_saved_page_from_url(self):
+        listing = Listing.objects.get(name="Coral Breeze Inn")
+        r = self.client.get(reverse("directory:saved") + f"?i=maafushi,gulhi&l={listing.slug},nope")
+        self.assertContains(r, "Maafushi")
+        self.assertContains(r, "Coral Breeze Inn")
+        self.assertContains(r, "Compare these islands")
+        self.assertContains(self.client.get(reverse("directory:saved")), "Nothing saved yet")
+
+    def test_compare_islands(self):
+        r = self.client.get(reverse("directory:island_compare") + "?i=maafushi,gulhi")
+        self.assertContains(r, "Bikini beach")
+        self.assertContains(r, "Gulhi")
+        r = self.client.get(reverse("directory:island_compare") + "?i=maafushi&add=gulhi")
+        self.assertRedirects(r, reverse("directory:island_compare") + "?i=maafushi%2Cgulhi")
+
+    def test_listing_structured_data(self):
+        listing = Listing.objects.get(name="Coral Breeze Inn")
+        r = self.client.get(listing.get_absolute_url())
+        self.assertContains(r, "application/ld+json")
+        self.assertContains(r, '"addressCountry": "MV"')
