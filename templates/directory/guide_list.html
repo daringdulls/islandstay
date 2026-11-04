@@ -1,44 +1,108 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if cat_label %}{{ cat_label }}: {% endif %}Maldives local island travel guides{% endblock %}
+{% block title %}{% if cat_label %}{{ cat_label }}: {% elif island %}{{ island.name }}: {% endif %}Maldives local island travel guides{% endblock %}
 {% block meta_description %}Practical guides to the local islands of the Maldives: local rules, airport transfers, the best time for whale sharks, mantas and surf, money and SIM cards.{% endblock %}
 {% block content %}
 <section class="il-hero gd-hero">
   {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
   {% if hero_photo %}<img class="il-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
   <div class="container il-hero-inner">
-    <div class="eyebrow">Travel guides</div>
+    <div class="eyebrow">Travel guides · {{ total }} guide{{ total|pluralize }}</div>
     <h1>Know before you <span class="accent-word">go</span></h1>
     <p class="lead">Straight answers for a stay on a local island: what to wear, how to get there, when to see whale sharks and mantas, and what to bring.</p>
+    <form class="fd-search gd-search" method="get" action="#guides" role="search">
+      <label class="sr-only" for="gd-q">Search the guides</label>
+      {% icon "search" %}<input id="gd-q" type="search" name="q" value="{{ q }}" placeholder="Search the guides, e.g. ferry, bikini, SIM card">
+      <button class="btn btn-accent btn-sm" type="submit">Search</button>
+    </form>
   </div>
 </section>
+
+{# ---------- topics ---------- #}
+{% if topics %}
+<section class="gd-topics-wrap">
+  <div class="container">
+    <div class="gd-topics">
+      {% for t in topics %}<a class="gd-topic{% if t.key == cat %} on{% endif %}" href="?category={{ t.key }}#guides">{% icon t.icon %}<span><b>{{ t.label }}</b><small>{{ t.n }} guide{{ t.n|pluralize }}</small></span></a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="section" id="guides">
   <div class="container">
-    {% if chips|length > 2 %}<div class="st-chips">{% for key, label in chips %}<a class="st-chip{% if key == cat %} on{% endif %}" href="{% if key %}?category={{ key }}{% else %}?{% endif %}#guides">{{ label }}</a>{% endfor %}</div>{% endif %}
-    {% if lead %}
-    <a class="gd-lead" href="{{ lead.get_absolute_url }}">
-      <div class="gd-lead-photo">{% if lead.photo_url %}<img src="{{ lead.photo_url|thumb }}" alt="" onerror="this.remove()">{% endif %}</div>
-      <div class="gd-lead-body">
-        <span class="gd-cat">{{ lead.get_category_display }}</span>
-        <h2>{{ lead.title }}</h2>
-        <p>{{ lead.summary }}</p>
-        <span class="gd-meta">{% icon "clock" %} {{ lead.reading_minutes }} min read</span>
-        <span class="link-arrow">Read the guide {% icon "arrow-right" %}</span>
-      </div>
-    </a>
-    {% endif %}
-    {% if guides %}
-    <div class="gd-grid">
-      {% for g in guides %}
-      <a class="gd-card" href="{{ g.get_absolute_url }}">
-        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
-        <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:150 }}</p><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span></div>
-      </a>
-      {% endfor %}
+  {% if filtered %}
+    <div class="fd-results-head">
+      <div><div class="eyebrow">{% if cat_label %}Topic{% elif island %}Island{% else %}Search{% endif %}</div>
+        <h2>{% if cat_label %}{{ cat_label }}{% elif island %}Guides about {{ island.name }}{% else %}Guides matching “{{ q }}”{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ guides|length }} guide{{ guides|length|pluralize }}</span><a href="{% url 'directory:guide_list' %}#guides">{% icon "x" %} All guides</a></div>
     </div>
-    {% elif not lead %}
-    <div class="il-empty">{% icon "book-open" %}<div><b>No guides here yet</b><p>We're writing more every month.</p></div><a class="btn btn-ghost" href="?">All guides</a></div>
+    {% if guides %}<div class="gd-grid">{% for g in guides %}{% include "partials/guide_card.html" %}{% endfor %}</div>
+    {% else %}<div class="il-empty">{% icon "book-open" %}<div><b>No guides found</b><p>Try another word, or browse the topics above.</p></div><a class="btn btn-ghost" href="{% url 'directory:guide_list' %}">All guides</a></div>{% endif %}
+  {% else %}
+    {% if essentials %}
+    <div class="gd-start">
+      <div class="gd-start-head"><div class="eyebrow">Start here</div><h2>Read these before you book</h2><p>The {{ essentials|length }} guides first-time visitors find most useful.</p></div>
+      <div class="gd-start-grid">
+        {% for g in essentials %}
+        <a class="gd-start-card{% if forloop.first %} big{% endif %}" href="{{ g.get_absolute_url }}">
+          {% if g.photo_url %}<img src="{% if forloop.first %}{{ g.photo_url }}{% else %}{{ g.photo_url|thumb }}{% endif %}" alt="" {% if not forloop.first %}loading="lazy"{% endif %} onerror="this.remove()">{% endif %}
+          <span class="gd-start-n">{{ forloop.counter }}</span>
+          <span class="gd-start-body"><small>{{ g.get_category_display }} · {{ g.reading_minutes }} min read</small><b>{{ g.title }}</b>{% if forloop.first %}<em>{{ g.summary }}</em>{% endif %}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
+
+    {% for sec in sections %}
+    <div class="gd-sec">
+      <div class="gd-sec-head">
+        <span class="gd-sec-icon">{% icon sec.icon %}</span>
+        <div><h2>{{ sec.label }}</h2><p>{{ sec.blurb }}</p></div>
+        {% if sec.n > sec.guides|length %}<a class="link-arrow" href="?category={{ sec.key }}#guides">All {{ sec.n }} {% icon "arrow-right" %}</a>{% endif %}
+      </div>
+      <div class="gd-grid">{% for g in sec.guides %}{% include "partials/guide_card.html" %}{% endfor %}</div>
+    </div>
+    {% endfor %}
+    {% if rest %}
+    <div class="gd-sec">
+      <div class="gd-sec-head"><span class="gd-sec-icon">{% icon "book-open" %}</span><div><h2>{% if sections %}More guides{% else %}All guides{% endif %}</h2><p>Practical answers for every part of your trip</p></div></div>
+      <div class="gd-grid">{% for g in rest %}{% include "partials/guide_card.html" %}{% endfor %}</div>
+    </div>
+    {% endif %}
+  {% endif %}
+  </div>
+</section>
+
+{# ---------- by island ---------- #}
+{% if guide_islands %}
+<section class="section il-guide gd-by-island">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">By island</div><h2>Guides for the island you're visiting</h2></div>
+    <div class="gd-islands">
+      {% for i in guide_islands %}<a class="gd-island{% if island and island.pk == i.pk %} on{% endif %}" href="?island={{ i.slug }}#guides">
+        {% if i.photo_url %}<img src="{{ i.card_photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
+        <span><b>{{ i.name }}</b><small>{{ i.n_guides }} guide{{ i.n_guides|pluralize }}</small></span></a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- planning tools ---------- #}
+<section class="section">
+  <div class="container">
+    <div class="section-head"><div class="eyebrow">Plan with Island Stay</div><h2>Tools to plan your trip</h2></div>
+    <div class="il-guide-grid il-guide-4">
+      <a class="il-guide-card" href="{% url 'directory:island_list' %}">{% icon "map" %}<b>Island guides</b><p>Facilities, local rules, beaches and what each island is known for.</p><span>Browse islands {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="{% url 'directory:island_compare' %}">{% icon "columns-3" %}<b>Compare islands</b><p>Put up to four islands side by side: transfers, beaches, ATMs, health care.</p><span>Compare {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="{% url 'directory:transport_list' %}">{% icon "ship" %}<b>Transfers and ferries</b><p>Speedboat, ferry and flight routes from the airport to each island.</p><span>Transport {% icon "arrow-right" %}</span></a>
+      <a class="il-guide-card" href="{% url 'directory:saved' %}" data-saved-link>{% icon "heart" %}<b>Your saved list</b><p>Keep islands and places you like, and share the list on WhatsApp.</p><span>Open saved {% icon "arrow-right" %}</span></a>
+    </div>
+    <div class="il-suggest" style="margin-top:28px">
+      <div>{% icon "house" %}<div><b>Found your island?</b><p>Message guest houses and local operators directly. No booking fees.</p></div></div>
+      <a class="btn" href="{% url 'directory:stay_list' %}">Find a place to stay</a>
+    </div>
   </div>
 </section>
 {% endblock %}

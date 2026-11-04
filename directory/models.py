@@ -913,7 +913,8 @@ class Guide(models.Model):
                 pass
         if self.cover_image_url:
             return self.cover_image_url
-        island = next((i for i in self.islands.all() if i.photo_url), None)
+        islands = self.islands.all() if self.pk else getattr(self, "preview_islands", [])
+        island = next((i for i in islands if i.photo_url), None)
         return island.photo_url if island else ""
 
     @property
@@ -935,3 +936,24 @@ class Guide(models.Model):
     @property
     def headings(self):
         return [(slugify(l[3:].strip()), l[3:].strip()) for l in self.body.splitlines() if l.startswith("## ")]
+
+
+class GuideTemplate(models.Model):
+    """A ready-made outline for writing a guide. Words in [square brackets] are prompts to replace."""
+    name = models.CharField(max_length=80)
+    description = models.CharField(max_length=200, blank=True, help_text="When to use this template")
+    icon = models.CharField(max_length=40, default="article", help_text="Material Symbols icon name, e.g. map, sailing, compare")
+    category = models.CharField(max_length=12, choices=Guide.CATEGORY_CHOICES, default="planning")
+    title = models.CharField(max_length=140, help_text="Title pattern, e.g. Things to do on [Island]")
+    summary = models.CharField(max_length=240, blank=True)
+    body = models.TextField()
+    faqs = models.TextField("Questions and answers", blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField("Show in the editor", default=True)
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "guide template"
+
+    def __str__(self):
+        return self.name

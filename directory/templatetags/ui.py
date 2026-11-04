@@ -56,8 +56,11 @@ def _inline(text):
     return _BOLD.sub(r"<strong>\1</strong>", text)
 
 
+_PLACEHOLDER = re.compile(r"\[([^\]\n]{1,80})\](?!\()")
+
+
 @register.filter
-def guide_body(text):
+def guide_body(text, mode=""):
     """Turn the simple guide format (## headings, - bullets, blank-line paragraphs, [links](/x/)) into HTML."""
     out, para, items = [], [], []
 
@@ -85,7 +88,10 @@ def guide_body(text):
                 flush()
             para.append(line)
     flush()
-    return mark_safe("\n".join(out))
+    html = "\n".join(out)
+    if mode == "preview":
+        html = _PLACEHOLDER.sub(r'<mark class="gd-todo">[\1]</mark>', html)
+    return mark_safe(html)
 
 
 @register.filter

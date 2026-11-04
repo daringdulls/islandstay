@@ -971,3 +971,31 @@ class FindabilityTests(TestCase):
         d = self.client.get(reverse("directory:search_suggest") + "?q=snork").json()
         self.assertTrue(any(i["t"] == "Activity" for i in d["items"]))
         self.assertContains(self.client.get(reverse("directory:search") + "?q=zzzzqq"), "Nothing found")
+
+
+class GuideEditorTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.staff = User.objects.create_superuser("ed@example.com", "ed@example.com", "pw-12345")
+
+    def test_editor_and_preview(self):
+        from .models import GuideTemplate
+        self.assertTrue(GuideTemplate.objects.exists())
+        self.client.force_login(self.staff)
+        r = self.client.get(reverse("admin:directory_guide_add"))
+        self.assertContains(r, "Start from a template")
+        self.assertContains(r, "Live preview")
+        isl = Island.objects.get(slug="maafushi")
+        r = self.client.post(reverse("admin:directory_guide_preview"), {
+            "title": "Things to do on [Island]", "summary": "S", "body": "## Beaches\n[Describe the beach]", "faqs": "Q: Why?\nA: Because.",
+            "category": "islands", "islands": [isl.pk]})
+        self.assertContains(r, "Things to do on [Island]")
+        self.assertContains(r, '<mark class="gd-todo">[Describe the beach]</mark>', html=False)
+        self.assertContains(r, "Maafushi")
+        self.assertNotContains(r, "js/track.js")
+        self.assertEqual(self.client.get(reverse("admin:directory_guidetemplate_changelist")).status_code, 200)
+
+    def test_preview_staff_only(self):
+        r = self.client.post(reverse("admin:directory_guide_preview"), {"title": "x"})
+        self.assertEqual(r.status_code, 302)

@@ -1,0 +1,5 @@
+{% load ui %}<a class="gd-card" href="{{ g.get_absolute_url }}">
+  <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
+  <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:140 }}</p>
+    <div class="gd-card-foot"><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span>{% with isl=g.islands.all %}{% if isl %}<span class="gd-meta">{% icon "map-pin" %} {{ isl.0.name }}{% if isl|length > 1 %} +{{ isl|length|add:"-1" }}{% endif %}</span>{% endif %}{% endwith %}</div></div>
+</a>

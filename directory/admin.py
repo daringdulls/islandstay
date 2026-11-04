@@ -13,7 +13,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
-from .models import Guide, HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import Guide, GuideTemplate, HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -724,13 +724,14 @@ class PageBannerAdmin(BaseAdmin):
 
 @admin.register(Guide)
 class GuideAdmin(BaseAdmin):
-    list_display = ("title_col", "category", "is_published", "is_featured", "published_at")
+    list_display = ("title_col", "category", "words", "is_published", "is_featured", "published_at")
     list_display_links = ("title_col",)
     list_editable = ("is_published", "is_featured")
     list_filter = ("category", "is_published", "is_featured")
     search_fields = ("title", "summary", "body")
     filter_horizontal = ("islands",)
     prepopulated_fields = {"slug": ("title",)}
+    change_form_before_template = "admin/guide_editor.html"
     fieldsets = (
         (None, {"fields": ("title", "slug", "category", "summary", "body")}),
         ("Questions and answers", {"fields": ("faqs",)}),
@@ -741,3 +742,52 @@ class GuideAdmin(BaseAdmin):
     @display(description="Guide", header=True)
     def title_col(self, obj):
         return obj.title, obj.get_absolute_url()
+
+    @display(description="Length")
+    def words(self, obj):
+        return f"{len(obj.body.split())} words · {obj.reading_minutes} min"
+
+    def get_urls(self):
+        from django.urls import path
+        return [path("preview/", self.admin_site.admin_view(self.preview_view), name="directory_guide_preview")] + super().get_urls()
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        import json
+        extra_context = extra_context or {}
+        extra_context["guide_templates_json"] = json.dumps([
+            {"id": t.pk, "name": t.name, "description": t.description, "icon": t.icon, "category": t.category,
+             "title": t.title, "summary": t.summary, "body": t.body, "faqs": t.faqs}
+            for t in GuideTemplate.objects.filter(is_active=True)]).replace("</", "<\\/")
+        extra_context["guide_templates"] = GuideTemplate.objects.filter(is_active=True)
+        extra_context["guide_islands_json"] = json.dumps([
+            {"id": i.pk, "name": i.name, "slug": i.slug, "atoll": i.atoll.name, "time": i.transfer_time.lstrip("≈"),
+             "km": i.distance_from_airport_km or ""} for i in Island.objects.filter(is_published=True).select_related("atoll")]).replace("</", "<\\/")
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def preview_view(self, request):
+        """Render the unsaved guide with the real public template, for the live preview in the editor."""
+        from django.http import HttpResponseNotAllowed
+        from django.shortcuts import render
+        from django.utils import timezone
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST"])
+        P = request.POST
+        cats = dict(Guide.CATEGORY_CHOICES)
+        g = Guide(title=P.get("title") or "Untitled guide", slug="preview", summary=P.get("summary", ""),
+                  body=P.get("body", ""), faqs=P.get("faqs", ""), category=P.get("category") if P.get("category") in cats else "planning",
+                  cover_image_url=P.get("cover_image_url", ""), cover_credit=P.get("cover_credit", ""),
+                  author=P.get("author") or "Island Stay team")
+        g.published_at = g.updated_at = timezone.now()
+        ids = [int(x) for x in P.getlist("islands") if x.isdigit()]
+        islands = list(Island.objects.filter(pk__in=ids).select_related("atoll"))
+        g.preview_islands = islands
+        if not g.cover_image_url and P.get("current_photo"):
+            g.cover_image_url = P["current_photo"]
+        return render(request, "directory/guide_detail.html", {"guide": g, "islands": islands, "more": [], "ld": [], "preview": True})
+
+
+@admin.register(GuideTemplate)
+class GuideTemplateAdmin(BaseAdmin):
+    list_display = ("name", "category", "description", "order", "is_active")
+    list_editable = ("order", "is_active")
+    fields = ("name", "description", "icon", "category", "title", "summary", "body", "faqs", "order", "is_active")

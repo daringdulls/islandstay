@@ -6,7 +6,7 @@
 {% block og_title %}{{ guide.title }}{% endblock %}
 {% block og_description %}{{ guide.summary }}{% endblock %}
 {% block og_image %}{% if guide.photo_url %}<meta property="og:image" content="{% if guide.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ guide.photo_url }}">{% endif %}{% endblock %}
-{% block content %}
+{% block content %}{% if preview %}<base target="_blank"><style>.cookie-banner{display:none!important}.gd-todo{background:#FFE9A8;color:#6B4A00;border-radius:4px;padding:0 3px}</style>{% endif %}
 <section class="gd-head{% if guide.photo_url %} has-photo{% endif %}">
   {% if guide.photo_url %}<img class="il-hero-bg" src="{{ guide.photo_url }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
   {% if guide.cover_credit %}<span class="hero-credit">{{ guide.cover_credit }}</span>{% endif %}
@@ -20,7 +20,7 @@
 </section>
 <div class="container gd-layout">
   <article class="gd-body">
-    {{ guide.body|guide_body }}
+    {% if preview %}{{ guide.body|guide_body:'preview' }}{% else %}{{ guide.body|guide_body }}{% endif %}
     {% if guide.faq_list %}
     <section class="gd-faq">
       <h2 id="questions">Questions travellers ask</h2>
@@ -49,11 +49,7 @@
 <section class="section">
   <div class="container">
     <div class="section-head"><div class="eyebrow">Keep reading</div><h2>More travel guides</h2></div>
-    <div class="gd-grid">{% for g in more %}
-      <a class="gd-card" href="{{ g.get_absolute_url }}">
-        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
-        <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:130 }}</p><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span></div>
-      </a>{% endfor %}</div>
+    <div class="gd-grid">{% for g in more %}{% include "partials/guide_card.html" %}{% endfor %}</div>
   </div>
 </section>
 {% endif %}

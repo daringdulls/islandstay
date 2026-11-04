@@ -1,0 +1,174 @@
+<div class="ge" id="ge" data-preview="{% url 'admin:directory_guide_preview' %}" data-photo="{{ original.photo_url|default:'' }}">
+  <div class="ge-head">
+    <span class="material-symbols-outlined">edit_note</span>
+    <div><b>Guide writer</b><p>Start from a template, fill in the <mark>[highlighted]</mark> prompts, and watch the live preview. Nothing is published until you press Save with “Published” ticked.</p></div>
+    <button type="button" class="ge-btn" id="ge-open-preview"><span class="material-symbols-outlined">visibility</span>Live preview</button>
+  </div>
+
+  <details class="ge-section" id="ge-templates" {% if not original %}open{% endif %}>
+    <summary><span class="material-symbols-outlined">dashboard_customize</span>Start from a template <small>{{ guide_templates|length }} templates · <a href="{% url 'admin:directory_guidetemplate_changelist' %}" target="_blank">edit templates</a></small></summary>
+    <div class="ge-tpls">
+      {% for t in guide_templates %}
+      <button type="button" class="ge-tpl" data-tpl="{{ t.pk }}"><span class="material-symbols-outlined">{{ t.icon }}</span><b>{{ t.name }}</b><small>{{ t.description }}</small></button>
+      {% empty %}<p class="ge-muted">No templates yet. <a href="{% url 'admin:directory_guidetemplate_add' %}">Add one</a>.</p>{% endfor %}
+    </div>
+    <div class="ge-fill">
+      <label>Fill in island details
+        <select id="ge-island"><option value="">Choose an island…</option></select></label>
+      <button type="button" class="ge-btn ge-btn-ghost" id="ge-fill-island"><span class="material-symbols-outlined">auto_fix_high</span>Replace [Island], [Atoll], [time] and links</button>
+    </div>
+  </details>
+
+  <div class="ge-section ge-check-wrap">
+    <div class="ge-check-head"><span class="material-symbols-outlined">fact_check</span><b>Before you publish</b><span id="ge-stats" class="ge-muted"></span></div>
+    <ul class="ge-check" id="ge-check"></ul>
+  </div>
+</div>
+
+<div class="ge-drawer" id="ge-drawer" hidden>
+  <div class="ge-drawer-bar">
+    <b><span class="material-symbols-outlined">visibility</span> Live preview</b>
+    <div class="ge-seg"><button type="button" data-w="100%" class="on">Desktop</button><button type="button" data-w="390px">Phone</button></div>
+    <span class="ge-muted" id="ge-pv-status">Updates as you type</span>
+    <button type="button" class="ge-x" id="ge-close" aria-label="Close preview"><span class="material-symbols-outlined">close</span></button>
+  </div>
+  <div class="ge-frame-wrap"><iframe id="ge-frame" title="Preview of the guide"></iframe></div>
+</div>
+
+<script>
+(function () {
+  var TPLS = {{ guide_templates_json|safe }}, ISLANDS = {{ guide_islands_json|safe }};
+  var root = document.getElementById("ge"), drawer = document.getElementById("ge-drawer"), frame = document.getElementById("ge-frame");
+  var csrf = "{{ csrf_token }}";
+  function $(n) { return document.querySelector('form [name="' + n + '"]'); }
+  function val(n) { var f = $(n); return f ? f.value : ""; }
+  function set(n, v) { var f = $(n); if (!f) return; f.value = v; f.dispatchEvent(new Event("input", { bubbles: true })); f.dispatchEvent(new Event("change", { bubbles: true })); }
+  function islandIds() {
+    var to = document.getElementById("id_islands_to");
+    if (to) return Array.prototype.map.call(to.options, function (o) { return o.value; });
+    var s = $("islands"); return s ? Array.prototype.filter.call(s.options, function (o) { return o.selected; }).map(function (o) { return o.value; }) : [];
+  }
+
+  // ---- templates
+  root.querySelectorAll("[data-tpl]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = TPLS.find(function (x) { return String(x.id) === b.dataset.tpl; });
+      if (!t) return;
+      if (val("body").trim() && !confirm("Replace the title, summary, text and questions you have written with the “" + t.name + "” template?")) return;
+      set("title", t.title); set("summary", t.summary); set("body", t.body); set("faqs", t.faqs); set("category", t.category);
+      var slug = $("slug"); if (slug && !slug.dataset.keep) { slug.value = ""; slug.dispatchEvent(new Event("change")); }
+      root.querySelectorAll(".ge-tpl").forEach(function (x) { x.classList.toggle("on", x === b); });
+      document.getElementById("ge-island").focus();
+      refresh(true);
+    });
+  });
+  var isl = document.getElementById("ge-island");
+  ISLANDS.forEach(function (i) { var o = document.createElement("option"); o.value = i.id; o.textContent = i.name + " · " + i.atoll; isl.appendChild(o); });
+  document.getElementById("ge-fill-island").addEventListener("click", function () {
+    var i = ISLANDS.find(function (x) { return String(x.id) === isl.value; });
+    if (!i) { isl.focus(); return; }
+    var map = { "\\[Island\\]": i.name, "\\[Island A\\]": i.name, "\\[Atoll\\]": i.atoll, "\\[time\\]": i.time || "[time]", "\\[distance\\]": i.km || "[distance]", "\\[island-slug\\]": i.slug, "\\[island-a-slug\\]": i.slug, "\\[slug\\]": i.slug };
+    ["title", "summary", "body", "faqs"].forEach(function (n) {
+      var v = val(n); Object.keys(map).forEach(function (k) { v = v.replace(new RegExp(k, "g"), map[k]); }); set(n, v);
+    });
+    // Link the island to the guide too
+    var from = document.getElementById("id_islands_from"), to = document.getElementById("id_islands_to");
+    if (from && to && !Array.prototype.some.call(to.options, function (o) { return o.value === String(i.id); })) {
+      var opt = Array.prototype.find.call(from.options, function (o) { return o.value === String(i.id); });
+      if (opt) { to.appendChild(opt); }
+    } else if (!to) { var s = $("islands"); if (s) Array.prototype.forEach.call(s.options, function (o) { if (o.value === String(i.id)) o.selected = true; }); }
+    refresh(true);
+  });
+
+  // ---- writing toolbar above the text
+  function toolbar() {
+    var body = $("body"); if (!body || body.dataset.ge) return; body.dataset.ge = "1";
+    body.classList.add("ge-body");
+    var bar = document.createElement("div"); bar.className = "ge-toolbar";
+    var tools = [["title", "Heading", "\n## Heading\n"], ["format_list_bulleted", "Bullet point", "\n- "], ["format_bold", "Bold", "**bold text**"], ["link", "Link", "[link text](/islands/)"], ["help", "Question", null]];
+    tools.forEach(function (t) {
+      var b = document.createElement("button"); b.type = "button"; b.title = t[1];
+      b.innerHTML = '<span class="material-symbols-outlined">' + t[0] + '</span><span>' + t[1] + '</span>';
+      b.addEventListener("click", function () {
+        if (!t[2]) { var f = $("faqs"); if (f) { f.value = (f.value.trim() ? f.value.trim() + "\n" : "") + "Q: \nA: "; f.focus(); f.dispatchEvent(new Event("input", { bubbles: true })); } return; }
+        var s = body.selectionStart, e = body.selectionEnd, sel = body.value.slice(s, e), ins = t[2];
+        if (sel && t[0] === "format_bold") ins = "**" + sel + "**";
+        if (sel && t[0] === "link") ins = "[" + sel + "](/islands/)";
+        if (sel && t[0] === "title") ins = "\n## " + sel + "\n";
+        body.setRangeText(ins, s, e, "end"); body.focus(); body.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      bar.appendChild(b);
+    });
+    var next = document.createElement("button"); next.type = "button"; next.className = "ge-next"; next.title = "Jump to the next [prompt]";
+    next.innerHTML = '<span class="material-symbols-outlined">skip_next</span><span>Next prompt</span>';
+    next.addEventListener("click", function () {
+      var from = body.selectionEnd, re = /\[[^\]\n]{1,80}\](?!\()/g; re.lastIndex = from;
+      var m = re.exec(body.value); if (!m) { re.lastIndex = 0; m = re.exec(body.value); }
+      if (m) { body.focus(); body.setSelectionRange(m.index, m.index + m[0].length); }
+    });
+    bar.appendChild(next);
+    body.parentNode.insertBefore(bar, body);
+  }
+
+  // ---- checklist
+  function check() {
+    var title = val("title"), summary = val("summary"), body = val("body"), faqs = val("faqs");
+    var all = [title, summary, body, faqs].join("\n");
+    var todo = (all.match(/\[[^\]\n]{1,80}\](?!\()/g) || []).length;
+    var words = (body + " " + faqs).trim().split(/\s+/).filter(Boolean).length;
+    var heads = (body.match(/^## /gm) || []).length, qs = (faqs.match(/^Q:/gim) || []).length;
+    var links = (body.match(/\]\(\//g) || []).length;
+    var photo = val("cover_image_url") || root.dataset.photo || (document.querySelector('form [name="cover_image"]') || {}).value || islandIds().length;
+    var items = [
+      [todo === 0, todo ? todo + " [prompt" + (todo > 1 ? "s" : "") + "] still to replace" : "All [prompts] replaced"],
+      [title.length >= 20 && title.length <= 70, "Title " + title.length + " characters (best 20–70)"],
+      [summary.length >= 70 && summary.length <= 160, "Summary " + summary.length + " characters (best 70–160, shown in Google)"],
+      [words >= 600, words + " words (aim for 600+ to rank well)"],
+      [heads >= 3, heads + " heading" + (heads === 1 ? "" : "s") + " (aim for 3+)"],
+      [qs >= 2, qs + " question" + (qs === 1 ? "" : "s") + " and answers (aim for 2+, can show in Google)"],
+      [links >= 2, links + " link" + (links === 1 ? "" : "s") + " to other Island Stay pages (aim for 2+)"],
+      [islandIds().length > 0, islandIds().length ? islandIds().length + " island" + (islandIds().length > 1 ? "s" : "") + " linked" : "No islands linked yet"],
+      [!!photo, photo ? "Has a cover photo" : "No cover photo (an island photo is used when you link one)"],
+    ];
+    document.getElementById("ge-check").innerHTML = items.map(function (i) {
+      return '<li class="' + (i[0] ? "ok" : "todo") + '"><span class="material-symbols-outlined">' + (i[0] ? "check_circle" : "radio_button_unchecked") + "</span>" + i[1].replace(/\[/g, "&#91;") + "</li>";
+    }).join("");
+    document.getElementById("ge-stats").textContent = Math.max(1, Math.round(words / 220)) + " min read";
+  }
+
+  // ---- live preview
+  var timer, busy = false, again = false;
+  function render() {
+    if (drawer.hidden) return;
+    if (busy) { again = true; return; }
+    busy = true; document.getElementById("ge-pv-status").textContent = "Updating…";
+    var fd = new FormData();
+    ["title", "summary", "body", "faqs", "category", "cover_image_url", "cover_credit", "author"].forEach(function (n) { fd.append(n, val(n)); });
+    islandIds().forEach(function (id) { fd.append("islands", id); });
+    fd.append("current_photo", root.dataset.photo || "");
+    var y = frame.contentWindow ? frame.contentWindow.scrollY : 0;
+    fetch(root.dataset.preview, { method: "POST", body: fd, headers: { "X-CSRFToken": csrf }, credentials: "same-origin" })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        frame.onload = function () { try { frame.contentWindow.scrollTo(0, y); } catch (e) {} };
+        frame.srcdoc = html; document.getElementById("ge-pv-status").textContent = "Up to date";
+      })
+      .catch(function () { document.getElementById("ge-pv-status").textContent = "Preview failed. Try again."; })
+      .finally(function () { busy = false; if (again) { again = false; render(); } });
+  }
+  function refresh(now) { check(); clearTimeout(timer); timer = setTimeout(render, now ? 0 : 600); }
+  document.getElementById("ge-open-preview").addEventListener("click", function () { drawer.hidden = false; document.body.classList.add("ge-open"); render(); });
+  document.getElementById("ge-close").addEventListener("click", function () { drawer.hidden = true; document.body.classList.remove("ge-open"); });
+  drawer.querySelectorAll("[data-w]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      drawer.querySelectorAll("[data-w]").forEach(function (x) { x.classList.toggle("on", x === b); });
+      frame.style.width = b.dataset.w;
+    });
+  });
+  document.addEventListener("input", function (e) { if (e.target.closest && e.target.closest("form")) refresh(); });
+  document.addEventListener("change", function (e) { if (e.target.closest && e.target.closest("form")) refresh(); });
+  document.addEventListener("click", function (e) { if (e.target.closest && e.target.closest(".selector-chooser, .selector")) setTimeout(function () { refresh(); }, 50); });
+  function start() { toolbar(); check(); }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>

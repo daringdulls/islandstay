@@ -366,3 +366,61 @@ textarea[data-autogrow] { min-height: 4.5em; overflow-y: hidden; resize: vertica
 .db-rank li span::before { content: counter(r); display: inline-block; width: 22px; color: var(--is-muted); font-size: 12px; font-weight: 700; }
 .db-none { margin: 0 18px 10px; color: var(--is-muted); font-size: 13px; }
 .db-card:has(.db-h3) { padding-bottom: 8px; }
+
+/* ===================================================== Guide writer */
+.ge { border: 1px solid var(--is-line); border-radius: 16px; background: var(--is-surface); padding: 16px 18px; margin-bottom: 18px; }
+.ge-head { display: flex; align-items: flex-start; gap: 12px; }
+.ge-head > .material-symbols-outlined { color: #0B6E8A; background: rgba(11, 110, 138, .1); border-radius: 10px; padding: 7px; }
+.ge-head > div { flex: 1; }
+.ge-head p { margin: 2px 0 0; font-size: 13px; color: var(--is-muted); }
+.ge mark { background: #FFE9A8; color: #6B4A00; border-radius: 4px; padding: 0 3px; }
+.ge-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: #0B6E8A; color: #fff; font-weight: 600; font-size: 13px; border: 0; cursor: pointer; white-space: nowrap; }
+.ge-btn:hover { background: #0A3D4C; }
+.ge-btn .material-symbols-outlined { font-size: 18px; }
+.ge-btn-ghost { background: transparent; color: #0B6E8A; border: 1px solid rgba(11, 110, 138, .4); }
+.ge-btn-ghost:hover { background: rgba(11, 110, 138, .08); }
+.ge-section { margin-top: 14px; border-top: 1px solid var(--is-line); padding-top: 12px; }
+.ge-section > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; }
+.ge-section > summary::-webkit-details-marker { display: none; }
+.ge-section > summary small { font-weight: 500; color: var(--is-muted); margin-left: 6px; }
+.ge-section > summary small a { color: #0B6E8A; }
+.ge-section > summary .material-symbols-outlined { color: #0B6E8A; font-size: 20px; }
+.ge-tpls { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 12px; }
+.ge-tpl { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--is-line); background: transparent; cursor: pointer; color: var(--is-ink); transition: border-color .15s, box-shadow .15s; }
+.ge-tpl:hover { border-color: #0B6E8A; box-shadow: 0 6px 18px rgba(10, 61, 76, .08); }
+.ge-tpl.on { border-color: #0B6E8A; background: rgba(11, 110, 138, .06); }
+.ge-tpl .material-symbols-outlined { color: #0B6E8A; font-size: 22px; margin-bottom: 4px; }
+.ge-tpl b { font-size: 13.5px; }
+.ge-tpl small { font-size: 12px; color: var(--is-muted); line-height: 1.4; }
+.ge-fill { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 12px; }
+.ge-fill label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--is-muted); }
+.ge-fill select { min-width: 240px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--is-line); background: var(--is-surface); color: var(--is-ink); }
+.ge-muted { color: var(--is-muted); font-size: 12.5px; font-weight: 500; }
+.ge-check-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.ge-check-head .material-symbols-outlined { color: #0B6E8A; font-size: 20px; }
+.ge-check-head .ge-muted { margin-left: auto; }
+.ge-check { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px 18px; font-size: 13px; }
+.ge-check li { display: flex; align-items: center; gap: 6px; }
+.ge-check .material-symbols-outlined { font-size: 18px; }
+.ge-check li.ok .material-symbols-outlined { color: #1E7A55; }
+.ge-check li.todo { color: var(--is-ink); }
+.ge-check li.todo .material-symbols-outlined { color: #B7791F; }
+.ge-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; border: 1px solid var(--is-line); border-bottom: 0; border-radius: 10px 10px 0 0; background: rgba(11, 110, 138, .04); }
+.ge-toolbar button { display: inline-flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 7px; border: 0; background: transparent; color: var(--is-ink); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ge-toolbar button:hover { background: rgba(11, 110, 138, .1); color: #0B6E8A; }
+.ge-toolbar .material-symbols-outlined { font-size: 18px; }
+.ge-toolbar .ge-next { margin-left: auto; color: #9A5F05; }
+textarea.ge-body { min-height: 520px !important; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13.5px !important; line-height: 1.6 !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important; }
+.ge-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(48vw, 860px); z-index: 1000; display: flex; flex-direction: column; background: #E9EEF0; border-left: 1px solid var(--is-line); box-shadow: -20px 0 60px rgba(10, 61, 76, .18); }
+.ge-drawer[hidden] { display: none; }
+.ge-drawer-bar { display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: #0A3D4C; color: #fff; }
+.ge-drawer-bar b { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.ge-drawer-bar .ge-muted { color: rgba(255, 255, 255, .7); }
+.ge-seg { display: inline-flex; background: rgba(255, 255, 255, .12); border-radius: 999px; padding: 3px; }
+.ge-seg button { border: 0; background: transparent; color: #fff; font-size: 12.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.ge-seg button.on { background: #fff; color: #0A3D4C; }
+.ge-x { margin-left: auto; border: 0; background: transparent; color: #fff; cursor: pointer; display: grid; place-items: center; }
+.ge-frame-wrap { flex: 1; overflow: auto; display: flex; justify-content: center; padding: 14px; }
+.ge-frame-wrap iframe { width: 100%; height: 100%; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 10px 30px rgba(10, 61, 76, .15); transition: width .25s; }
+@media (min-width: 1200px) { body.ge-open #main, body.ge-open main { margin-right: min(48vw, 860px); } }
+@media (max-width: 900px) { .ge-drawer { width: 100vw; } }

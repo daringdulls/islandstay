@@ -883,21 +883,51 @@ def cron_photos(request):
 
 
 # ---------------------------------------------------------------- guides, saved lists, compare
+GUIDE_TOPICS = {
+    "planning": ("calendar", "Seasons, budgets and itineraries for your trip"),
+    "islands": ("map", "How to pick the right island for you"),
+    "rules": ("scroll-text", "Dress code, alcohol, prayer times and customs"),
+    "transport": ("ship", "Speedboats, ferries and flights between islands"),
+    "activities": ("fish", "Whale sharks, mantas, diving, surf and sandbanks"),
+    "money": ("banknote", "Cash, cards, SIM cards, Wi-Fi and taxes"),
+}
+
+
 def guide_list(request):
-    qs = Guide.objects.filter(is_published=True, published_at__lte=timezone.now()).prefetch_related("islands")
-    cat = request.GET.get("category", "")
+    base = Guide.objects.filter(is_published=True, published_at__lte=timezone.now()).prefetch_related("islands")
+    cat, q, isl = request.GET.get("category", ""), request.GET.get("q", "").strip()[:80], request.GET.get("island", "")
     cats = dict(Guide.CATEGORY_CHOICES)
-    used = set(qs.values_list("category", flat=True))
-    chips = [("", "All guides")] + [(k, v) for k, v in Guide.CATEGORY_CHOICES if k in used]
+    counts = dict(base.values_list("category").annotate(n=Count("id")).values_list("category", "n"))
+    topics = [{"key": k, "label": v, "icon": GUIDE_TOPICS[k][0], "blurb": GUIDE_TOPICS[k][1], "n": counts.get(k, 0)}
+              for k, v in Guide.CATEGORY_CHOICES if counts.get(k)]
+    qs = base
     if cat in cats:
         qs = qs.filter(category=cat)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(summary__icontains=q) | Q(body__icontains=q) | Q(islands__name__icontains=q)).distinct()
+    island = Island.objects.filter(slug=isl, is_published=True).first() if isl else None
+    if island:
+        qs = qs.filter(islands=island)
+    filtered = bool(cat in cats or q or island)
     guides = list(qs)
-    lead = guides[0] if guides and not cat else None
-    auto = lead.photo_url if lead else ""
-    hero_photo, hero_credit = PageBanner.for_page("guides", auto)
+    essentials, sections, rest = [], [], []
+    if not filtered:
+        essentials = list(base.filter(is_featured=True)[:3])
+        essentials += [g for g in guides if g not in essentials][: 3 - len(essentials)]
+        shown = {g.pk for g in essentials}
+        for t in topics:
+            items = [g for g in guides if g.category == t["key"] and g.pk not in shown]
+            if len(items) >= 2:
+                sections.append({**t, "guides": items[:3]})
+                shown.update(g.pk for g in items[:3])
+        rest = [g for g in guides if g.pk not in shown]
+    guide_islands = list(_islands().filter(guides__is_published=True).annotate(n_guides=Count("guides", distinct=True)).order_by("-n_guides", "name")[:12])
+    lead = essentials[0] if essentials else (guides[0] if guides else None)
+    hero_photo, hero_credit = PageBanner.for_page("guides", lead.photo_url if lead else "")
     return render(request, "directory/guide_list.html", {
-        "guides": guides[1:] if lead else guides, "lead": lead, "chips": chips, "cat": cat,
-        "cat_label": cats.get(cat, ""), "hero_photo": hero_photo, "hero_credit": hero_credit,
+        "guides": guides, "essentials": essentials, "sections": sections, "rest": rest, "topics": topics, "cat": cat, "q": q,
+        "island": island, "filtered": filtered, "cat_label": cats.get(cat, ""), "cat_icon": GUIDE_TOPICS.get(cat, ("book-open",))[0],
+        "guide_islands": guide_islands, "total": base.count(), "hero_photo": hero_photo, "hero_credit": hero_credit,
     })
 
 

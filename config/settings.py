@@ -294,6 +294,7 @@ UNFOLD = {
                     {"title": "Islands", "icon": "landscape", "link": reverse_lazy("admin:directory_island_changelist")},
                     {"title": "Home page islands", "icon": "home", "link": reverse_lazy("admin:directory_homefeature_changelist")},
                     {"title": "Travel guides", "icon": "menu_book", "link": reverse_lazy("admin:directory_guide_changelist")},
+                    {"title": "Guide templates", "icon": "description", "link": reverse_lazy("admin:directory_guidetemplate_changelist")},
                     {"title": "Page banners", "icon": "wallpaper", "link": reverse_lazy("admin:directory_pagebanner_changelist")},
                     {"title": "Atolls", "icon": "public", "link": reverse_lazy("admin:directory_atoll_changelist")},
                     {"title": "Transport routes", "icon": "directions_boat", "link": reverse_lazy("admin:directory_transportroute_changelist")},
