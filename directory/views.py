@@ -949,7 +949,22 @@ def guide_detail(request, slug):
     if guide.faq_list:
         ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
             {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in guide.faq_list]})
-    return render(request, "directory/guide_detail.html", {"guide": guide, "islands": islands, "more": more, "ld": ld})
+    return render(request, "directory/guide_detail.html", {"guide": guide, "islands": islands, "more": more, "ld": ld,
+                                                           "segments": guide_segments(guide)})
+
+
+def guide_segments(guide):
+    """Blocks grouped for the page: the sidebar sits beside the first text part, questions go after the last."""
+    from .guide_blocks import resolve
+    if not guide.blocks:
+        return []
+    segs = resolve(guide.blocks, guide)
+    if not segs or segs[-1].get("bleed"):
+        segs.append({"blocks": []})
+    first = next(s for s in segs if "blocks" in s)
+    first["aside"] = True
+    segs[-1]["last"] = True
+    return segs
 
 
 def _slugs(value, limit=24):

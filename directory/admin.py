@@ -1,5 +1,6 @@
 import io
 
+from django import forms
 from django.contrib import admin, messages
 from django.core.management import call_command
 from django.db.models import Count, Q
@@ -722,8 +723,30 @@ class PageBannerAdmin(BaseAdmin):
         return format_html('<img src="{}" style="max-width:520px;width:100%;aspect-ratio:16/7;object-fit:cover;border-radius:12px">', obj.url)
 
 
+class GuideForm(forms.ModelForm):
+    blocks = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    class Meta:
+        model = Guide
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        import json
+        super().__init__(*args, **kwargs)
+        self.initial["blocks"] = json.dumps(self.instance.blocks or [])
+
+    def clean_blocks(self):
+        import json
+        from .guide_blocks import clean_blocks
+        try:
+            return clean_blocks(json.loads(self.cleaned_data.get("blocks") or "[]"))
+        except ValueError:
+            raise forms.ValidationError("The content blocks could not be read. Reload the page and try again.")
+
+
 @admin.register(Guide)
 class GuideAdmin(BaseAdmin):
+    form = GuideForm
     list_display = ("title_col", "category", "words", "is_published", "is_featured", "published_at")
     list_display_links = ("title_col",)
     list_editable = ("is_published", "is_featured")
@@ -733,7 +756,7 @@ class GuideAdmin(BaseAdmin):
     prepopulated_fields = {"slug": ("title",)}
     change_form_before_template = "admin/guide_editor.html"
     fieldsets = (
-        (None, {"fields": ("title", "slug", "category", "summary", "body")}),
+        (None, {"fields": ("title", "slug", "category", "summary", "blocks", "body")}),
         ("Questions and answers", {"fields": ("faqs",)}),
         ("Islands and photo", {"fields": ("islands", "cover_image", "cover_image_url", "cover_credit")}),
         ("Publishing", {"fields": ("author", "is_published", "is_featured", "published_at")}),
@@ -749,19 +772,53 @@ class GuideAdmin(BaseAdmin):
 
     def get_urls(self):
         from django.urls import path
-        return [path("preview/", self.admin_site.admin_view(self.preview_view), name="directory_guide_preview")] + super().get_urls()
+        return [path("preview/", self.admin_site.admin_view(self.preview_view), name="directory_guide_preview"),
+                path("upload/", self.admin_site.admin_view(self.upload_view), name="directory_guide_upload")] + super().get_urls()
+
+    def upload_view(self, request):
+        """Photo upload for image blocks. Returns the stored file's address."""
+        import uuid
+        from django.core.files.storage import default_storage
+        from django.http import JsonResponse
+        from PIL import Image
+        f = request.FILES.get("file")
+        if request.method != "POST" or not f:
+            return JsonResponse({"error": "Choose a photo to upload."}, status=400)
+        if f.size > 12 * 1024 * 1024:
+            return JsonResponse({"error": "That photo is larger than 12 MB."}, status=400)
+        try:
+            img = Image.open(f)
+            img.verify()
+            fmt = (img.format or "").lower()
+        except Exception:
+            return JsonResponse({"error": "That file isn't a photo we can read (use JPG, PNG or WebP)."}, status=400)
+        ext = {"jpeg": "jpg", "png": "png", "webp": "webp", "gif": "gif"}.get(fmt)
+        if not ext:
+            return JsonResponse({"error": "Use a JPG, PNG or WebP photo."}, status=400)
+        f.seek(0)
+        name = default_storage.save(f"guides/{uuid.uuid4().hex[:12]}.{ext}", f)
+        return JsonResponse({"url": default_storage.url(name)})
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        import json
         extra_context = extra_context or {}
-        extra_context["guide_templates_json"] = json.dumps([
-            {"id": t.pk, "name": t.name, "description": t.description, "icon": t.icon, "category": t.category,
-             "title": t.title, "summary": t.summary, "body": t.body, "faqs": t.faqs}
-            for t in GuideTemplate.objects.filter(is_active=True)]).replace("</", "<\\/")
+        from django.middleware.csrf import get_token
+        live = Listing.objects.filter(status=Listing.STATUS_APPROVED).select_related("island")
         extra_context["guide_templates"] = GuideTemplate.objects.filter(is_active=True)
-        extra_context["guide_islands_json"] = json.dumps([
-            {"id": i.pk, "name": i.name, "slug": i.slug, "atoll": i.atoll.name, "time": i.transfer_time.lstrip("≈"),
-             "km": i.distance_from_airport_km or ""} for i in Island.objects.filter(is_published=True).select_related("atoll")]).replace("</", "<\\/")
+        extra_context["ge_data"] = {
+            "csrf": get_token(request),
+            "preview": reverse("admin:directory_guide_preview"),
+            "upload": reverse("admin:directory_guide_upload"),
+            "templates": [{"id": t.pk, "name": t.name, "category": t.category, "title": t.title, "summary": t.summary,
+                           "body": t.body, "faqs": t.faqs} for t in extra_context["guide_templates"]],
+            "islands": [{"id": i.pk, "name": i.name, "slug": i.slug, "atoll": i.atoll.name, "time": i.transfer_time.lstrip("≈"),
+                         "km": i.distance_from_airport_km or ""} for i in Island.objects.filter(is_published=True).select_related("atoll")],
+            "pick": {
+                "listings": [{"id": l.pk, "name": l.name, "sub": f"{l.get_kind_display()} · {l.island.name}",
+                              "group": "stay" if l.kind in Listing.STAY_KINDS else "experience" if l.kind in Listing.EXPERIENCE_KINDS + Listing.TRANSPORT_KINDS else "other"}
+                             for l in live],
+                "guides": [{"id": g.pk, "name": g.title, "sub": g.get_category_display()} for g in Guide.objects.exclude(pk=object_id or 0)],
+            },
+        }
         return super().changeform_view(request, object_id, form_url, extra_context)
 
     def preview_view(self, request):
@@ -781,9 +838,19 @@ class GuideAdmin(BaseAdmin):
         ids = [int(x) for x in P.getlist("islands") if x.isdigit()]
         islands = list(Island.objects.filter(pk__in=ids).select_related("atoll"))
         g.preview_islands = islands
+        import json
+        from .guide_blocks import blocks_to_text, clean_blocks
+        from .views import guide_segments
+        try:
+            g.blocks = clean_blocks(json.loads(P.get("blocks") or "[]"))
+        except ValueError:
+            g.blocks = []
+        if g.blocks:
+            g.body = blocks_to_text(g.blocks)
         if not g.cover_image_url and P.get("current_photo"):
             g.cover_image_url = P["current_photo"]
-        return render(request, "directory/guide_detail.html", {"guide": g, "islands": islands, "more": [], "ld": [], "preview": True})
+        return render(request, "directory/guide_detail.html", {"guide": g, "islands": islands, "more": [], "ld": [], "preview": True,
+                                                               "segments": guide_segments(g)})
 
 
 @admin.register(GuideTemplate)

@@ -18,13 +18,45 @@
       <a class="tool-btn" href="https://wa.me/?text={{ guide.title|urlencode }}%20{{ request.scheme }}%3A%2F%2F{{ request.get_host }}{{ guide.get_absolute_url|urlencode }}" target="_blank" rel="noopener">{% icon "share-2" %}<span>Share</span></a></div>
   </div>
 </section>
+{% if segments %}
+{% for seg in segments %}
+  {% if seg.bleed %}
+  <figure class="gb-bleed">
+    <img src="{{ seg.bleed.url }}" alt="{{ seg.bleed.alt }}" loading="lazy" onerror="this.remove()">
+    {% if seg.bleed.caption or seg.bleed.credit %}<figcaption class="container">{{ seg.bleed.caption }}{% if seg.bleed.credit %} <span>Photo: {{ seg.bleed.credit }}</span>{% endif %}</figcaption>{% endif %}
+  </figure>
+  {% else %}
+  <div class="container gd-layout{% if not seg.aside %} gd-layout-cont{% endif %}">
+    <article class="gd-body">
+      {% include "partials/guide_blocks.html" with blocks=seg.blocks %}
+    {% if seg.last and guide.faq_list %}
+    <section class="gd-faq">
+      <h2 id="questions">Questions travellers ask</h2>
+      {% for q, a in guide.faq_list %}<details{% if forloop.first or preview %} open{% endif %}><summary>{% if preview %}{{ q|guide_todo }}{% else %}{{ q }}{% endif %}</summary><p>{% if preview %}{{ a|guide_todo }}{% else %}{{ a }}{% endif %}</p></details>{% endfor %}
+    </section>
+    {% endif %}
+    </article>
+    {% if seg.aside %}
+  <aside class="gd-side">
+    {% if guide.headings|length > 2 %}
+    <nav class="panel gd-toc" aria-label="In this guide"><h3>In this guide</h3><ol>{% for id, text in guide.headings %}<li><a href="#{{ id }}">{{ text }}</a></li>{% endfor %}{% if guide.faq_list %}<li><a href="#questions">Questions travellers ask</a></li>{% endif %}</ol></nav>
+    {% endif %}
+    <div class="panel gd-cta"><h3>Ready to plan?</h3><p class="small muted">Message guest houses and local operators directly. No booking fees.</p>
+      <a class="btn btn-block" href="{% url 'directory:stay_list' %}">Find a place to stay</a>
+      <a class="btn btn-ghost btn-block" href="{% url 'directory:island_list' %}" style="margin-top:8px">Browse islands</a></div>
+  </aside>
+    {% else %}<div></div>{% endif %}
+  </div>
+  {% endif %}
+{% endfor %}
+{% else %}
 <div class="container gd-layout">
   <article class="gd-body">
     {% if preview %}{{ guide.body|guide_body:'preview' }}{% else %}{{ guide.body|guide_body }}{% endif %}
     {% if guide.faq_list %}
     <section class="gd-faq">
       <h2 id="questions">Questions travellers ask</h2>
-      {% for q, a in guide.faq_list %}<details{% if forloop.first %} open{% endif %}><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}
+      {% for q, a in guide.faq_list %}<details{% if forloop.first or preview %} open{% endif %}><summary>{% if preview %}{{ q|guide_todo }}{% else %}{{ q }}{% endif %}</summary><p>{% if preview %}{{ a|guide_todo }}{% else %}{{ a }}{% endif %}</p></details>{% endfor %}
     </section>
     {% endif %}
   </article>
@@ -37,6 +69,7 @@
       <a class="btn btn-ghost btn-block" href="{% url 'directory:island_list' %}" style="margin-top:8px">Browse islands</a></div>
   </aside>
 </div>
+{% endif %}
 {% if islands %}
 <section class="section il-guide">
   <div class="container">

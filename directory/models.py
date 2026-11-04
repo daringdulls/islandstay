@@ -871,8 +871,9 @@ class Guide(models.Model):
     slug = models.SlugField(unique=True, blank=True)
     category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, default="planning")
     summary = models.CharField(max_length=240, help_text="One or two sentences. Shown on cards and in Google results.")
-    body = models.TextField(help_text=(
-        "Write in plain text. Leave an empty line between paragraphs. "
+    blocks = models.JSONField(default=list, blank=True, help_text="Content blocks built in the guide editor")
+    body = models.TextField(blank=True, help_text=(
+        "Filled in automatically from the blocks. Without blocks: write in plain text. Leave an empty line between paragraphs. "
         "Start a line with '## ' for a heading, '- ' for a bullet point. Links: [text](/islands/maafushi/)."
     ))
     faqs = models.TextField("Questions and answers", blank=True, help_text=(
@@ -899,6 +900,10 @@ class Guide(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = unique_slug(self, self.title)
+        if self.blocks:
+            from .guide_blocks import blocks_to_text, clean_blocks
+            self.blocks = clean_blocks(self.blocks)
+            self.body = blocks_to_text(self.blocks)
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -913,6 +918,10 @@ class Guide(models.Model):
                 pass
         if self.cover_image_url:
             return self.cover_image_url
+        if self.blocks:
+            from .guide_blocks import first_photo
+            if first_photo(self.blocks):
+                return first_photo(self.blocks)
         islands = self.islands.all() if self.pk else getattr(self, "preview_islands", [])
         island = next((i for i in islands if i.photo_url), None)
         return island.photo_url if island else ""

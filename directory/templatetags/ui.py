@@ -105,3 +105,9 @@ def thumb(url):
     """Smaller (960px) Wikimedia version of a photo link, for cards."""
     from ..models import card_size
     return card_size(url)
+
+
+@register.filter
+def guide_todo(text):
+    """Escape text and highlight [prompts] still to replace (used in the editor preview)."""
+    return mark_safe(_PLACEHOLDER.sub(r'<mark class="gd-todo">[\1]</mark>', str(conditional_escape(text))))

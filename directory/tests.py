@@ -999,3 +999,55 @@ class GuideEditorTests(TestCase):
     def test_preview_staff_only(self):
         r = self.client.post(reverse("admin:directory_guide_preview"), {"title": "x"})
         self.assertEqual(r.status_code, 302)
+
+
+class GuideBlockTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.staff = User.objects.create_superuser("bl@example.com", "bl@example.com", "pw-12345")
+
+    def test_blocks_render_and_clean(self):
+        from .models import Guide
+        isl = Island.objects.get(slug="maafushi")
+        stay = Listing.objects.get(name="Coral Breeze Inn")
+        g = Guide.objects.create(title="Block guide", summary="s", blocks=[
+            {"type": "heading", "title": "Beaches", "intro": "Sand"},
+            {"type": "rich_text", "text": "Hello **world**"},
+            {"type": "hero_image", "url": "https://example.com/a.jpg", "caption": "Wide"},
+            {"type": "quote", "quote": "Lovely", "author": "Ali"},
+            {"type": "video", "url": "https://youtu.be/dQw4w9WgXcQ"},
+            {"type": "embed", "url": "https://evil.example.com/x"},
+            {"type": "image", "url": "javascript:alert(1)"},
+            {"type": "stay", "items": [stay.pk]},
+            {"type": "island", "island": isl.pk},
+            {"type": "facts", "title": "Fast facts", "items": [{"label": "Time", "value": "45 min"}]},
+            {"type": "nope"},
+        ])
+        self.assertIn("## Beaches", g.body)
+        self.assertEqual(len(g.blocks), 10)
+        r = self.client.get(g.get_absolute_url())
+        self.assertContains(r, '<h2 id="beaches">Beaches</h2>', html=False)
+        self.assertContains(r, "youtube-nocookie.com/embed/dQw4w9WgXcQ")
+        self.assertContains(r, "Coral Breeze Inn")
+        self.assertContains(r, "Island spotlight")
+        self.assertContains(r, "gb-bleed")
+        self.assertNotContains(r, "<iframe src=\"https://evil.example.com")
+        self.assertNotContains(r, "javascript:alert")
+
+    def test_admin_saves_blocks(self):
+        import json
+        from .models import Guide
+        self.client.force_login(self.staff)
+        r = self.client.post(reverse("admin:directory_guide_add"), {
+            "title": "Saved with blocks", "slug": "saved-with-blocks", "category": "planning", "summary": "A summary",
+            "blocks": json.dumps([{"type": "heading", "title": "One"}, {"type": "rich_text", "text": "Text here"}]),
+            "body": "", "faqs": "", "cover_credit": "", "cover_image_url": "", "author": "Team",
+            "is_published": "on", "published_at_0": "2026-11-01", "published_at_1": "10:00:00",
+        })
+        self.assertEqual(r.status_code, 302, getattr(r, "context", None) and r.context["adminform"].form.errors)
+        g = Guide.objects.get(slug="saved-with-blocks")
+        self.assertEqual(g.blocks[0]["title"], "One")
+        self.assertIn("Text here", g.body)
+        r = self.client.post(reverse("admin:directory_guide_preview"), {"title": "P", "blocks": json.dumps([{"type": "quote", "quote": "Hi there"}])})
+        self.assertContains(r, "Hi there")
