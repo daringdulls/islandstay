@@ -76,7 +76,7 @@
       </div>
 
       <section id="stays" style="padding-top:28px">
-        <div class="section-title"><h2>Stays</h2><span class="label">{{ island.stay_count }} listed</span></div>
+        <div class="section-title"><h2>Stays</h2><span class="label">{{ island.stay_count }} listed</span>{% if island.stay_count %}<a class="sub-link" href="{% url 'directory:island_stays' island.slug %}">Where to stay on {{ island.name }} {% icon "arrow-right" %}</a>{% endif %}</div>
         <div class="tabs">
           <a class="chip-link {% if not kind %}active{% endif %}" href="?#stays">All</a>
           {% for k, label in stay_kinds %}<a class="chip-link {% if kind == k %}active{% endif %}" href="?kind={{ k }}#stays">{{ label }}</a>{% endfor %}
@@ -86,16 +86,16 @@
       </section>
 
       <section id="experiences" style="padding-top:28px">
-        <div class="section-title"><h2>Experiences</h2><span class="label">{{ island.service_count }} operator{{ island.service_count|pluralize }}</span></div>
+        <div class="section-title"><h2>Experiences</h2><span class="label">{{ island.service_count }} operator{{ island.service_count|pluralize }}</span><a class="sub-link" href="{% url 'directory:island_things_to_do' island.slug %}">Things to do on {{ island.name }} {% icon "arrow-right" %}</a></div>
         {% if island.activities.all %}
-        <div class="activity-grid" style="margin-bottom:20px">{% for a in island.activities.all %}<a class="activity" href="{% url 'directory:service_list' %}?island={{ island.slug }}&activity={{ a.slug }}" title="{{ a.description }}">{% icon a.icon %}{{ a.name }}</a>{% endfor %}</div>
+        <div class="activity-grid" style="margin-bottom:20px">{% for a in island.activities.all %}<a class="activity" href="{% url 'directory:activity_detail' a.slug %}?island={{ island.slug }}" title="{{ a.description }}">{% icon a.icon %}{{ a.name }}</a>{% endfor %}</div>
         {% endif %}
         {% if services %}<div class="grid">{% for l in services %}{% include "partials/listing_card.html" %}{% endfor %}</div>
         {% else %}<div class="empty">No operators listed yet. Most guest houses arrange trips for their guests. <a href="{% url 'directory:list_your_business' %}">Run excursions here? List your service.</a></div>{% endif %}
       </section>
 
       <section id="transport" style="padding-top:28px">
-        <div class="section-title"><h2>Getting there</h2><span class="label">{{ island.route_count }} route{{ island.route_count|pluralize }}</span></div>
+        <div class="section-title"><h2>Getting there</h2><span class="label">{{ island.route_count }} route{{ island.route_count|pluralize }}</span><a class="sub-link" href="{% url 'directory:island_getting_there' island.slug %}">How to get to {{ island.name }} {% icon "arrow-right" %}</a></div>
         {% if island.getting_there %}<p>{{ island.getting_there }}</p>{% endif %}
         {% if routes %}
         <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div>

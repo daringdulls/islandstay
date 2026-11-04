@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}How to get to {{ island.name }} from Malé airport{% endblock %}
+{% block meta_description %}Getting to {{ island.name }}, {{ island.atoll.name }}: {% if island.transfer_time %}about {{ island.transfer_time|cut:"≈" }} from Velana Airport. {% endif %}Speedboat, ferry and flight options, schedules and transfer operators.{% endblock %}
+{% block og_title %}How to get to {{ island.name }}{% endblock %}
+{% block content %}
+<section class="gd-head{% if island.photo_url %} has-photo{% endif %}">
+  {% if island.photo_url %}<img class="il-hero-bg" src="{{ island.photo_url }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container gd-head-inner">
+    <div class="crumbs"><a href="{% url 'directory:island_list' %}">Islands</a> / <a href="{{ island.get_absolute_url }}">{{ island.name }}</a> / Getting there</div>
+    <h1>How to get to <span class="accent-word">{{ island.name }}</span></h1>
+    <p class="lead">{% if island.transfer_time %}About {{ island.transfer_time|cut:"≈" }} from Velana International Airport. {% endif %}Here are the ways to reach {{ island.name }} in {{ island.atoll.name }}, and who runs them.</p>
+    <div class="hero-tools">
+      <a class="tool-btn" href="{% url 'directory:island_stays' island.slug %}">{% icon "house" %}<span>Where to stay</span></a>
+      <a class="tool-btn" href="{% url 'directory:island_things_to_do' island.slug %}">{% icon "sailboat" %}<span>Things to do</span></a>
+      <button type="button" class="tool-btn" data-save="i:{{ island.slug }}" aria-pressed="false">{% icon "heart" %}<span data-save-label>Save</span></button>
+    </div>
+  </div>
+</section>
+<div class="container gd-layout">
+  <article class="gd-body">
+    <div class="gt-facts">
+      <div>{% icon "clock" %}<span>From the airport</span><b>{{ island.transfer_time|cut:"≈"|default:"Ask your host" }}</b></div>
+      <div>{% icon "route" %}<span>Distance</span><b>{% if island.distance_from_airport_km %}{{ island.distance_from_airport_km }} km{% else %}–{% endif %}</b></div>
+      <div>{% icon "plane-landing" %}<span>Nearest airport</span><b>{{ island.nearest_airport|default:"Velana (MLE)" }}</b></div>
+      <div>{% icon "ship" %}<span>Ways to get there</span><b>{{ island.transfer_labels|join:", "|default:"Speedboat" }}</b></div>
+    </div>
+    {% if paragraphs %}<h2>Overview</h2>{% for p in paragraphs %}<p>{{ p }}</p>{% endfor %}{% endif %}
+    <h2>Routes and schedules</h2>
+    {% if routes %}
+      <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div>
+      <p class="small muted" style="margin-top:10px">Schedules are indicative and change with the season and the weather. Confirm with the operator or your host before you travel.</p>
+    {% else %}
+      <p>We don't have route details for {{ island.name }} yet. Guest houses on the island arrange speedboat transfers from the airport for their guests. Ask your host when you send a request.</p>
+    {% endif %}
+    {% if operators %}<h2>Transfer operators</h2><div class="grid">{% for l in operators %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% endif %}
+    <h2>Tips for the transfer day</h2>
+    <ul>
+      <li>Send your flight number to your host so they can book you on the right speedboat.</li>
+      <li>Speedboats stop in the evening. If you land late, spend a night in <a href="/islands/hulhumale/">Hulhumalé</a> next to the airport.</li>
+      <li>Boats can be delayed by weather. Leave a buffer before your flight home.</li>
+      <li>Read the full guide: <a href="/guides/airport-to-local-island/">From Velana Airport to your local island</a>.</li>
+    </ul>
+    {% if faqs %}
+    <section class="gd-faq"><h2 id="questions">Questions travellers ask</h2>
+      {% for q, a in faqs %}<details{% if forloop.first %} open{% endif %}><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}</section>
+    {% endif %}
+  </article>
+  <aside class="gd-side">
+    <div class="panel gd-cta"><h3>Staying on {{ island.name }}?</h3><p class="small muted">Most hosts arrange your transfer. Message them directly, with no booking fees.</p>
+      <a class="btn btn-block" href="{% url 'directory:island_stays' island.slug %}">Where to stay on {{ island.name }}</a>
+      <a class="btn btn-ghost btn-block" href="{{ island.get_absolute_url }}" style="margin-top:8px">{{ island.name }} island guide</a></div>
+    {% if nearby %}<div class="panel"><h3>Nearby islands</h3><ul class="contact-list">{% for n in nearby %}<li>{% icon "map-pin" %}<span><a href="{% url 'directory:island_getting_there' n.slug %}">Getting to {{ n.name }}</a><br><span class="small muted">{{ n.transfer_time }}</span></span></li>{% endfor %}</ul></div>{% endif %}
+  </aside>
+</div>
+{% endblock %}

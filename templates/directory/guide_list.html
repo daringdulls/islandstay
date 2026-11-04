@@ -17,7 +17,7 @@
     {% if chips|length > 2 %}<div class="st-chips">{% for key, label in chips %}<a class="st-chip{% if key == cat %} on{% endif %}" href="{% if key %}?category={{ key }}{% else %}?{% endif %}#guides">{{ label }}</a>{% endfor %}</div>{% endif %}
     {% if lead %}
     <a class="gd-lead" href="{{ lead.get_absolute_url }}">
-      <div class="gd-lead-photo">{% if lead.photo_url %}<img src="{{ lead.photo_url }}" alt="" onerror="this.remove()">{% endif %}</div>
+      <div class="gd-lead-photo">{% if lead.photo_url %}<img src="{{ lead.photo_url|thumb }}" alt="" onerror="this.remove()">{% endif %}</div>
       <div class="gd-lead-body">
         <span class="gd-cat">{{ lead.get_category_display }}</span>
         <h2>{{ lead.title }}</h2>
@@ -31,7 +31,7 @@
     <div class="gd-grid">
       {% for g in guides %}
       <a class="gd-card" href="{{ g.get_absolute_url }}">
-        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
+        <div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div>
         <div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:150 }}</p><span class="gd-meta">{% icon "clock" %} {{ g.reading_minutes }} min read</span></div>
       </a>
       {% endfor %}

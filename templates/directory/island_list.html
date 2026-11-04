@@ -13,7 +13,7 @@
     <h1>Find your <span class="accent-word">island</span></h1>
     <p class="lead">Inhabited islands with guest houses, local cafés and everyday island life. Each guide covers what the island is known for, facilities, local rules and how to get there.</p>
     <form class="il-search" method="get" action="#islands" role="search">
-      <label class="st-field st-field-q"><small>Island or keyword</small><input type="search" name="q" value="{{ q }}" placeholder="Maafushi, surf, whale sharks…"></label>
+      <label class="st-field st-field-q"><small>Island or keyword</small><input type="search" name="q" value="{{ q }}" placeholder="Maafushi, surf, whale sharks…" autocomplete="off" data-suggest></label>
       <label class="st-field"><small>Atoll</small><select name="atoll"><option value="">All atolls</option>{% for a in atoll_strip %}<option value="{{ a.slug }}" {% if a.slug == atoll_sel %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
       {% if activity_sel %}<input type="hidden" name="activity" value="{{ activity_sel }}">{% endif %}
       <button class="btn btn-accent" type="submit">{% icon "search" %} Search</button>

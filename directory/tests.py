@@ -935,3 +935,39 @@ class EngagementTests(TestCase):
         r = self.client.get(listing.get_absolute_url())
         self.assertContains(r, "application/ld+json")
         self.assertContains(r, '"addressCountry": "MV"')
+
+
+class FindabilityTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_robots_and_sitemap(self):
+        r = self.client.get("/robots.txt")
+        self.assertContains(r, "Sitemap: http://testserver/sitemap.xml")
+        self.assertContains(r, "Disallow: /admin/")
+        r = self.client.get("/sitemap.xml")
+        self.assertContains(r, "/islands/maafushi/")
+        self.assertContains(r, "/islands/maafushi/getting-there/")
+        self.assertContains(r, "/islands/maafushi/where-to-stay/")
+        self.assertContains(r, "/experiences/")
+
+    def test_clean_pages(self):
+        r = self.client.get(reverse("directory:island_stays", args=["maafushi"]))
+        self.assertContains(r, "Where to stay on")
+        self.assertContains(r, "Coral Breeze Inn")
+        self.assertContains(self.client.get(reverse("directory:island_things_to_do", args=["maafushi"])), "Things to do on")
+        self.assertContains(self.client.get(reverse("directory:activity_detail", args=["snorkeling"])), "Snorkeling")
+        r = self.client.get(reverse("directory:island_getting_there", args=["maafushi"]))
+        self.assertContains(r, "How to get to")
+        self.assertContains(r, '"@type": "FAQPage"')
+        self.assertEqual(self.client.get(reverse("directory:island_stays", args=["nowhere"])).status_code, 404)
+
+    def test_search_everything_and_suggest(self):
+        r = self.client.get(reverse("directory:search") + "?q=coral")
+        self.assertContains(r, "Coral Breeze Inn")
+        r = self.client.get(reverse("directory:search") + "?q=maafushi")
+        self.assertRedirects(r, reverse("directory:island_detail", args=["maafushi"]))
+        d = self.client.get(reverse("directory:search_suggest") + "?q=snork").json()
+        self.assertTrue(any(i["t"] == "Activity" for i in d["items"]))
+        self.assertContains(self.client.get(reverse("directory:search") + "?q=zzzzqq"), "Nothing found")

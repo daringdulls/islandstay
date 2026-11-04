@@ -36,7 +36,7 @@
     <div class="ex-acts">
       {% for a in activities %}
       {% if forloop.counter == 11 %}</div><details class="ex-more"{% if activity %} open{% endif %}><summary>Show all {{ activities|length }} activities</summary><div class="ex-acts">{% endif %}
-      <a class="ex-act{% if activity and a.slug == activity.slug %} on{% endif %}" href="?activity={{ a.slug }}{% if f.island %}&amp;island={{ f.island }}{% endif %}#operators">
+      <a class="ex-act{% if activity and a.slug == activity.slug %} on{% endif %}" href="{% url 'directory:activity_detail' a.slug %}{% if f.island %}?island={{ f.island }}{% endif %}#operators">
         <span class="ex-act-img">{% if a.image_url %}<img src="{{ a.thumb_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="ex-act-ico">{% icon a.icon %}</span></span>
         <span class="ex-act-body"><b>{{ a.name }}</b><small>{{ a.n_islands }} island{{ a.n_islands|pluralize }}{% if a.n_ops %} · {{ a.n_ops }} operator{{ a.n_ops|pluralize }}{% endif %}</small></span>
       </a>
@@ -68,7 +68,7 @@
   <div class="container">
     <div class="fd-results-head">
       <div><div class="eyebrow">Local operators</div><h2>{% if activity %}{{ activity.name }} operators{% elif island %}On {{ island.name }}{% else %}Dive centres and excursions{% endif %}</h2></div>
-      <div class="fd-results-meta"><span>{{ page.paginator.count }} operator{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} operator{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="{% url 'directory:service_list' %}">{% icon "x" %} Clear</a>{% endif %}
         <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" and k != "max_price" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
           <label class="sr-only" for="ex-sort">Sort</label><select id="ex-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select>
           <label class="ex-verified"><input type="checkbox" name="verified" value="1" {% if request.GET.verified %}checked{% endif %} onchange="this.form.submit()"> Verified only</label></form>
@@ -83,7 +83,7 @@
         <div>
           <h3>{% if filtered %}No operators listed for this yet{% else %}Local operators are joining now{% endif %}</h3>
           <p>Guest houses arrange {% if activity %}{{ activity.name|lower }}{% else %}snorkelling, diving and boat trips{% endif %} for their guests every day, usually with the island's own boat crews. {% if best_islands %}Pick one of the islands above and ask your host.{% else %}Ask your host when you send a request.{% endif %}</p>
-          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="?">See all experiences</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:stay_list' %}{% if f.island %}?island={{ f.island }}{% endif %}">Find a guest house</a></div>
+          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="{% url 'directory:service_list' %}">See all experiences</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:stay_list' %}{% if f.island %}?island={{ f.island }}{% endif %}">Find a guest house</a></div>
         </div>
       </div>
     {% endif %}

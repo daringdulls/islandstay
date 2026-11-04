@@ -1,5 +1,5 @@
 {% load ui %}<div class="save-wrap"><a class="card" href="{{ l.get_absolute_url }}">
-  {% if l.photo_url %}<div class="cover has-photo"><img src="{{ l.photo_url }}" alt="{% if l.has_own_photo %}{{ l.name }}{% else %}{{ l.island.name }}{% endif %}" loading="lazy"><span class="shade"></span>
+  {% if l.photo_url %}<div class="cover has-photo"><img src="{{ l.photo_url }}" alt="{% if l.has_own_photo %}{{ l.name }}{% else %}{{ l.island.name }}{% endif %}" loading="lazy" decoding="async"><span class="shade"></span>
   {% else %}<div class="cover chart" style="{{ l.island.chart_style }}">{% endif %}
     <span class="tag pill white">{{ l.get_kind_display }}</span>
     {% if l.is_verified or l.is_featured %}<span class="card-badges">

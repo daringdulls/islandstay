@@ -92,3 +92,10 @@ def guide_body(text):
 def jsonld(data):
     """Safe JSON for a <script type="application/ld+json"> block."""
     return mark_safe(json.dumps(data, ensure_ascii=False).replace("<", "\\u003c"))
+
+
+@register.filter
+def thumb(url):
+    """Smaller (960px) Wikimedia version of a photo link, for cards."""
+    from ..models import card_size
+    return card_size(url)

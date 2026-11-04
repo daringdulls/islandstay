@@ -178,20 +178,6 @@ def _plan_by_need(featured_islands):
     ]
 
 
-def search(request):
-    """Hero search: jump straight to an island if the name matches, otherwise show island results."""
-    from urllib.parse import urlencode
-
-    q = request.GET.get("q", "").strip()
-    section = request.GET.get("section", "")
-    if q:
-        exact = Island.objects.filter(is_published=True, name__iexact=q).first()
-        if exact:
-            anchor = f"#{section}" if section in ("stays", "experiences", "transport", "food", "guide") else ""
-            return redirect(exact.get_absolute_url() + anchor)
-    return redirect("/islands/?" + urlencode({"q": q}))
-
-
 def island_list(request):
     qs = _islands()
     q = request.GET.get("q", "").strip()
@@ -986,3 +972,117 @@ def island_compare(request):
         "islands": islands, "rows": rows, "activity_rows": activity_rows, "others": others,
         "slugs": ",".join(i.slug for i in islands),
     })
+
+
+# ---------------------------------------------------------------- clean, search-friendly addresses
+def _preset(request, **params):
+    """Run a list view as if these filters were in the query string (the visitor can still change them)."""
+    q = request.GET.copy()
+    for k, v in params.items():
+        q.setdefault(k, v)
+    request.GET = q
+    return request
+
+
+def island_stays(request, slug):
+    get_object_or_404(Island, slug=slug, is_published=True)
+    return stay_list(_preset(request, island=slug))
+
+
+def island_things_to_do(request, slug):
+    get_object_or_404(Island, slug=slug, is_published=True)
+    return service_list(_preset(request, island=slug))
+
+
+def activity_detail(request, slug):
+    get_object_or_404(ActivityType, slug=slug)
+    return service_list(_preset(request, activity=slug))
+
+
+def island_getting_there(request, slug):
+    island = get_object_or_404(_islands(), slug=slug)
+    routes = list(island.routes.filter(is_active=True).filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("operator"))
+    operators = _live_listings().filter(island=island, kind__in=Listing.TRANSPORT_KINDS)
+    paragraphs = [p.strip() for p in island.getting_there.split("\n\n") if p.strip()]
+    answer = f"{island.name} is about {island.transfer_time.lstrip('≈')} from Velana International Airport." if island.transfer_time else ""
+    if island.getting_there:
+        answer = (answer + " " + island.getting_there.split("\n")[0]).strip()
+    faqs = []
+    if answer:
+        faqs.append((f"How do I get to {island.name} from Malé airport?", answer))
+    if island.nearest_airport:
+        faqs.append((f"What is the nearest airport to {island.name}?",
+                     f"{island.nearest_airport}{f', about {island.nearest_airport_km} km away' if island.nearest_airport_km else ''}."))
+    if routes:
+        faqs.append((f"Is there a public ferry or speedboat to {island.name}?",
+                     " ".join(f"{r.get_mode_display()}: {r.duration}{f' ({r.schedule})' if r.schedule else ''}." for r in routes[:4])))
+    ld = []
+    if faqs:
+        ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+            {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faqs]})
+    nearby = _islands().filter(atoll=island.atoll).exclude(pk=island.pk)[:4]
+    return render(request, "directory/island_getting_there.html", {
+        "island": island, "routes": routes, "operators": operators, "paragraphs": paragraphs, "faqs": faqs,
+        "ld": ld, "nearby": nearby,
+    })
+
+
+# ---------------------------------------------------------------- site-wide search
+def _search_all(q, limit=6):
+    words = [w for w in q.split() if len(w) > 1][:5] or [q]
+
+    def match(fields):
+        cond = Q()
+        for w in words:
+            part = Q()
+            for f in fields:
+                part |= Q(**{f + "__icontains": w})
+            cond &= part
+        return cond
+
+    live = _live_listings()
+    islands = list(_islands().filter(match(["name", "atoll__name", "atoll__official_name", "tagline", "famous_for", "activities__name"])).distinct()[:limit])
+    acts = list(ActivityType.objects.filter(match(["name", "description"]))[:limit])
+    stays = list(live.filter(kind__in=Listing.STAY_KINDS).filter(match(["name", "island__name", "short_description", "description"])).distinct()[:limit])
+    exps = list(live.filter(kind__in=Listing.EXPERIENCE_KINDS).filter(match(["name", "island__name", "short_description", "activity_types__name"])).distinct()[:limit])
+    food = list(live.filter(kind__in=Listing.FOOD_KINDS).filter(match(["name", "island__name", "short_description", "cuisine"])).distinct()[:limit])
+    transport = list(live.filter(kind__in=Listing.TRANSPORT_KINDS).filter(match(["name", "island__name", "short_description"])).distinct()[:limit])
+    guides = list(Guide.objects.filter(is_published=True).filter(match(["title", "summary", "body"]))[:limit])
+    return {"islands": islands, "activities": acts, "stays": stays, "experiences": exps, "food": food,
+            "transport": transport, "guides": guides}
+
+
+def search(request):
+    """Search everything: islands, activities, stays, experiences, food, transport and guides."""
+    q = request.GET.get("q", "").strip()[:80]
+    section = request.GET.get("section", "")
+    if q:
+        exact = Island.objects.filter(is_published=True, name__iexact=q).first()
+        if exact:
+            anchor = f"#{section}" if section in ("stays", "experiences", "transport", "food", "guide") else ""
+            return redirect(exact.get_absolute_url() + anchor)
+    results = _search_all(q, 12) if q else {}
+    total = sum(len(v) for v in results.values())
+    popular = _islands().filter(is_featured=True)[:8] if not total else []
+    acts = ActivityType.objects.filter(islands__is_published=True).distinct().order_by("name")[:12] if not total else []
+    return render(request, "directory/search.html", {"q": q, "r": results, "total": total, "popular": popular, "popular_acts": acts})
+
+
+def search_suggest(request):
+    """Type-ahead suggestions for search boxes (JSON)."""
+    from django.http import JsonResponse
+    q = request.GET.get("q", "").strip()[:60]
+    if len(q) < 2:
+        return JsonResponse({"items": []})
+    r = _search_all(q, 4)
+    items = []
+    for i in r["islands"]:
+        items.append({"t": "Island", "label": i.name, "sub": f"{i.atoll.name} · {i.tagline}"[:70], "url": i.get_absolute_url(), "icon": "map-pin"})
+    for a in r["activities"]:
+        items.append({"t": "Activity", "label": a.name, "sub": "Where to do it and who runs trips", "url": reverse("directory:activity_detail", args=[a.slug]), "icon": a.icon or "waves"})
+    for key, label in (("stays", "Stay"), ("experiences", "Experience"), ("food", "Food"), ("transport", "Transport")):
+        for l in r[key][:3]:
+            items.append({"t": label, "label": l.name, "sub": f"{l.get_kind_display()} · {l.island.name}", "url": l.get_absolute_url(), "icon": l.kind_icon})
+    for g in r["guides"][:3]:
+        items.append({"t": "Guide", "label": g.title, "sub": g.get_category_display(), "url": g.get_absolute_url(), "icon": "book-open"})
+    return JsonResponse({"items": items[:10], "all": reverse("directory:search") + "?" + urlencode({"q": q})})

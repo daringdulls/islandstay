@@ -1,4 +1,4 @@
-{% load ui %}<a class="activity-tile" href="{% url 'directory:island_list' %}?activity={{ a.slug }}">
+{% load ui %}<a class="activity-tile" href="{% url 'directory:activity_detail' a.slug %}">
   {% if a.image_url %}<img src="{{ a.thumb_url }}" alt="{{ a.name }}" loading="lazy">{% else %}<div class="chart" style="--x:{% cycle '30%' '62%' '45%' '70%' %};--y:55%"></div>{% endif %}
   <div class="activity-tile-body"><span class="activity-tile-icon">{% icon a.icon %}</span><b>{{ a.name }}</b><small>{{ a.n }} island{{ a.n|pluralize }}</small></div>
 </a>

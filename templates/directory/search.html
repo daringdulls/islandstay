@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if q %}Search: {{ q }}{% else %}Search islands, stays and experiences{% endif %}{% endblock %}
+{% block extra_head %}{% if q %}<meta name="robots" content="noindex">{% endif %}{% endblock %}
+{% block content %}
+<section class="sv-head sr-head">
+  <div class="container">
+    <div class="eyebrow">Search</div>
+    <h1>{% if q %}Results for “{{ q }}”{% else %}What are you looking for?{% endif %}</h1>
+    <form class="sr-form" action="{% url 'directory:search' %}" role="search">
+      {% icon "search" %}<label class="sr-only" for="sr-q">Search</label>
+      <input id="sr-q" type="search" name="q" value="{{ q }}" placeholder="Island, activity, guest house, café…" autocomplete="off" data-suggest {% if not q %}autofocus{% endif %}>
+      <button class="btn btn-accent" type="submit">Search</button>
+    </form>
+    {% if q %}<p class="sr-count">{{ total }} result{{ total|pluralize }}</p>{% endif %}
+  </div>
+</section>
+<div class="container sv-body">
+  {% if total %}
+    {% if r.islands %}<section class="sv-section"><h2>Islands <span>{{ r.islands|length }}</span></h2><div class="grid">{% for island in r.islands %}{% include "partials/island_card.html" %}{% endfor %}</div></section>{% endif %}
+    {% if r.activities %}<section class="sv-section"><h2>Activities <span>{{ r.activities|length }}</span></h2>
+      <div class="sr-acts">{% for a in r.activities %}<a class="sr-act" href="{% url 'directory:activity_detail' a.slug %}">{% icon a.icon %}<span><b>{{ a.name }}</b><small>{{ a.description|truncatechars:80 }}</small></span></a>{% endfor %}</div></section>{% endif %}
+    {% if r.stays %}<section class="sv-section"><h2>Places to stay <span>{{ r.stays|length }}</span></h2><div class="grid">{% for l in r.stays %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>{% endif %}
+    {% if r.experiences %}<section class="sv-section"><h2>Experiences <span>{{ r.experiences|length }}</span></h2><div class="grid">{% for l in r.experiences %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>{% endif %}
+    {% if r.food %}<section class="sv-section"><h2>Food <span>{{ r.food|length }}</span></h2><div class="grid">{% for l in r.food %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>{% endif %}
+    {% if r.transport %}<section class="sv-section"><h2>Transport <span>{{ r.transport|length }}</span></h2><div class="grid">{% for l in r.transport %}{% include "partials/listing_card.html" %}{% endfor %}</div></section>{% endif %}
+    {% if r.guides %}<section class="sv-section"><h2>Travel guides <span>{{ r.guides|length }}</span></h2>
+      <div class="gd-grid">{% for g in r.guides %}<a class="gd-card" href="{{ g.get_absolute_url }}"><div class="gd-card-photo">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="gd-cat">{{ g.get_category_display }}</span></div><div class="gd-card-body"><h3>{{ g.title }}</h3><p>{{ g.summary|truncatechars:130 }}</p></div></a>{% endfor %}</div></section>{% endif %}
+  {% else %}
+    {% if q %}<div class="il-empty" style="margin-bottom:28px">{% icon "search" %}<div><b>Nothing found for “{{ q }}”</b><p>Check the spelling, or try an island name, an activity like “snorkeling”, or a type of place like “guest house”.</p></div></div>{% endif %}
+    {% if popular_acts %}<section class="sv-section"><h2>Popular activities</h2><div class="sr-acts">{% for a in popular_acts %}<a class="sr-act" href="{% url 'directory:activity_detail' a.slug %}">{% icon a.icon %}<span><b>{{ a.name }}</b></span></a>{% endfor %}</div></section>{% endif %}
+    {% if popular %}<section class="sv-section"><h2>Popular islands</h2><div class="grid">{% for island in popular %}{% include "partials/island_card.html" %}{% endfor %}</div></section>{% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@
   <meta name="description" content="{% block meta_description %}A guide to the local islands of the Maldives. Find guest houses, experiences, transport and places to eat, and contact local hosts directly.{% endblock %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://upload.wikimedia.org" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <script>if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
@@ -36,6 +37,7 @@
       <a href="{% url 'directory:transport_list' %}" class="{% if p|slice:':10' == '/transport' %}active{% endif %}">Transport</a>
       <a href="{% url 'directory:food_list' %}" class="{% if p|slice:':5' == '/food' %}active{% endif %}">Food</a>
       <a href="{% url 'directory:guide_list' %}" class="{% if p|slice:':7' == '/guides' %}active{% endif %}">Guides</a>
+      <a href="{% url 'directory:search' %}" class="nav-saved{% if p == '/search/' %} active{% endif %}" aria-label="Search">{% icon "search" %}<span class="nav-saved-label">Search</span></a>
       <a href="{% url 'directory:saved' %}" class="nav-saved{% if p == '/saved/' %} active{% endif %}" data-saved-link aria-label="Saved">{% icon "heart" %}<span class="nav-saved-n" data-saved-count hidden></span><span class="nav-saved-label">Saved</span></a>
       {% endwith %}
       <span class="sep"></span>

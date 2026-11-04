@@ -12,8 +12,7 @@
       <form class="search-inline" action="{% url 'directory:search' %}" role="search">
         <label for="hero-q" class="sr-only">Island name</label>
         {% icon "search" %}
-        <input id="hero-q" type="search" name="q" list="island-names" placeholder="Go to an island, e.g. Dhangethi" required>
-        <datalist id="island-names">{% for i in island_options %}<option value="{{ i.name }}">{{ i.atoll.name }}</option>{% endfor %}</datalist>
+        <input id="hero-q" type="search" name="q" placeholder="Island, activity or place, e.g. whale sharks" autocomplete="off" data-suggest required>
         <button class="btn btn-accent btn-sm" type="submit">Search</button>
       </form>
       <div class="opening-links">
@@ -149,7 +148,7 @@
     <div class="section-head reveal"><div><div class="eyebrow">Under the surface and on it</div><h2>Choose an island by what you want to do</h2></div></div>
     <div class="mosaic">
       {% for a in activities %}
-      <a class="mosaic-tile reveal" data-delay="{% widthratio forloop.counter0 1 60 %}" href="{% url 'directory:island_list' %}?activity={{ a.slug }}">
+      <a class="mosaic-tile reveal" data-delay="{% widthratio forloop.counter0 1 60 %}" href="{% url 'directory:activity_detail' a.slug %}">
         {% if a.image_url %}<img src="{% if forloop.first %}{{ a.image_url }}{% else %}{{ a.thumb_url }}{% endif %}" alt="{{ a.name }}" loading="lazy">{% else %}<div class="chart" style="--x:{% cycle '35%' '62%' '48%' '70%' '30%' '55%' '66%' %};--y:58%"></div>{% endif %}
         <span class="mosaic-body"><span class="mosaic-icon">{% icon a.icon %}</span><b>{{ a.name }}</b><small>{{ a.description }}</small><em>{{ a.n }} island{{ a.n|pluralize }}</em></span>
       </a>
