@@ -1051,3 +1051,18 @@ class GuideBlockTests(TestCase):
         self.assertIn("Text here", g.body)
         r = self.client.post(reverse("admin:directory_guide_preview"), {"title": "P", "blocks": json.dumps([{"type": "quote", "quote": "Hi there"}])})
         self.assertContains(r, "Hi there")
+
+
+class CanonicalHostTests(TestCase):
+    def test_redirects_only_when_set(self):
+        from django.test import override_settings
+        r = self.client.get("/robots.txt", HTTP_HOST="islandstay-k8ab.vercel.app")
+        self.assertEqual(r.status_code, 200)
+        with override_settings(CANONICAL_HOST="islandstaymv.com", ALLOWED_HOSTS=["*"]):
+            r = self.client.get("/islands/?q=a", HTTP_HOST="islandstay-k8ab.vercel.app")
+            self.assertEqual(r.status_code, 301)
+            self.assertEqual(r["Location"], "https://islandstaymv.com/islands/?q=a")
+            r = self.client.get("/", HTTP_HOST="www.islandstaymv.com")
+            self.assertEqual(r["Location"], "https://islandstaymv.com/")
+            self.assertEqual(self.client.get("/robots.txt", HTTP_HOST="islandstaymv.com").status_code, 200)
+            self.assertEqual(self.client.get("/cron/photos/", HTTP_HOST="islandstay-k8ab.vercel.app").status_code, 403)

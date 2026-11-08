@@ -28,6 +28,19 @@ if ON_VERCEL:
         CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
     ALLOWED_HOSTS.append(".vercel.app")
 
+# Our own domain (both spellings, with and without www), so it works as soon as DNS points here.
+CUSTOM_DOMAINS = ["islandstaymv.com"]
+for _d in CUSTOM_DOMAINS:
+    for _h in (_d, "www." + _d):
+        if _h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_h)
+        CSRF_TRUSTED_ORIGINS.append(f"https://{_h}")
+
+# Once the domain works, set CANONICAL_HOST (islandstaymv.com) in Vercel: the old vercel.app address
+# and the www. address then forward visitors and Google to it permanently.
+CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "").strip().lower()
+LEGACY_HOSTS = {"islandstay-k8ab.vercel.app"}
+
 INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.filters",
@@ -48,6 +61,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.canonical_host.CanonicalHostMiddleware",
     "config.request_context.RequestContextMiddleware",
     "config.setup_check.SetupCheckMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
