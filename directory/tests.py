@@ -1066,3 +1066,9 @@ class CanonicalHostTests(TestCase):
             self.assertEqual(self.client.get("/robots.txt", HTTP_HOST="www.islandstaymv.com").status_code, 200)
             self.assertEqual(self.client.get("/robots.txt", HTTP_HOST="islandstaymv.com").status_code, 200)
             self.assertEqual(self.client.get("/cron/photos/", HTTP_HOST="islandstay-k8ab.vercel.app").status_code, 403)
+            from unittest import mock
+            with mock.patch.dict("os.environ", {"VERCEL_ENV": "production"}):
+                r = self.client.get("/guides/", HTTP_HOST="islandstay-abc123-daringdulls.vercel.app")
+                self.assertEqual(r["Location"], "https://islandstaymv.com/guides/")
+            with mock.patch.dict("os.environ", {"VERCEL_ENV": "preview"}):
+                self.assertEqual(self.client.get("/robots.txt", HTTP_HOST="islandstay-git-x.vercel.app").status_code, 200)
