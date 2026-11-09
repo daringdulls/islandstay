@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui humanize %}
 {% block title %}{% if atoll_obj %}Local islands in {{ atoll_obj.name }}{% else %}Local islands of the Maldives{% endif %}{% endblock %}
 {% block meta_description %}Guides to the inhabited local islands of the Maldives: what each island is known for, bikini beaches, facilities, local rules and how to get there from Malé.{% endblock %}
 {% block content %}
@@ -83,6 +83,30 @@
     {% endif %}
   </div>
 </section>
+
+{# ---------- help map every island ---------- #}
+{% if to_check %}
+<section class="section ct-band">
+  <div class="container ct-band-in">
+    <div class="ct-band-text">
+      <div class="eyebrow">Help map every island</div>
+      <h2>Know a local island? Update it</h2>
+      <p>We're building a guide to all {{ figures.islands }} inhabited islands. Locals and visitors can confirm what each island has, how to get there, and share photos.</p>
+      <div class="ct-progress" role="img" aria-label="{{ checked }} of {{ figures.islands }} islands checked"><span style="width:{% widthratio checked figures.islands 100 %}%"></span></div>
+      <small><b>{{ checked }}</b> of {{ figures.islands }} islands checked so far</small>
+      <form class="ct-pick" action="" onsubmit="if(this.s.value){location.href='/islands/'+this.s.value+'/update/'};return false">
+        <label class="sr-only" for="ct-pick">Choose your island</label>
+        <select id="ct-pick" name="s"><option value="">Choose your island…</option>{% for a in atoll_strip %}<optgroup label="{{ a.name }}">{% for i in a.islands.all %}{% if i.is_published %}<option value="{{ i.slug }}">{{ i.name }}</option>{% endif %}{% endfor %}</optgroup>{% endfor %}</select>
+        <button class="btn btn-accent" type="submit">{% icon "pencil" %} Update my island</button>
+      </form>
+    </div>
+    <div class="ct-band-list">
+      <h3>Islands waiting for local help</h3>
+      {% for i in to_check %}<a href="{% url 'directory:island_contribute' i.slug %}"><span><b>{{ i.name }}</b><small>{{ i.atoll.name }}{% if i.population %} · {{ i.population|intcomma }} people{% endif %}</small></span>{% icon "arrow-right" %}</a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
 
 {# ---------- how to choose ---------- #}
 <section class="section il-guide">

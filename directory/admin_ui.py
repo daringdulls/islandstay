@@ -9,7 +9,7 @@ from django.db.models.functions import TruncDate
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Enquiry, Island, IslandSuggestion, Listing
+from .models import Enquiry, Island, IslandContribution, IslandSuggestion, Listing
 
 
 def _badge(n):
@@ -89,6 +89,8 @@ def dashboard_callback(request, context):
         ("Listing claims", ListingClaim.objects.filter(status="pending").count(), reverse("admin:directory_listingclaim_changelist") + "?status__exact=pending", "how_to_reg"),
         ("Reviews to check", Review.objects.filter(status="pending").count(), reverse("admin:directory_review_changelist") + "?status__exact=pending", "reviews"),
         ("Verification requests", Listing.objects.filter(verification_requested_at__isnull=False, is_verified=False).count(), listing_url + "?verification=requested", "verified_user"),
+        ("Island updates from the public", IslandContribution.objects.filter(status="new").count(),
+         reverse("admin:directory_islandcontribution_changelist") + "?status__exact=new", "volunteer_activism"),
         ("Island suggestions", IslandSuggestion.objects.filter(handled=False).count(), reverse("admin:directory_islandsuggestion_changelist") + "?handled__exact=0", "add_location_alt"),
     ]
     waiting = sum(t[1] for t in todo)
@@ -168,3 +170,9 @@ def ai_assist_view(request):
     except AssistError as exc:
         return JsonResponse({"error": str(exc)}, status=502)
     return JsonResponse(result)
+
+
+def badge_contributions(request):
+    from .models import IslandContribution
+    n = IslandContribution.objects.filter(status="new").count()
+    return n or None

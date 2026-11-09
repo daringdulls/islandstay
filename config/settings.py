@@ -296,6 +296,8 @@ UNFOLD = {
                     {"title": "Reviews to check", "icon": "reviews",
                      "link": _admin_link("admin:directory_review_changelist", "?status__exact=pending"),
                      "badge": "directory.admin_ui.badge_reviews"},
+                    {"title": "Island updates from the public", "icon": "volunteer_activism",
+                     "link": reverse_lazy("admin:directory_islandcontribution_changelist"), "badge": "directory.admin_ui.badge_contributions"},
                     {"title": "Island suggestions", "icon": "add_location_alt",
                      "link": _admin_link("admin:directory_islandsuggestion_changelist", "?handled__exact=0"),
                      "badge": "directory.admin_ui.badge_suggestions"},

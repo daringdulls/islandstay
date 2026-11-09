@@ -38,6 +38,13 @@
     <div class="fact"><span>Mobile data</span><b>{{ island.mobile_data_label }}</b></div>
   </div>
 
+  <div class="ct-cta{% if not island.details_verified %} urgent{% endif %}">
+    <span class="ct-cta-ico">{% icon "heart-handshake" %}</span>
+    <div><b>{% if island.details_verified %}Know {{ island.name }}? Help keep this guide up to date{% else %}Know {{ island.name }}? Help us complete this guide{% endif %}</b>
+      <p>{% if island.details_verified %}Tell us what's changed or share your photos.{% else %}We haven't checked the facilities here yet. Two minutes of local knowledge helps visitors, and the island's guest houses and shops.{% endif %}{% if helpers %} <span class="ct-thanks-line">Thanks to {{ helpers|join:", " }}.</span>{% endif %}</p></div>
+    <div class="ct-cta-btns"><a class="btn btn-sm" href="{% url 'directory:island_contribute' island.slug %}">{% icon "pencil" %} Update info</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:island_contribute' island.slug %}#ct-drop">{% icon "camera" %} Add photos</a></div>
+  </div>
+
   <nav class="anchor-nav" aria-label="On this page">
     <a class="chip-link" href="#about">Overview</a>
     <a class="chip-link" href="#stays">{% icon "house" %} Stays <span class="count">{{ island.stay_count }}</span></a>
@@ -120,7 +127,7 @@
         <div class="section-title"><h2>Island guide</h2><span class="label">Facilities · rules · access</span></div>
         <div class="panel">
           <h3>{% icon "landmark" %} Facilities</h3>
-          {% if not island.details_verified %}<p class="notice-soft">{% icon "info" %}<span>We haven't checked the facilities on {{ island.name }} yet. Most inhabited islands have shops, a health centre and 4G, but ask your host before you travel. <a href="{% url 'directory:suggest_island' %}">Know {{ island.name }}? Tell us.</a></span></p>{% endif %}
+          {% if not island.details_verified %}<p class="notice-soft">{% icon "info" %}<span>We haven't checked the facilities on {{ island.name }} yet. Most inhabited islands have shops, a health centre and 4G, but ask your host before you travel. <a href="{% url 'directory:island_contribute' island.slug %}">Know {{ island.name }}? Update it.</a></span></p>{% endif %}
           <div class="facility-grid">{% for ic, label, ok in island.facility_flags %}<div class="facility {% if not ok %}{% if island.details_verified %}no{% else %}unknown{% endif %}{% endif %}">{% icon ic %}{{ label }}<span class="state">{% if ok %}YES{% elif island.details_verified %}NO{% else %}?{% endif %}</span></div>{% endfor %}</div>
           {% if island.facilities_list %}<ul class="list-check" style="margin-top:16px">{% for f in island.facilities_list %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
         </div>

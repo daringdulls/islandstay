@@ -204,3 +204,29 @@ class ReviewForm(forms.ModelForm):
 
 class HostReplyForm(forms.Form):
     reply = forms.CharField(label="Your reply (shown under the review)", widget=forms.Textarea(attrs={"rows": 3}), max_length=1500)
+
+
+class IslandContributionForm(forms.ModelForm):
+    """Public 'Update my island' form. Facility answers come in as fac_<field> = yes / no / (blank)."""
+    website = forms.CharField(required=False, widget=forms.HiddenInput)  # honeypot: people leave it empty
+
+    class Meta:
+        from .models import IslandContribution
+        model = IslandContribution
+        fields = ["name", "email", "relation", "transfer_time", "getting_there", "famous_for", "tips", "corrections",
+                  "photo_credit", "photo_consent", "show_name"]
+        widgets = {
+            "getting_there": forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. Public ferry from Malé on Sunday, Tuesday and Thursday, about 3 hours. Speedboat from the airport, 1 hour."}),
+            "famous_for": forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. Sandbanks, a big football ground, lacquer work, turtle nesting beach…"}),
+            "tips": forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. The bikini beach is on the north side. Shops close 12:00–14:00 on Fridays."}),
+            "corrections": forms.Textarea(attrs={"rows": 2, "placeholder": "Tell us what to fix"}),
+            "transfer_time": forms.TextInput(attrs={"placeholder": "e.g. 1 hr 30 min by speedboat"}),
+            "name": forms.TextInput(attrs={"placeholder": "e.g. Aishath"}),
+            "photo_credit": forms.TextInput(attrs={"placeholder": "Name to show with your photos"}),
+        }
+
+    def clean(self):
+        data = super().clean()
+        if self.data.get("website"):
+            raise forms.ValidationError("Something went wrong. Please try again.")
+        return data

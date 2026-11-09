@@ -1184,3 +1184,59 @@ class IslandDuplicateTests(TestCase):
         self.assertEqual(Island.objects.filter(atoll=raa).count(), 2)
         mine.refresh_from_db()
         self.assertEqual(mine.population, 1500)
+
+
+class ContributionTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.staff = User.objects.create_superuser("ct@example.com", "ct@example.com", "pw-12345")
+
+    def _img(self):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (40, 30), (20, 140, 150)).save(buf, "JPEG")
+        return SimpleUploadedFile("beach.jpg", buf.getvalue(), content_type="image/jpeg")
+
+    def test_public_update_and_apply(self):
+        import tempfile
+        from django.test import override_settings
+        from .models import IslandContribution
+        isl = Island.objects.get(slug="gulhi")
+        isl.details_verified, isl.has_atm, isl.transfer_time = False, False, ""
+        isl.save()
+        url = reverse("directory:island_contribute", args=[isl.slug])
+        self.assertContains(self.client.get(isl.get_absolute_url()), "Help us complete this guide")
+        self.assertContains(self.client.get(url), "What does Gulhi have?")
+        # nothing filled in -> asked to add something
+        r = self.client.post(url, {"name": "Aishath", "relation": "local", "show_name": "on"})
+        self.assertContains(r, "Add at least one answer")
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp, STORAGES={
+                "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}):
+            r = self.client.post(url, {"name": "Aishath", "relation": "local", "show_name": "on", "fac_has_atm": "yes",
+                                       "fac_has_pharmacy": "no", "transfer_time": "35 min by speedboat", "photo_consent": "on",
+                                       "photos": [self._img()]})
+            self.assertRedirects(r, reverse("directory:island_contribute_thanks", args=[isl.slug]))
+            c = IslandContribution.objects.get()
+            self.assertEqual(c.facilities, {"has_atm": "yes", "has_pharmacy": "no"})
+            self.assertEqual(c.photos.count(), 1)
+            self.client.force_login(self.staff)
+            self.assertEqual(self.client.get(reverse("admin:directory_islandcontribution_change", args=[c.pk])).status_code, 200)
+            r = self.client.post(reverse("admin:directory_islandcontribution_changelist"),
+                                 {"action": "apply_all", "_selected_action": [c.pk]}, follow=True)
+            self.assertContains(r, "added 1 photo")
+        isl.refresh_from_db()
+        self.assertTrue(isl.has_atm and isl.details_verified)
+        self.assertEqual(isl.transfer_time, "35 min by speedboat")
+        self.assertEqual(isl.photos.count(), 1)
+        self.client.logout()
+        self.assertContains(self.client.get(isl.get_absolute_url()), "Thanks to Aishath")
+
+    def test_honeypot(self):
+        from .models import IslandContribution
+        url = reverse("directory:island_contribute", args=["gulhi"])
+        self.client.post(url, {"name": "Bot", "relation": "local", "fac_has_atm": "yes", "website": "spam"})
+        self.assertFalse(IslandContribution.objects.exists())

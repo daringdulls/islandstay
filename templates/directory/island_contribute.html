@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Update {{ island.name }}: help improve the island guide{% endblock %}
+{% block meta_description %}Live on or know {{ island.name }}? Tell visitors what the island has, how to get there and what it is known for, and share your photos.{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="gd-head{% if island.photo_url %} has-photo{% endif %}">
+  {% if island.photo_url %}<img class="il-hero-bg" src="{{ island.photo_url }}" alt="" onerror="this.remove()">{% endif %}
+  <div class="container gd-head-inner">
+    <div class="crumbs"><a href="{% url 'directory:island_list' %}">Islands</a> / <a href="{{ island.get_absolute_url }}">{{ island.name }}</a> / Update</div>
+    <h1>Help update <span class="accent-word">{{ island.name }}</span></h1>
+    <p class="lead">Know {{ island.name }}? A few quick answers help visitors plan their trip and bring more guests to the island's guest houses, cafés and shops. Answer what you know and skip the rest.</p>
+  </div>
+</section>
+
+<div class="container gd-layout">
+  <form class="ct-form" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}{{ form.website }}
+    {% if form.non_field_errors or photo_errors %}<div class="ct-error">{% icon "info" %}<div>{% for e in form.non_field_errors %}<p>{{ e }}</p>{% endfor %}{% for e in photo_errors %}<p>{{ e }}</p>{% endfor %}</div></div>{% endif %}
+
+    <section class="ct-card">
+      <header><span class="ct-n">1</span><div><h2>What does {{ island.name }} have?</h2><p>Tap Yes or No. Leave it if you're not sure.</p></div></header>
+      <div class="ct-facts">
+        {% for key, label, current, chosen in facilities %}
+        <fieldset class="ct-fact">
+          <legend>{{ label }}<small>{% if current %}Our guide says yes{% elif island.details_verified %}Our guide says no{% else %}Not confirmed yet{% endif %}</small></legend>
+          <div class="ct-seg">
+            <label><input type="radio" name="fac_{{ key }}" value="yes" {% if chosen == "yes" %}checked{% endif %}><span>{% icon "check" %} Yes</span></label>
+            <label><input type="radio" name="fac_{{ key }}" value="no" {% if chosen == "no" %}checked{% endif %}><span>{% icon "x" %} No</span></label>
+            <label><input type="radio" name="fac_{{ key }}" value="" {% if not chosen %}checked{% endif %}><span>Not sure</span></label>
+          </div>
+        </fieldset>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="ct-card">
+      <header><span class="ct-n">2</span><div><h2>Getting there</h2><p>{% if island.transfer_time %}Our guide says: {{ island.transfer_time }}.{% else %}We don't have transfer details yet.{% endif %}</p></div></header>
+      <div class="ct-fields">
+        <label>{{ form.transfer_time.label }}{{ form.transfer_time }}</label>
+        <label>{{ form.getting_there.label }}{{ form.getting_there }}</label>
+      </div>
+    </section>
+
+    <section class="ct-card">
+      <header><span class="ct-n">3</span><div><h2>Island life</h2><p>What should visitors know about {{ island.name }}?</p></div></header>
+      <div class="ct-fields">
+        <label>{{ form.famous_for.label }}{{ form.famous_for }}</label>
+        <label>{{ form.tips.label }}{{ form.tips }}</label>
+        <label>{{ form.corrections.label }}{{ form.corrections }}</label>
+      </div>
+    </section>
+
+    <section class="ct-card">
+      <header><span class="ct-n">4</span><div><h2>Share your photos</h2><p>Beaches, the harbour, streets, the reef, food, sunsets. Up to 8 photos.</p></div></header>
+      <label class="ct-drop" id="ct-drop">
+        <input type="file" name="photos" accept="image/*" multiple id="ct-photos">
+        <span class="ct-drop-in">{% icon "camera" %}<b>Choose photos</b><small>or drop them here · large photos are resized for you</small></span>
+      </label>
+      <div class="ct-previews" id="ct-previews"></div>
+      <div class="ct-fields ct-two">
+        <label>{{ form.photo_credit.label }}{{ form.photo_credit }}</label>
+      </div>
+      <label class="ct-check">{{ form.photo_consent }}<span>I took these photos (or have permission) and Island Stay may show them with my name.</span></label>
+    </section>
+
+    <section class="ct-card">
+      <header><span class="ct-n">5</span><div><h2>About you</h2><p>So we can thank you. Your email is never shown.</p></div></header>
+      <div class="ct-fields ct-two">
+        <label>{{ form.name.label }}{{ form.name }}{% for e in form.name.errors %}<small class="ct-err">{{ e }}</small>{% endfor %}</label>
+        <label>{{ form.email.label }}{{ form.email }}{% for e in form.email.errors %}<small class="ct-err">{{ e }}</small>{% endfor %}</label>
+        <label>{{ form.relation.label }}{{ form.relation }}</label>
+      </div>
+      <label class="ct-check">{{ form.show_name }}<span>Thank me by name on the {{ island.name }} page</span></label>
+    </section>
+
+    <div class="ct-submit"><button class="btn btn-accent" type="submit">{% icon "heart-handshake" %} Send my update</button><small>Our team checks every update before it goes live, usually within a few days.</small></div>
+  </form>
+
+  <aside class="gd-side">
+    <div class="panel ct-why"><h3>Why it matters</h3>
+      <ul><li>{% icon "users" %}<span>Visitors choose islands by what they offer. Good information brings guests.</span></li>
+        <li>{% icon "store" %}<span>More visitors means more business for local guest houses, cafés and shops.</span></li>
+        <li>{% icon "badge-check" %}<span>Your name appears on the island page as a local helper.</span></li></ul></div>
+    {% if helpers %}<div class="panel"><h3>Already helping {{ island.name }}</h3><div class="ct-helpers">{% for h in helpers %}<span>{{ h|first|upper }}</span>{% endfor %}</div><p class="small muted" style="margin:8px 0 0">{{ helpers|join:", " }}</p></div>{% endif %}
+    <div class="panel"><h3>Run a business here?</h3><p class="small muted">List your guest house, café, shop or excursions free.</p><a class="btn btn-ghost btn-block" href="{% url 'directory:list_your_business' %}">List your business</a></div>
+  </aside>
+</div>
+<script>
+(function () {
+  var input = document.getElementById("ct-photos"), box = document.getElementById("ct-previews"), drop = document.getElementById("ct-drop");
+  if (!input || !window.DataTransfer) return;
+  function resize(file) {
+    return new Promise(function (resolve) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 900 * 1024) { resolve(file); return; }
+      var img = new Image(), u = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(u);
+        var s = Math.min(1, 2400 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (b) { resolve(b && b.size < file.size ? new File([b], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file); }, "image/jpeg", 0.85);
+      };
+      img.onerror = function () { resolve(file); };
+      img.src = u;
+    });
+  }
+  var busy = false;
+  function handle(files) {
+    if (busy) return; busy = true;
+    var list = Array.prototype.slice.call(files).filter(function (f) { return /^image\//.test(f.type); }).slice(0, 8);
+    box.innerHTML = list.length ? '<p class="small muted">Preparing ' + list.length + ' photo' + (list.length > 1 ? "s" : "") + '…</p>' : "";
+    Promise.all(list.map(resize)).then(function (ready) {
+      var dt = new DataTransfer(); ready.forEach(function (f) { dt.items.add(f); }); input.files = dt.files;
+      box.innerHTML = ready.map(function (f) { return '<figure><img src="' + URL.createObjectURL(f) + '" alt=""></figure>'; }).join("");
+      if (ready.length) { var c = document.querySelector('[name=photo_consent]'); if (c) c.checked = true; }
+      busy = false;
+    });
+  }
+  input.addEventListener("change", function () { handle(input.files); });
+  ["dragover", "dragenter"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function () { drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { e.preventDefault(); if (e.dataTransfer.files.length) handle(e.dataTransfer.files); });
+})();
+</script>
+{% endblock %}

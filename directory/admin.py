@@ -15,7 +15,7 @@ from unfold.enums import ActionVariant
 
 from . import notifications
 from .admin_photos import PhotoManagerMixin
-from .models import Guide, GuideTemplate, HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
+from .models import ContributionPhoto, Guide, GuideTemplate, HomeFeature, IslandContribution, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
@@ -860,3 +860,162 @@ class GuideTemplateAdmin(BaseAdmin):
     list_display = ("name", "category", "description", "order", "is_active")
     list_editable = ("order", "is_active")
     fields = ("name", "description", "icon", "category", "title", "summary", "body", "faqs", "order", "is_active")
+
+
+# ---------------------------------------------------------------- updates from the public
+class ContributionPhotoInline(TabularInline):
+    model = ContributionPhoto
+    extra = 0
+    fields = ("preview", "caption", "added_to_gallery")
+    readonly_fields = ("preview", "added_to_gallery")
+    can_delete = True
+
+    @display(description="Photo")
+    def preview(self, obj):
+        try:
+            return format_html('<a href="{0}" target="_blank"><img src="{0}" style="width:140px;height:96px;object-fit:cover;border-radius:8px"></a>', obj.image.url)
+        except Exception:
+            return "–"
+
+
+@admin.register(IslandContribution)
+class IslandContributionAdmin(BaseAdmin):
+    list_display = ("summary", "island_link", "relation", "answers", "photo_count", "status_label", "created_at")
+    list_display_links = ("summary",)
+    list_filter = ("status", ("island__atoll", RelatedDropdownFilter), "relation")
+    search_fields = ("name", "email", "island__name", "famous_for", "tips", "corrections")
+    readonly_fields = ("island", "name", "email", "relation", "answers_table", "transfer_time", "getting_there", "famous_for",
+                       "tips", "corrections", "photo_credit", "photo_consent", "show_name", "created_at")
+    fieldsets = (
+        ("From", {"fields": (("island", "relation"), ("name", "email"), "show_name", "created_at")}),
+        ("Facilities", {"fields": ("answers_table",)}),
+        ("Information", {"fields": ("transfer_time", "getting_there", "famous_for", "tips", "corrections")}),
+        ("Photos", {"fields": (("photo_credit", "photo_consent"),)}),
+        ("Review", {"fields": ("status", "admin_note")}),
+    )
+    inlines = [ContributionPhotoInline]
+    actions = ["apply_facilities", "add_photos", "apply_all", "mark_not_used"]
+    actions_detail = ["apply_all_detail"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("island", "island__atoll").annotate(_photos=Count("photos"))
+
+    @display(description="Update", header=True)
+    def summary(self, obj):
+        bits = []
+        if obj.facilities:
+            bits.append(f"{len(obj.facility_answers)} facility answers")
+        if obj._photos:
+            bits.append(f"{obj._photos} photo{'s' if obj._photos != 1 else ''}")
+        if obj.famous_for or obj.tips or obj.getting_there or obj.corrections:
+            bits.append("notes")
+        return obj.name, " · ".join(bits) or "—"
+
+    @display(description="Island")
+    def island_link(self, obj):
+        return format_html('<a href="{}" target="_blank">{}</a>', obj.island.get_absolute_url(), obj.island.name)
+
+    @display(description="Answers")
+    def answers(self, obj):
+        return ", ".join(f"{l}: {v}" for l, v in obj.facility_answers)[:80] or "–"
+
+    @display(description="Photos", ordering="_photos")
+    def photo_count(self, obj):
+        return obj._photos
+
+    @display(description="Status", label={"New": "warning", "Applied": "success", "Not used": "danger"})
+    def status_label(self, obj):
+        return obj.get_status_display()
+
+    @display(description="Facility answers")
+    def answers_table(self, obj):
+        rows = []
+        for key, label in IslandContribution.FACILITIES:
+            ans = obj.facilities.get(key)
+            if ans not in ("yes", "no"):
+                continue
+            now = "yes" if getattr(obj.island, key) else ("no" if obj.island.details_verified else "not confirmed")
+            same = (ans == "yes") == bool(getattr(obj.island, key)) and obj.island.details_verified
+            rows.append(format_html('<tr><td style="padding:4px 14px 4px 0">{}</td><td style="padding:4px 14px 4px 0"><b>{}</b></td><td style="padding:4px 0;color:{}">guide now: {}</td></tr>',
+                                    label, ans.title(), "#1E7A55" if same else "#9A5F05", now))
+        from django.utils.safestring import mark_safe
+        return mark_safe("<table>" + "".join(str(r) for r in rows) + "</table>") if rows else "No answers"
+
+    # ---- applying
+    def _apply_facilities(self, c):
+        isl = c.island
+        fields = []
+        for key, ans in c.facilities.items():
+            if key in dict(IslandContribution.FACILITIES) and ans in ("yes", "no"):
+                setattr(isl, key, ans == "yes")
+                fields.append(key)
+        if c.transfer_time and not isl.transfer_time:
+            isl.transfer_time = c.transfer_time[:60]
+            fields.append("transfer_time")
+        if c.getting_there and not isl.getting_there:
+            isl.getting_there = c.getting_there
+            fields.append("getting_there")
+        if c.famous_for and not isl.famous_for:
+            isl.famous_for = c.famous_for
+            fields.append("famous_for")
+        if c.tips and not isl.what_to_expect:
+            isl.what_to_expect = c.tips
+            fields.append("what_to_expect")
+        if c.facilities:
+            isl.details_verified = True
+            fields.append("details_verified")
+        if fields:
+            isl.save(update_fields=list(set(fields)))
+        return bool(fields)
+
+    def _add_photos(self, c):
+        from django.core.files.storage import default_storage  # noqa: F401
+        n = 0
+        start = (c.island.photos.order_by("-order").values_list("order", flat=True).first() or 0) + 1
+        for p in c.photos.filter(added_to_gallery=False):
+            try:
+                url = p.image.url
+            except Exception:
+                continue
+            IslandPhoto.objects.create(island=c.island, image_url=url, caption=p.caption, order=start + n,
+                                       credit=(c.photo_credit or c.name)[:200], license="Shared with Island Stay")
+            p.added_to_gallery = True
+            p.save(update_fields=["added_to_gallery"])
+            n += 1
+        if n and not c.island.photo_url:
+            first = c.island.photos.order_by("order").first()
+            c.island.cover_image_url, c.island.cover_credit = first.image_url, first.credit
+            c.island.save(update_fields=["cover_image_url", "cover_credit"])
+        return n
+
+    @admin.action(description="Apply facility answers and empty fields to the island")
+    def apply_facilities(self, request, queryset):
+        n = sum(self._apply_facilities(c) for c in queryset)
+        queryset.update(status="applied")
+        self.message_user(request, f"Updated {n} island(s). Check the island pages, and edit the text there if needed.", messages.SUCCESS)
+
+    @admin.action(description="Add photos to the island gallery")
+    def add_photos(self, request, queryset):
+        n = sum(self._add_photos(c) for c in queryset)
+        queryset.update(status="applied")
+        self.message_user(request, f"Added {n} photo(s) to island galleries.", messages.SUCCESS)
+
+    @admin.action(description="Apply everything (facilities, empty fields and photos)")
+    def apply_all(self, request, queryset):
+        islands = sum(self._apply_facilities(c) for c in queryset)
+        photos = sum(self._add_photos(c) for c in queryset)
+        queryset.update(status="applied")
+        self.message_user(request, f"Updated {islands} island(s) and added {photos} photo(s).", messages.SUCCESS)
+
+    @admin.action(description="Mark as not used")
+    def mark_not_used(self, request, queryset):
+        queryset.update(status="rejected")
+
+    @action(description="Apply everything", icon="done_all", url_path="apply-all")
+    def apply_all_detail(self, request, object_id):
+        c = IslandContribution.objects.get(pk=object_id)
+        changed, photos = self._apply_facilities(c), self._add_photos(c)
+        c.status = "applied"
+        c.save(update_fields=["status"])
+        self.message_user(request, f"{c.island.name}: {'facilities updated' if changed else 'nothing to change'}, {photos} photo(s) added.", messages.SUCCESS)
+        return redirect(reverse("admin:directory_islandcontribution_change", args=[object_id]))

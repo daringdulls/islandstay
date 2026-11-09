@@ -215,7 +215,7 @@ def island_list(request):
         if base.filter(activities__slug=slug).exists():
             chips.append((label, link(activity=slug), activity == slug, ic))
     chips.append(("Most places to stay", link(sort="stays"), sort == "stays", "bed-double"))
-    atoll_strip = list(Atoll.objects.filter(islands__is_published=True).annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name"))
+    atoll_strip = list(Atoll.objects.filter(islands__is_published=True).annotate(n=Count("islands", filter=Q(islands__is_published=True))).order_by("order", "name").prefetch_related("islands"))
     auto = next((i.photo_url for i in base.filter(is_featured=True) if i.photo_url), "") or next((i.photo_url for i in base[:12] if i.photo_url), "")
     hero_photo, hero_credit = PageBanner.for_page("islands", auto)
     filtered = bool(q or atoll or activity or request.GET.get("bikini") or request.GET.get("type"))
@@ -226,6 +226,8 @@ def island_list(request):
         "atoll_obj": next((a for a in atoll_strip if a.slug == atoll), None),
         "regions": [("all", "All")] + [(k, v) for k, v in Atoll._meta.get_field("region").choices if any(a.region == k for a in atoll_strip)],
         "region_sel": next((a.region for a in atoll_strip if a.slug == atoll), "all"),
+        "checked": base.filter(details_verified=True).count(),
+        "to_check": list(base.filter(details_verified=False).order_by("-population")[:6]),
         "figures": {"islands": base.count(), "atolls": len(atoll_strip), "bikini": base.filter(has_bikini_beach=True).count(),
                     "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(), "min_shown": 20},
     })
@@ -255,6 +257,7 @@ def island_detail(request, slug):
     return render(request, "directory/island_detail.html", {
         "island": island, "stays": stays, "kind": kind, "nearby": nearby, "ld": [place, crumbs],
         "guides": island.guides.filter(is_published=True)[:3],
+        "helpers": island_helpers(island),
         "services": listings.filter(kind__in=Listing.EXPERIENCE_KINDS),
         "food": listings.filter(kind__in=Listing.FOOD_KINDS),
         "shops": listings.filter(kind__in=Listing.SHOP_KINDS),
@@ -1161,3 +1164,63 @@ def search_suggest(request):
     for g in r["guides"][:3]:
         items.append({"t": "Guide", "label": g.title, "sub": g.get_category_display(), "url": g.get_absolute_url(), "icon": "book-open"})
     return JsonResponse({"items": items[:10], "all": reverse("directory:search") + "?" + urlencode({"q": q})})
+
+
+# ---------------------------------------------------------------- the public helps update island guides
+def island_contribute(request, slug):
+    from .forms import IslandContributionForm
+    from .models import ContributionPhoto, IslandContribution
+    from PIL import Image
+
+    island = get_object_or_404(_islands(), slug=slug)
+    form = IslandContributionForm(request.POST or None, initial={"photo_consent": True})
+    current = {k: getattr(island, k) for k, _ in IslandContribution.FACILITIES}
+    photo_errors = []
+    if request.method == "POST":
+        files = request.FILES.getlist("photos")[:8]
+        good = []
+        for f in files:
+            if f.size > 15 * 1024 * 1024:
+                photo_errors.append(f"{f.name} is larger than 15 MB.")
+                continue
+            try:
+                img = Image.open(f)
+                img.verify()
+                f.seek(0)
+                good.append(f)
+            except Exception:
+                photo_errors.append(f"{f.name} isn't a photo we can read.")
+        facilities = {k: request.POST.get("fac_" + k) for k, _ in IslandContribution.FACILITIES
+                      if request.POST.get("fac_" + k) in ("yes", "no")}
+        anything = facilities or good or any(request.POST.get(k, "").strip() for k in
+                                             ("transfer_time", "getting_there", "famous_for", "tips", "corrections"))
+        if good and not request.POST.get("photo_consent"):
+            photo_errors.append("Please confirm the photos are yours to share.")
+        if form.is_valid() and anything and not photo_errors:
+            c = form.save(commit=False)
+            c.island, c.facilities = island, facilities
+            c.save()
+            for f in good:
+                ContributionPhoto.objects.create(contribution=c, image=f)
+            request.session["contributed"] = island.slug
+            return redirect("directory:island_contribute_thanks", slug=island.slug)
+        if not anything:
+            form.add_error(None, "Add at least one answer, a tip or a photo before sending.")
+    helpers = IslandContribution.objects.filter(island=island, status="applied", show_name=True).values_list("name", flat=True)
+    return render(request, "directory/island_contribute.html", {
+        "island": island, "form": form, "photo_errors": photo_errors,
+        "facilities": [(k, label, current[k], request.POST.get("fac_" + k, "")) for k, label in IslandContribution.FACILITIES],
+        "helpers": list(dict.fromkeys(helpers))[:12],
+    })
+
+
+def island_contribute_thanks(request, slug):
+    island = get_object_or_404(_islands(), slug=slug)
+    nearby = _islands().filter(atoll=island.atoll, details_verified=False).exclude(pk=island.pk)[:6]
+    return render(request, "directory/island_contribute_thanks.html", {"island": island, "nearby": nearby})
+
+
+def island_helpers(island):
+    from .models import IslandContribution
+    names = IslandContribution.objects.filter(island=island, status="applied", show_name=True).values_list("name", flat=True)
+    return list(dict.fromkeys(names))[:8]

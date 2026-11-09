@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Thank you for updating {{ island.name }}{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container ct-thanks">
+    <span class="ct-thanks-ico">{% icon "heart-handshake" %}</span>
+    <h1>Thank you for helping {{ island.name }}</h1>
+    <p class="lead">Our team will check your update and add it to the guide, usually within a few days. Visitors planning their trip will see it.</p>
+    <div class="sv-actions" style="justify-content:center">
+      <a class="btn sv-wa" href="https://wa.me/?text={{ 'Help update our island on Island Stay: '|urlencode }}{{ request.scheme }}%3A%2F%2F{{ request.get_host }}{% url 'directory:island_contribute' island.slug %}" target="_blank" rel="noopener">{% icon "message-circle" %} Ask friends from {{ island.name }} to help</a>
+      <a class="btn btn-ghost" href="{{ island.get_absolute_url }}">Back to {{ island.name }}</a>
+    </div>
+    {% if nearby %}
+    <div class="ct-next">
+      <h2>Know another island in {{ island.atoll.name }}?</h2>
+      <div class="ct-next-list">{% for n in nearby %}<a href="{% url 'directory:island_contribute' n.slug %}">{% icon "map-pin" %}<span><b>{{ n.name }}</b><small>Needs local information</small></span>{% icon "arrow-right" %}</a>{% endfor %}</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

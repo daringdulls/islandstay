@@ -988,3 +988,54 @@ class GuideTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class IslandContribution(models.Model):
+    """Information and photos about an island sent in by locals and visitors, reviewed before it goes live."""
+    RELATION_CHOICES = [("local", "I live here"), ("work", "I work here"), ("visited", "I visited"), ("other", "Other")]
+    STATUS_CHOICES = [("new", "New"), ("applied", "Applied"), ("rejected", "Not used")]
+    FACILITIES = [
+        ("has_atm", "ATM"), ("has_hospital", "Health centre or clinic"), ("has_full_hospital", "Hospital"),
+        ("has_pharmacy", "Pharmacy"), ("has_police", "Police station"), ("has_supermarket", "Shops"),
+        ("has_bikini_beach", "Bikini beach"), ("has_5g", "5G mobile data"),
+    ]
+
+    island = models.ForeignKey(Island, on_delete=models.CASCADE, related_name="contributions")
+    name = models.CharField("Your name", max_length=80)
+    email = models.EmailField("Email (optional)", blank=True, help_text="Only so we can thank you or ask a question. Never shown.")
+    relation = models.CharField("You are", max_length=10, choices=RELATION_CHOICES, default="local")
+    facilities = models.JSONField(default=dict, blank=True, help_text="Answers: field name → yes / no")
+    transfer_time = models.CharField("How long from Malé airport?", max_length=80, blank=True)
+    getting_there = models.TextField("How do people get there?", blank=True)
+    famous_for = models.TextField("What is the island known for?", blank=True)
+    tips = models.TextField("Tips, rules or things visitors should know", blank=True)
+    corrections = models.TextField("Anything on the page that is wrong?", blank=True)
+    photo_credit = models.CharField("Photo credit", max_length=80, blank=True)
+    photo_consent = models.BooleanField(default=False)
+    show_name = models.BooleanField("Thank me by name on the island page", default=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="new")
+    admin_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "island update from the public"
+        verbose_name_plural = "island updates from the public"
+
+    def __str__(self):
+        return f"{self.island.name} — {self.name}"
+
+    @property
+    def facility_answers(self):
+        labels = dict(self.FACILITIES)
+        return [(labels[k], v) for k, v in self.facilities.items() if k in labels and v in ("yes", "no")]
+
+
+class ContributionPhoto(models.Model):
+    contribution = models.ForeignKey(IslandContribution, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="contributions/")
+    caption = models.CharField(max_length=160, blank=True)
+    added_to_gallery = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.caption or self.image.name.rsplit("/", 1)[-1]
