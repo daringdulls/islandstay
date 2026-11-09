@@ -188,6 +188,7 @@ def blob_proxy(request, path):
             resp = HttpResponse("Photo not found", status=404, content_type="text/plain")
             resp["X-Blob-Error"] = " | ".join(errors)[:400]
             resp["X-Blob-Auth"] = "oidc" if default_storage.oidc else "token"
+            resp["X-Blob-Store"] = default_storage.base_url.split("//")[1].split(".")[0]
             return resp
     response = HttpResponse(data, content_type=content_type)
     if path.startswith("verification/"):
