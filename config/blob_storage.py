@@ -204,6 +204,15 @@ def blob_proxy(request, path):
             resp["X-Blob-Error"] = " | ".join(errors)[:400]
             resp["X-Blob-Auth"] = "oidc" if default_storage.oidc else "token"
             resp["X-Blob-Store"] = default_storage.base_url.split("//")[1].split(".")[0]
+            try:  # what the store holds (counts and a few folder names only)
+                listing = default_storage._request("GET", f"{API_URL}?{urllib.parse.urlencode({'limit': 1000})}")
+                blobs = listing.get("blobs", [])
+                folders = sorted({b.get("pathname", "").split("/")[0] for b in blobs})
+                resp["X-Blob-Contents"] = f"{len(blobs)} files{'+' if listing.get('hasMore') else ''}; folders: {', '.join(folders)[:200]}"
+                same = [b.get("pathname", "") for b in blobs if b.get("pathname", "").split("/")[-1].split("-")[0] == path.split("/")[-1].split("-")[0]]
+                resp["X-Blob-Similar"] = "; ".join(same)[:300]
+            except Exception as exc4:
+                resp["X-Blob-Contents"] = _describe(exc4)
             return resp
     response = HttpResponse(data, content_type=content_type)
     if path.startswith("verification/"):
