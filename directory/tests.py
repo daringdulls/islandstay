@@ -338,7 +338,7 @@ class VercelTests(TestCase):
             name = storage.save("listings/x.jpg", SimpleUploadedFile("x.jpg", b"img", content_type="image/jpeg"))
             storage.delete(name)
         self.assertEqual(name, "listings/x-Ab12.jpg")
-        self.assertEqual(storage.url(name), "https://abc123.public.blob.vercel-storage.com/listings/x-Ab12.jpg")
+        self.assertEqual(storage.url(name), "/media/blob/listings/x-Ab12.jpg")
         put = calls[0]
         self.assertEqual(put.get_method(), "PUT")
         self.assertIn("pathname=listings%2Fx.jpg", put.full_url)
@@ -488,7 +488,7 @@ class OidcBlobTests(TestCase):
         finally:
             vercel_oidc_token.reset(reset)
         self.assertEqual(name, "islands/a-X1.jpg")
-        self.assertEqual(storage.url(name), "https://abcdef.public.blob.vercel-storage.com/islands/a-X1.jpg")
+        self.assertEqual(storage.url(name), "/media/blob/islands/a-X1.jpg")
         self.assertEqual(seen[0].get_header("Authorization"), "Bearer oidc-abc")
         self.assertEqual(seen[0].get_header("X-vercel-blob-store-id"), "AbCdEf")
         VercelBlobStorage.access = None
