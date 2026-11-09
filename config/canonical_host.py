@@ -1,4 +1,5 @@
-"""Send visitors on the old vercel.app address (or www.) to the site's own domain, so Google sees one site."""
+"""Send visitors on the old vercel.app address to the site's own domain, so Google sees one site.
+Switching between islandstaymv.com and www. is left to Vercel's domain settings, to avoid redirect loops."""
 from django.conf import settings
 from django.http import HttpResponsePermanentRedirect
 
@@ -11,7 +12,6 @@ class CanonicalHostMiddleware:
         target = settings.CANONICAL_HOST
         if target and request.method in ("GET", "HEAD") and not request.path.startswith("/cron/"):
             host = request.get_host().split(":")[0].lower()
-            if host != target and (host in settings.LEGACY_HOSTS or host == "www." + target or
-                                   (host in {"www." + d for d in settings.CUSTOM_DOMAINS} | set(settings.CUSTOM_DOMAINS))):
+            if host in settings.LEGACY_HOSTS and host != target:
                 return HttpResponsePermanentRedirect(f"https://{target}{request.get_full_path()}")
         return self.get_response(request)
