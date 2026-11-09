@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if island %}Where to eat on {{ island.name }}{% else %}Cafés and restaurants on the local islands{% endif %}{% endblock %}
+{% block title %}{% if island %}Where to eat on {{ island.name }}{% else %}Restaurants, cafés, beach huts and food trucks on the local islands{% endif %}{% endblock %}
 {% block meta_description %}Cafés and family restaurants on the local islands of the Maldives: Maldivian breakfasts, reef fish, short eats and fresh juice. Find places to eat and message them directly.{% endblock %}
 {% block content %}
 
@@ -11,7 +11,7 @@
   <div class="container fd-hero-inner">
     <div class="eyebrow">Food</div>
     <h1>{% if island %}Where to eat on <span class="accent-word">{{ island.name }}</span>{% else %}Eat where the <span class="accent-word">island</span> eats{% endif %}</h1>
-    <p class="lead">Island cafés and family restaurants: mas huni for breakfast, reef fish grilled on the beach, short eats with sweet tea, and fresh juice everywhere.</p>
+    <p class="lead">Restaurants, teashops, beach huts and food trucks: mas huni for breakfast, reef fish grilled on the beach, short eats with sweet tea, and fresh juice everywhere.</p>
     <form class="fd-search" method="get" role="search">
       <label class="sr-only" for="fd-q">Search</label>
       {% icon "search" %}<input id="fd-q" type="search" name="q" value="{{ f.q }}" placeholder="Café, dish or cuisine">
@@ -29,7 +29,7 @@
 <section class="section" id="places">
   <div class="container">
     <div class="fd-results-head">
-      <div><div class="eyebrow">Places to eat</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching cafés and restaurants{% else %}Cafés and restaurants{% endif %}</h2></div>
+      <div><div class="eyebrow">Places to eat</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching places{% else %}Restaurants, cafés and more{% endif %}</h2></div>
       <div class="fd-results-meta"><span>{{ page.paginator.count }} place{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
         <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" and k != "max_price" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
           <label class="sr-only" for="fd-sort">Sort</label><select id="fd-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></form>

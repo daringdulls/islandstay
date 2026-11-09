@@ -13,7 +13,7 @@ class StaticSitemap(Sitemap):
     priority = 0.8
 
     def items(self):
-        return ["home", "island_list", "stay_list", "service_list", "transport_list", "food_list", "guide_list",
+        return ["home", "island_list", "stay_list", "service_list", "transport_list", "food_list", "shop_list", "guide_list",
                 "atoll_list", "island_compare", "list_your_business", "how_it_works", "privacy", "cookies"]
 
     def location(self, item):

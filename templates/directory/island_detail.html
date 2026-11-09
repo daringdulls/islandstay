@@ -32,9 +32,9 @@
     <div class="fact"><span>Nearest airport</span><b>{{ island.nearest_airport|default:"Velana (MLE)" }}</b></div>
     <div class="fact"><span>From Malé airport</span><b>{{ island.transfer_time|default:"Ask your host" }}</b></div>
     <div class="fact"><span>Population</span><b>{% if island.population %}{{ island.population|intcomma }}{% else %}–{% endif %}</b></div>
-    <div class="fact"><span>Bikini beach</span><b>{{ island.has_bikini_beach|yesno:"Yes,No" }}</b></div>
-    <div class="fact"><span>ATM</span><b>{{ island.has_atm|yesno:"Yes,No" }}</b></div>
-    <div class="fact"><span>Healthcare</span><b>{{ island.healthcare_label }}</b></div>
+    <div class="fact"><span>Bikini beach</span><b>{% if island.has_bikini_beach %}Yes{% elif island.details_verified %}No{% else %}Not confirmed{% endif %}</b></div>
+    <div class="fact"><span>ATM</span><b>{% if island.has_atm %}Yes{% elif island.details_verified %}No{% else %}Not confirmed{% endif %}</b></div>
+    <div class="fact"><span>Healthcare</span><b>{% if island.has_hospital or island.has_full_hospital or island.details_verified %}{{ island.healthcare_label }}{% else %}Not confirmed{% endif %}</b></div>
     <div class="fact"><span>Mobile data</span><b>{{ island.mobile_data_label }}</b></div>
   </div>
 
@@ -109,12 +109,19 @@
         {% if food %}<div class="grid">{% for l in food %}{% include "partials/listing_card.html" %}{% endfor %}</div>
         {% else %}<div class="empty">No restaurants listed yet. Most guest houses serve meals. <a href="{% url 'directory:list_your_business' %}">Run a café here? List it free.</a></div>{% endif %}
       </section>
+      {% if shops %}
+      <section id="shops" style="padding-top:28px">
+        <div class="section-title"><h2>Shops</h2><span class="label">{{ shops|length }} listed</span><a class="sub-link" href="{% url 'directory:shop_list' %}?island={{ island.slug }}">All shops on {{ island.name }} {% icon "arrow-right" %}</a></div>
+        <div class="grid">{% for l in shops %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+      </section>
+      {% endif %}
 
       <section id="guide" style="padding-top:28px">
         <div class="section-title"><h2>Island guide</h2><span class="label">Facilities · rules · access</span></div>
         <div class="panel">
           <h3>{% icon "landmark" %} Facilities</h3>
-          <div class="facility-grid">{% for ic, label, ok in island.facility_flags %}<div class="facility {% if not ok %}no{% endif %}">{% icon ic %}{{ label }}<span class="state">{{ ok|yesno:"YES,NO" }}</span></div>{% endfor %}</div>
+          {% if not island.details_verified %}<p class="notice-soft">{% icon "info" %}<span>We haven't checked the facilities on {{ island.name }} yet. Most inhabited islands have shops, a health centre and 4G, but ask your host before you travel. <a href="{% url 'directory:suggest_island' %}">Know {{ island.name }}? Tell us.</a></span></p>{% endif %}
+          <div class="facility-grid">{% for ic, label, ok in island.facility_flags %}<div class="facility {% if not ok %}{% if island.details_verified %}no{% else %}unknown{% endif %}{% endif %}">{% icon ic %}{{ label }}<span class="state">{% if ok %}YES{% elif island.details_verified %}NO{% else %}?{% endif %}</span></div>{% endfor %}</div>
           {% if island.facilities_list %}<ul class="list-check" style="margin-top:16px">{% for f in island.facilities_list %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
         </div>
         {% if island.local_rules_list %}

@@ -36,6 +36,7 @@
       <a href="{% url 'directory:service_list' %}" class="{% if p|slice:':12' == '/experiences' %}active{% endif %}">Experiences</a>
       <a href="{% url 'directory:transport_list' %}" class="{% if p|slice:':10' == '/transport' %}active{% endif %}">Transport</a>
       <a href="{% url 'directory:food_list' %}" class="{% if p|slice:':5' == '/food' %}active{% endif %}">Food</a>
+      <a href="{% url 'directory:shop_list' %}" class="{% if p|slice:':6' == '/shops' %}active{% endif %}">Shops</a>
       <a href="{% url 'directory:guide_list' %}" class="{% if p|slice:':7' == '/guides' %}active{% endif %}">Guides</a>
       <a href="{% url 'directory:search' %}" class="nav-saved{% if p == '/search/' %} active{% endif %}" aria-label="Search">{% icon "search" %}<span class="nav-saved-label">Search</span></a>
       <a href="{% url 'directory:saved' %}" class="nav-saved{% if p == '/saved/' %} active{% endif %}" data-saved-link aria-label="Saved">{% icon "heart" %}<span class="nav-saved-n" data-saved-count hidden></span><span class="nav-saved-label">Saved</span></a>
@@ -74,6 +75,7 @@
         <li><a href="{% url 'directory:service_list' %}">Experiences</a></li>
         <li><a href="{% url 'directory:transport_list' %}">Transport</a></li>
         <li><a href="{% url 'directory:food_list' %}">Food</a></li>
+        <li><a href="{% url 'directory:shop_list' %}">Shops and souvenirs</a></li>
         <li><a href="{% url 'directory:guide_list' %}">Travel guides</a></li>
         <li><a href="{% url 'directory:island_compare' %}">Compare islands</a></li>
       </ul></div>

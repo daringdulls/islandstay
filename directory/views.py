@@ -257,6 +257,7 @@ def island_detail(request, slug):
         "guides": island.guides.filter(is_published=True)[:3],
         "services": listings.filter(kind__in=Listing.EXPERIENCE_KINDS),
         "food": listings.filter(kind__in=Listing.FOOD_KINDS),
+        "shops": listings.filter(kind__in=Listing.SHOP_KINDS),
         "transport": listings.filter(kind__in=Listing.TRANSPORT_KINDS),
         "routes": island.routes.filter(is_active=True).filter(Q(operator__isnull=True) | Q(operator__status=APPROVED)).select_related("operator"),
         "stay_kinds": Listing.KIND_CHOICES[0][1],
@@ -385,11 +386,14 @@ def food_list(request):
     island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
     q = (f["q"] or "").lower()
     chips = [
-        ("Breakfast", "breakfast=1", bool(request.GET.get("breakfast")), "coffee"),
+        ("Restaurants", "kind=restaurant", f["kind"] == "restaurant", "utensils"),
+        ("Cafés & teashops", "kind=cafe", f["kind"] == "cafe", "coffee"),
+        ("Beach huts & kiosks", "kind=hut", f["kind"] == "hut", "tree-palm"),
+        ("Food trucks", "kind=food_truck", f["kind"] == "food_truck", "car-front"),
+        ("Breakfast", "breakfast=1", bool(request.GET.get("breakfast")), "sun"),
         ("Delivers to guest houses", "delivery=1", bool(request.GET.get("delivery")), "bike"),
         ("Seafood", "q=seafood", q == "seafood", "fish"),
         ("Maldivian", "q=maldivian", q == "maldivian", "soup"),
-        ("Café", "q=cafe", q == "cafe", "coffee"),
     ]
     from .models import PageBanner
 
@@ -400,7 +404,29 @@ def food_list(request):
         "islands": Island.objects.filter(is_published=True).order_by("name"),
         "hero_photo": (island.photo_url if island and island.photo_url else "") or banner or auto,
         "n_food": food.count(), "n_islands": food.values("island").distinct().count(),
-        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "breakfast", "delivery", "verified")),
+        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "breakfast", "delivery", "verified", "kind")),
+    })
+
+
+def shop_list(request):
+    """Shops, supermarkets and souvenir and handicraft shops on the local islands."""
+    page, f, sort = _filtered_listings(request, Listing.SHOP_KINDS)
+    shops = _live_listings().filter(kind__in=Listing.SHOP_KINDS)
+    island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
+    chips = [
+        ("Souvenirs & handicrafts", "kind=souvenir", f["kind"] == "souvenir", "shell"),
+        ("Shops & supermarkets", "kind=shop", f["kind"] == "shop", "shopping-cart"),
+        ("Verified", "verified=1", bool(request.GET.get("verified")), "badge-check"),
+    ]
+    auto = (island.photo_url if island and island.photo_url else "") or next((i.photo_url for i in _islands().filter(is_featured=True) if i.photo_url), "")
+    hero_photo, hero_credit = PageBanner.for_page("shops", auto)
+    if island and island.photo_url:
+        hero_photo, hero_credit = island.photo_url, ""
+    return render(request, "directory/shop_list.html", {
+        "page": page, "f": f, "sort": sort, "chips": chips, "island": island, "hero_photo": hero_photo, "hero_credit": hero_credit,
+        "islands": Island.objects.filter(is_published=True).order_by("name"),
+        "n_shops": shops.count(), "n_islands": shops.values("island").distinct().count(),
+        "filtered": any(request.GET.get(k) for k in ("q", "island", "atoll", "verified", "kind")),
     })
 
 
@@ -998,16 +1024,17 @@ def island_compare(request):
     for i in islands:
         i.remove_qs = ",".join(x.slug for x in islands if x.pk != i.pk)
     activity_rows = sorted(acts.values(), key=lambda r: (-len(r[1]), r[0].name))
-    yes_no = lambda v: "yes" if v else "no"
+    def yes_no(v, i=None):
+        return "yes" if v else ("no" if i is None or i.details_verified else "unknown")
     rows = [
         ("Atoll", [i.atoll.name for i in islands], None),
         ("Getting there", [i.transfer_time or "–" for i in islands], None),
         ("Distance from the airport", [f"{i.distance_from_airport_km} km" if i.distance_from_airport_km else "–" for i in islands], None),
         ("Population", [f"{i.population:,}" if i.population else "–" for i in islands], None),
-        ("Bikini beach", [yes_no(i.has_bikini_beach) for i in islands], "flag"),
-        ("ATM", [yes_no(i.has_atm) for i in islands], "flag"),
-        ("Health care", [i.healthcare_label for i in islands], None),
-        ("Pharmacy", [yes_no(i.has_pharmacy) for i in islands], "flag"),
+        ("Bikini beach", [yes_no(i.has_bikini_beach, i) for i in islands], "flag"),
+        ("ATM", [yes_no(i.has_atm, i) for i in islands], "flag"),
+        ("Health care", [i.healthcare_label if (i.details_verified or i.has_hospital or i.has_full_hospital) else "Not confirmed" for i in islands], None),
+        ("Pharmacy", [yes_no(i.has_pharmacy, i) for i in islands], "flag"),
         ("Mobile data", [i.mobile_data_label for i in islands], None),
         ("Places to stay", [i.stay_count or "–" for i in islands], None),
         ("Experiences", [i.service_count or "–" for i in islands], None),
@@ -1093,9 +1120,10 @@ def _search_all(q, limit=6):
     stays = list(live.filter(kind__in=Listing.STAY_KINDS).filter(match(["name", "island__name", "short_description", "description"])).distinct()[:limit])
     exps = list(live.filter(kind__in=Listing.EXPERIENCE_KINDS).filter(match(["name", "island__name", "short_description", "activity_types__name"])).distinct()[:limit])
     food = list(live.filter(kind__in=Listing.FOOD_KINDS).filter(match(["name", "island__name", "short_description", "cuisine"])).distinct()[:limit])
+    shops = list(live.filter(kind__in=Listing.SHOP_KINDS).filter(match(["name", "island__name", "short_description"])).distinct()[:limit])
     transport = list(live.filter(kind__in=Listing.TRANSPORT_KINDS).filter(match(["name", "island__name", "short_description"])).distinct()[:limit])
     guides = list(Guide.objects.filter(is_published=True).filter(match(["title", "summary", "body"]))[:limit])
-    return {"islands": islands, "activities": acts, "stays": stays, "experiences": exps, "food": food,
+    return {"islands": islands, "activities": acts, "stays": stays, "experiences": exps, "food": food, "shops": shops,
             "transport": transport, "guides": guides}
 
 
@@ -1127,7 +1155,7 @@ def search_suggest(request):
         items.append({"t": "Island", "label": i.name, "sub": f"{i.atoll.name} · {i.tagline}"[:70], "url": i.get_absolute_url(), "icon": "map-pin"})
     for a in r["activities"]:
         items.append({"t": "Activity", "label": a.name, "sub": "Where to do it and who runs trips", "url": reverse("directory:activity_detail", args=[a.slug]), "icon": a.icon or "waves"})
-    for key, label in (("stays", "Stay"), ("experiences", "Experience"), ("food", "Food"), ("transport", "Transport")):
+    for key, label in (("stays", "Stay"), ("experiences", "Experience"), ("food", "Food"), ("shops", "Shop"), ("transport", "Transport")):
         for l in r[key][:3]:
             items.append({"t": label, "label": l.name, "sub": f"{l.get_kind_display()} · {l.island.name}", "url": l.get_absolute_url(), "icon": l.kind_icon})
     for g in r["guides"][:3]:

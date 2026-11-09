@@ -21,6 +21,7 @@ urlpatterns = [
     path("experiences/<slug:slug>/", views.activity_detail, name="activity_detail"),
     path("food/", views.food_list, name="food_list"),
     path("transport/", views.transport_list, name="transport_list"),
+    path("shops/", views.shop_list, name="shop_list"),
     path("listing/<slug:slug>/", views.listing_detail, name="listing_detail"),
     path("request-sent/<str:ref>/", views.enquiry_sent, name="enquiry_sent"),
     path("request-sent/<str:ref>/via/", views.enquiry_sent_via, name="enquiry_sent_via"),

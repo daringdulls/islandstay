@@ -1133,3 +1133,40 @@ class PhotoManagerTests(TestCase):
 def SimpleUploadedFile_bad():
     from django.core.files.uploadedfile import SimpleUploadedFile
     return SimpleUploadedFile("x.jpg", b"not an image", content_type="image/jpeg")
+
+
+class IslandImportAndShopsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_import_adds_all_inhabited_islands_once(self):
+        from .island_import import import_islands
+        from .models import Atoll
+        before = Island.objects.count()
+        maafushi = Island.objects.get(slug="maafushi")
+        tagline = maafushi.tagline
+        created, _ = import_islands(Island, Atoll, log=lambda *a: None)
+        self.assertGreater(created, 150)
+        self.assertGreaterEqual(Island.objects.count(), 190)
+        self.assertEqual(Island.objects.get(slug="maafushi").tagline, tagline)  # existing text kept
+        self.assertEqual(Island.objects.filter(name__iexact="Maafushi").count(), 1)
+        again, _ = import_islands(Island, Atoll, log=lambda *a: None)
+        self.assertEqual(again, 0)
+        new = Island.objects.filter(details_verified=False).first()
+        r = self.client.get(new.get_absolute_url())
+        self.assertContains(r, "Not confirmed")
+        self.assertEqual(Island.objects.get(name="Kelaa").atoll.official_name, "Haa Alif")
+
+    def test_shops_page_and_new_kinds(self):
+        owner = Listing.objects.first().owner
+        isl = Island.objects.get(slug="maafushi")
+        Listing.objects.create(owner=owner, island=isl, kind="souvenir", name="Coral Craft Corner", short_description="Lacquer boxes",
+                               description="d", contact_name="A", contact_email="a@example.com", status="approved")
+        Listing.objects.create(owner=owner, island=isl, kind="food_truck", name="Harbour Bites Truck", short_description="Short eats",
+                               description="d", contact_name="A", contact_email="a@example.com", status="approved")
+        r = self.client.get(reverse("directory:shop_list"))
+        self.assertContains(r, "Coral Craft Corner")
+        self.assertNotContains(r, "Harbour Bites Truck")
+        self.assertContains(self.client.get(reverse("directory:food_list") + "?kind=food_truck"), "Harbour Bites Truck")
+        self.assertContains(self.client.get(isl.get_absolute_url()), "Coral Craft Corner")

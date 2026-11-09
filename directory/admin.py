@@ -172,7 +172,7 @@ class IslandAdmin(PhotoManagerMixin, BaseAdmin):
     list_editable = ("is_featured", "is_published")
     list_filter = (
         ("atoll", RelatedDropdownFilter), ("island_type", ChoicesDropdownFilter), PhotoFilter,
-        "is_published", "is_featured", "has_bikini_beach",
+        "is_published", "is_featured", "details_verified", "has_bikini_beach",
     )
     search_fields = ("name", "atoll__name", "tagline")
     prepopulated_fields = {"slug": ("name",)}
@@ -195,7 +195,7 @@ class IslandAdmin(PhotoManagerMixin, BaseAdmin):
         ("Getting there", {"classes": ["tab"], "fields": (
             "getting_there", "transfer_types", ("distance_from_airport_km", "transfer_time"), ("nearest_airport", "nearest_airport_km"))}),
         ("Facilities & rules", {"classes": ["tab"], "fields": (
-            ("has_bikini_beach", "has_atm", "has_hospital", "has_full_hospital"), ("has_pharmacy", "has_police", "has_supermarket"), ("has_4g", "has_5g"),
+            "details_verified", ("has_bikini_beach", "has_atm", "has_hospital", "has_full_hospital"), ("has_pharmacy", "has_police", "has_supermarket"), ("has_4g", "has_5g"),
             "facilities_notes", "local_rules", "accessibility")}),
         ("Facts & sources", {"classes": ["tab"], "fields": (
             ("population", "population_year", "area_km2"), "sources", "wikipedia_title", ("latitude", "longitude"))}),
@@ -706,7 +706,7 @@ class PageBannerAdmin(BaseAdmin):
     readonly_fields = ("preview_large",)
 
     PATHS = {"stays": "/stays/", "experiences": "/experiences/", "transport": "/transport/", "food": "/food/",
-             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/", "guides": "/guides/"}
+             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/", "guides": "/guides/", "shops": "/shops/"}
 
     @display(description="Page", header=True)
     def page_col(self, obj):

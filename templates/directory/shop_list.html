@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if island %}Shops and souvenirs on {{ island.name }}{% else %}Shops, souvenirs and handicrafts on the local islands{% endif %}{% endblock %}
+{% block meta_description %}Souvenir and handicraft shops, supermarkets and local stores on the inhabited islands of the Maldives. Find what is on each island and message the shop directly.{% endblock %}
+{% block content %}
+
+{# ---------- banner ---------- #}
+<section class="fd-hero">
+  {% if hero_credit %}<span class="hero-credit">{{ hero_credit }}</span>{% endif %}
+  {% if hero_photo %}<img class="fd-hero-bg" src="{{ hero_photo }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
+  <div class="container fd-hero-inner">
+    <div class="eyebrow">Shops</div>
+    <h1>{% if island %}Shops on <span class="accent-word">{{ island.name }}</span>{% else %}Shop where the <span class="accent-word">island</span> shops{% endif %}</h1>
+    <p class="lead">Lacquer work, woven mats, hand-carved dhoni models and local spices, plus the island shops where you can pick up snacks, sun cream and a SIM card.</p>
+    <form class="fd-search" method="get" role="search">
+      <label class="sr-only" for="fd-q">Search</label>
+      {% icon "search" %}<input id="fd-q" type="search" name="q" value="{{ f.q }}" placeholder="Shop, souvenir or island">
+      <label class="sr-only" for="fd-island">Island</label>
+      <select id="fd-island" name="island"><option value="">All islands</option>{% for i in islands %}<option value="{{ i.slug }}" {% if i.slug == f.island %}selected{% endif %}>{{ i.name }}</option>{% endfor %}</select>
+      <button class="btn btn-accent btn-sm" type="submit">Search</button>
+    </form>
+    <div class="fd-chips">
+      {% for label, qs, on, ic in chips %}<a class="fd-chip{% if on %} on{% endif %}" href="?{% if f.island and 'island' not in qs %}island={{ f.island }}&amp;{% endif %}{{ qs }}#places">{% icon ic %}{{ label }}</a>{% endfor %}
+    </div>
+  </div>
+</section>
+
+{# ---------- results ---------- #}
+<section class="section" id="places">
+  <div class="container">
+    <div class="fd-results-head">
+      <div><div class="eyebrow">Shops</div><h2>{% if island %}On {{ island.name }}{% elif filtered %}Matching shops{% else %}Shops and souvenirs{% endif %}</h2></div>
+      <div class="fd-results-meta"><span>{{ page.paginator.count }} place{{ page.paginator.count|pluralize }}</span>{% if filtered %}<a href="?">{% icon "x" %} Clear</a>{% endif %}
+        <form method="get" class="fd-sort">{% for k, v in request.GET.items %}{% if k != "sort" and k != "page" and k != "max_price" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+          <label class="sr-only" for="fd-sort">Sort</label><select id="fd-sort" name="sort" onchange="this.form.submit()"><option value="">Recommended</option><option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option></select></form>
+      </div>
+    </div>
+    {% if page.object_list %}
+      <div class="grid">{% for l in page.object_list %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+      {% include "partials/pagination.html" %}
+    {% else %}
+      <div class="fd-empty">
+        <span class="fd-empty-ico">{% icon "shopping-cart" %}</span>
+        <div>
+          <h3>{% if filtered %}Nothing matches that yet{% else %}Island shops are joining now{% endif %}</h3>
+          <p>Every inhabited island has small general stores for snacks, water and toiletries, and many have a souvenir shop near the harbour or the bikini beach. Ask your host where to go.</p>
+          <div class="fd-empty-actions">{% if filtered %}<a class="btn btn-sm" href="{% url 'directory:shop_list' %}">See all shops</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:stay_list' %}">Find a guest house</a></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ---------- what to buy ---------- #}
+<section class="section band">
+  <div class="container">
+    <div class="section-head"><div><div class="eyebrow">Made in the Maldives</div><h2>Six things worth taking home</h2></div></div>
+    <div class="fd-dishes">
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "sparkles" %}</span><h3>Lacquer work</h3><small>Liyelaa jehun</small><p>Wooden boxes and vases turned and coated in red, yellow and black lacquer, a craft from Baa Atoll.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "leaf" %}</span><h3>Woven mats</h3><small>Thundu kunaa</small><p>Fine reed mats woven by women in Gaafu Dhaalu, with natural dyes and geometric patterns.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "sailboat" %}</span><h3>Dhoni models</h3><small>Hand carved</small><p>Small wooden copies of the traditional Maldivian boat, made by island boat builders.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "fish" %}</span><h3>Rihaakuru and dried tuna</h3><small>Food</small><p>Thick tuna paste and smoked dried fish (Maldive fish), the base of many island dishes.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "cherry" %}</span><h3>Local sweets</h3><small>Bondi and huni hakuru</small><p>Coconut and sugar sweets, often wrapped in leaves, sold at island shops and cafés.</p></article>
+      <article class="fd-dish"><span class="fd-dish-ico">{% icon "shirt" %}</span><h3>Island-made clothing</h3><small>Sarongs and prints</small><p>Light sarongs and shirts, useful for covering up when you walk through the village.</p></article>
+    </div>
+  </div>
+</section>
+
+{# ---------- tips + CTA ---------- #}
+<section class="section">
+  <div class="container fd-bottom">
+    <div class="fd-tips">
+      <div class="eyebrow">Good to know</div>
+      <h2>Shopping on a local island</h2>
+      <ul>
+        <li>{% icon "shield-check" %}<span><b>Don't buy coral, shells or turtle shell.</b> Taking them out of the country is against the law.</span></li>
+        <li>{% icon "clock" %}<span><b>Fridays:</b> many shops close for midday prayers, and some close briefly at other prayer times.</span></li>
+        <li>{% icon "banknote" %}<span><b>Bring some cash.</b> Small shops may only take rufiyaa or US dollars.</span></li>
+        <li>{% icon "heart-handshake" %}<span><b>Buy local:</b> ask whether a souvenir was made in the Maldives. Many are imported.</span></li>
+      </ul>
+    </div>
+    <div class="fd-cta">
+      <span class="fd-cta-ico">{% icon "store" %}</span>
+      <h3>Run a shop?</h3>
+      <p>List your shop or souvenir store free, with opening hours and what you sell. Visitors message you directly.</p>
+      <a class="btn" href="{% url 'directory:list_your_business' %}">List your shop {% icon "arrow-right" %}</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

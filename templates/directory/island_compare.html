@@ -30,7 +30,7 @@
           <span class="cmp-tag">{{ i.tagline }}</span>
         </div></th>{% endfor %}</tr></thead>
       <tbody>
-        {% for label, values, kind in rows %}<tr><th class="cmp-label">{{ label }}</th>{% for v in values %}<td>{% if kind == "flag" %}{% if v == "yes" %}<span class="cmp-yes">{% icon "check" %} Yes</span>{% else %}<span class="cmp-no">No</span>{% endif %}{% else %}{{ v }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+        {% for label, values, kind in rows %}<tr><th class="cmp-label">{{ label }}</th>{% for v in values %}<td>{% if kind == "flag" %}{% if v == "yes" %}<span class="cmp-yes">{% icon "check" %} Yes</span>{% elif v == "unknown" %}<span class="cmp-no">Not confirmed</span>{% else %}<span class="cmp-no">No</span>{% endif %}{% else %}{{ v }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
         {% if activity_rows %}<tr class="cmp-group"><th colspan="{{ islands|length|add:1 }}">Things to do</th></tr>
         {% for a, have in activity_rows %}<tr><th class="cmp-label">{{ a.name }}</th>{% for i in islands %}<td>{% if i.pk in have %}<span class="cmp-yes">{% icon "check" %}</span>{% else %}<span class="cmp-no">–</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}{% endif %}
         <tr class="cmp-foot"><th class="cmp-label"></th>{% for i in islands %}<td><a class="btn btn-sm btn-block" href="{% url 'directory:island_stays' i.slug %}">Stays on {{ i.name }}</a>

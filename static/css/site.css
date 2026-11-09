@@ -1772,3 +1772,10 @@ a.card:hover .cover img.cowrie { transform: none; }
 }
 .anchor-nav { scrollbar-width: none; }
 .anchor-nav::-webkit-scrollbar { display: none; }
+.notice-soft { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin: 0 0 14px; border-radius: 12px; background: #FFF6E3; color: #6B4A00; font-size: .92rem; }
+.notice-soft .i { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.facility.unknown { opacity: .6; }
+.facility.unknown .state { color: #9A5F05; }
+.island-hero.no-photo .tool-btn { color: var(--sea-2); border-color: rgba(10, 61, 76, .25); background: rgba(255, 255, 255, .7); }
+.island-hero.no-photo .tool-btn:hover { background: #fff; }
+.island-hero.no-photo .tool-btn.on { color: #D6455D; }

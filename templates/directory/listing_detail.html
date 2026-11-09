@@ -69,13 +69,19 @@
 
       {% if listing.is_food %}
       <section class="panel">
-        <h3>{% icon "utensils" %} Restaurant details</h3>
+        <h3>{% icon "utensils" %} {{ listing.get_kind_display }} details</h3>
         <dl class="kv">
           {% if listing.cuisine %}<dt>Cuisine</dt><dd>{{ listing.cuisine }}</dd>{% endif %}
           {% if listing.opening_hours %}<dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd>{% endif %}
           <dt>Breakfast</dt><dd>{{ listing.serves_breakfast|yesno:"Served,Not served" }}</dd>
           <dt>Delivery</dt><dd>{{ listing.delivery|yesno:"Delivers to guest houses,No delivery" }}</dd>
         </dl>
+      </section>
+      {% endif %}
+      {% if listing.is_shop and listing.opening_hours %}
+      <section class="panel">
+        <h3>{% icon "store" %} Shop details</h3>
+        <dl class="kv"><dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd></dl>
       </section>
       {% endif %}
 

@@ -169,6 +169,10 @@ class Island(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_published = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
+    details_verified = models.BooleanField(
+        "Facilities checked", default=True,
+        help_text="Untick for islands imported automatically: the page then says facilities are not confirmed yet "
+                  "instead of showing No. Tick once you have checked ATM, health care, bikini beach and transfers.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -268,12 +272,18 @@ class Listing(models.Model):
     KIND_DIVE = "dive"
     KIND_TRANSFER = "transfer"
     KIND_RESTAURANT = "restaurant"
+    KIND_CAFE = "cafe"
+    KIND_HUT = "hut"
+    KIND_FOOD_TRUCK = "food_truck"
+    KIND_SHOP = "shop"
+    KIND_SOUVENIR = "souvenir"
     KIND_OTHER = "other"
     STAY_KINDS = [KIND_GUESTHOUSE, KIND_HOTEL, KIND_RESORT, KIND_VILLA]
     EXPERIENCE_KINDS = [KIND_ACTIVITY, KIND_DIVE, KIND_OTHER]
     TRANSPORT_KINDS = [KIND_TRANSFER]
-    FOOD_KINDS = [KIND_RESTAURANT]
-    SERVICE_KINDS = EXPERIENCE_KINDS + TRANSPORT_KINDS + FOOD_KINDS
+    FOOD_KINDS = [KIND_RESTAURANT, KIND_CAFE, KIND_HUT, KIND_FOOD_TRUCK]
+    SHOP_KINDS = [KIND_SHOP, KIND_SOUVENIR]
+    SERVICE_KINDS = EXPERIENCE_KINDS + TRANSPORT_KINDS + FOOD_KINDS + SHOP_KINDS
     KIND_CHOICES = [
         ("Places to stay", [
             (KIND_GUESTHOUSE, "Guest house"),
@@ -289,8 +299,15 @@ class Listing(models.Model):
         ("Transport", [
             (KIND_TRANSFER, "Speedboat / transfer service"),
         ]),
-        ("Food", [
-            (KIND_RESTAURANT, "Restaurant / café"),
+        ("Food & drink", [
+            (KIND_RESTAURANT, "Restaurant"),
+            (KIND_CAFE, "Café / teashop"),
+            (KIND_HUT, "Beach hut / snack kiosk"),
+            (KIND_FOOD_TRUCK, "Food truck"),
+        ]),
+        ("Shops", [
+            (KIND_SHOP, "Shop / supermarket"),
+            (KIND_SOUVENIR, "Souvenir & handicraft shop"),
         ]),
     ]
 
@@ -412,6 +429,10 @@ class Listing(models.Model):
         return self.kind in self.FOOD_KINDS
 
     @property
+    def is_shop(self):
+        return self.kind in self.SHOP_KINDS
+
+    @property
     def is_transport(self):
         return self.kind in self.TRANSPORT_KINDS
 
@@ -477,7 +498,8 @@ class Listing(models.Model):
     def kind_icon(self):
         return {
             "guesthouse": "house", "hotel": "hotel", "resort": "tree-palm", "villa": "bed-double", "activity": "sailboat",
-            "dive": "anchor", "transfer": "ship", "restaurant": "utensils", "other": "sparkles",
+            "dive": "anchor", "transfer": "ship", "restaurant": "utensils", "other": "sparkles", "cafe": "coffee",
+            "hut": "tree-palm", "food_truck": "car-front", "shop": "shopping-cart", "souvenir": "shell",
         }.get(self.kind, "sparkles")
 
 
@@ -827,7 +849,7 @@ class PageBanner(models.Model):
     PAGE_CHOICES = [
         ("stays", "Stays"), ("experiences", "Experiences"), ("transport", "Transport"), ("food", "Food"),
         ("list_business", "List your business"), ("islands", "Islands"), ("atolls", "Atolls"),
-        ("how_it_works", "How it works"), ("guides", "Travel guides"),
+        ("how_it_works", "How it works"), ("guides", "Travel guides"), ("shops", "Shops"),
     ]
     page = models.CharField(max_length=20, choices=PAGE_CHOICES, unique=True)
     image = models.ImageField(upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")
