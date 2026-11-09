@@ -1072,3 +1072,64 @@ class CanonicalHostTests(TestCase):
                 self.assertEqual(r["Location"], "https://islandstaymv.com/guides/")
             with mock.patch.dict("os.environ", {"VERCEL_ENV": "preview"}):
                 self.assertEqual(self.client.get("/robots.txt", HTTP_HOST="islandstay-git-x.vercel.app").status_code, 200)
+
+
+class PhotoManagerTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.staff = User.objects.create_superuser("pm@example.com", "pm@example.com", "pw-12345")
+
+    def _img(self, name="p.jpg", color=(10, 120, 140)):
+        import io
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (60, 40), color).save(buf, "JPEG")
+        return SimpleUploadedFile(name, buf.getvalue(), content_type="image/jpeg")
+
+    def test_listing_cover_logo_gallery(self):
+        import json
+        import tempfile
+        from django.test import override_settings
+        listing = Listing.objects.get(name="Coral Breeze Inn")
+        with tempfile.TemporaryDirectory() as tmp, override_settings(MEDIA_ROOT=tmp, STORAGES={
+                "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+                "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}):
+            self.client.force_login(self.staff)
+            url = reverse("admin:directory_listing_photos", args=[listing.pk])
+            self.assertContains(self.client.get(reverse("admin:directory_listing_change", args=[listing.pk])), 'id="pm"')
+            d = self.client.post(url, {"action": "cover_upload", "file": self._img()}).json()
+            self.assertTrue(d["state"]["cover"])
+            d = self.client.post(url, {"action": "logo_upload", "file": self._img("l.png")}).json()
+            self.assertTrue(d["state"]["logo"])
+            d = self.client.post(url, {"action": "gallery_upload", "files": [self._img("a.jpg"), self._img("b.jpg")]}).json()
+            self.assertEqual(d["added"], 2)
+            ids = [p["id"] for p in d["state"]["gallery"]]
+            d = self.client.post(url, {"action": "gallery_order", "ids": json.dumps(list(reversed(ids)))}).json()
+            self.assertEqual([p["id"] for p in d["state"]["gallery"]], list(reversed(ids)))
+            d = self.client.post(url, {"action": "gallery_cover", "id": ids[0]}).json()
+            self.assertTrue(next(p for p in d["state"]["gallery"] if p["id"] == ids[0])["is_cover"])
+            d = self.client.post(url, {"action": "gallery_caption", "id": ids[1], "caption": "Pool"}).json()
+            self.assertEqual(next(p for p in d["state"]["gallery"] if p["id"] == ids[1])["caption"], "Pool")
+            d = self.client.post(url, {"action": "gallery_delete", "id": ids[1]}).json()
+            self.assertEqual(len(d["state"]["gallery"]), 1)
+            d = self.client.post(url, {"action": "cover_remove"}).json()
+            self.assertFalse(d["state"]["cover"])
+            self.assertEqual(self.client.post(url, {"action": "cover_upload", "file": SimpleUploadedFile_bad()}).status_code, 400)
+
+    def test_island_link_and_remove(self):
+        island = Island.objects.get(slug="maafushi")
+        self.client.force_login(self.staff)
+        url = reverse("admin:directory_island_photos", args=[island.pk])
+        d = self.client.post(url, {"action": "cover_link", "url": "https://example.com/m.jpg", "credit": "Me"}).json()
+        self.assertEqual(d["state"]["cover_full"], "https://example.com/m.jpg")
+        d = self.client.post(url, {"action": "cover_remove"}).json()
+        self.assertFalse(d["state"]["cover"])
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"action": "cover_remove"}).status_code, 302)
+
+
+def SimpleUploadedFile_bad():
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    return SimpleUploadedFile("x.jpg", b"not an image", content_type="image/jpeg")

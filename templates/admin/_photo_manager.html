@@ -1,0 +1,31 @@
+{% load static %}{% if photo_manager %}
+{% if photo_manager.new %}
+<div class="pm pm-new"><span class="material-symbols-outlined">add_photo_alternate</span><div><b>Photos</b><p>Save this {{ photo_manager.kind }} once, then you can add the cover photo{% if photo_manager.kind == "listing" %}, logo{% endif %} and gallery here. Changes to photos save instantly.</p></div></div>
+{% else %}
+<div class="pm" id="pm" data-kind="{{ photo_manager.kind }}" data-url="{{ photo_manager.url }}">
+  <div class="pm-head">
+    <span class="material-symbols-outlined">photo_library</span>
+    <div><b>Photos</b><p>Drag photos in or click to upload. Changes save straight away. No need to press Save. Large photos are resized automatically.</p></div>
+    <span class="pm-status" id="pm-status" aria-live="polite"></span>
+    <a class="pm-link" href="{{ photo_manager.public_url }}" target="_blank"><span class="material-symbols-outlined">open_in_new</span>View on site</a>
+  </div>
+  <div class="pm-top">
+    <div class="pm-slot pm-cover" data-slot="cover">
+      <div class="pm-slot-label">Cover photo <small>Shown on cards and at the top of the page</small></div>
+      <div class="pm-drop" data-drop="cover"></div>
+    </div>
+    {% if photo_manager.kind == "listing" %}
+    <div class="pm-slot pm-logo" data-slot="logo">
+      <div class="pm-slot-label">Logo <small>Square, PNG works best</small></div>
+      <div class="pm-drop" data-drop="logo"></div>
+    </div>
+    {% endif %}
+  </div>
+  <div class="pm-gallery-head"><b>Gallery</b> <small id="pm-count"></small><span class="pm-hint"><span class="material-symbols-outlined">drag_indicator</span>Drag to reorder · <span class="material-symbols-outlined">star</span> makes a photo the cover</span></div>
+  <div class="pm-gallery" id="pm-gallery"></div>
+  <input type="file" accept="image/*" id="pm-file-one" hidden>
+  <input type="file" accept="image/*" multiple id="pm-file-many" hidden>
+</div>
+{{ photo_manager.state|json_script:"pm-state" }}
+<script src="{% static 'js/photo_manager.js' %}" defer></script>
+{% endif %}{% endif %}

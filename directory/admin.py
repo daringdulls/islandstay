@@ -14,6 +14,7 @@ from unfold.decorators import action, display
 from unfold.enums import ActionVariant
 
 from . import notifications
+from .admin_photos import PhotoManagerMixin
 from .models import Guide, GuideTemplate, HomeFeature, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
 LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
@@ -162,9 +163,10 @@ def _fetch_photos(admin_obj, request, islands):
 
 
 @admin.register(Island)
-class IslandAdmin(BaseAdmin):
+class IslandAdmin(PhotoManagerMixin, BaseAdmin):
+    photo_kind = "island"
     change_form_before_template = "admin/ai_assist_island.html"
-    inlines = [IslandPhotoInline, IslandRouteInline]
+    inlines = [IslandRouteInline]
     list_display = ("island", "atoll", "island_type", "population", "listing_count", "has_photo", "is_featured", "is_published")
     list_display_links = ("island",)
     list_editable = ("is_featured", "is_published")
@@ -197,8 +199,6 @@ class IslandAdmin(BaseAdmin):
             "facilities_notes", "local_rules", "accessibility")}),
         ("Facts & sources", {"classes": ["tab"], "fields": (
             ("population", "population_year", "area_km2"), "sources", "wikipedia_title", ("latitude", "longitude"))}),
-        ("Cover photo", {"classes": ["tab"], "fields": (
-            "cover_preview", "cover_image", "cover_image_url", ("cover_credit", "cover_license"), "cover_source_url")}),
     )
     readonly_fields = ("cover_preview",)
 
@@ -277,7 +277,9 @@ class VerificationFilter(admin.SimpleListFilter):
 
 
 @admin.register(Listing)
-class ListingAdmin(BaseAdmin):
+class ListingAdmin(PhotoManagerMixin, BaseAdmin):
+    photo_kind = "listing"
+
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
         initial.setdefault("owner", request.user.pk)  # listings you add yourself are owned by you until claimed
@@ -295,14 +297,14 @@ class ListingAdmin(BaseAdmin):
     search_fields = ("name", "island__name", "owner__email", "contact_email", "registration_number")
     autocomplete_fields = ("island", "owner")
     checkbox_m2m = ("amenities", "activity_types")
-    inlines = [RoomInline, PhotoInline, OperatorRouteInline]
+    inlines = [RoomInline, OperatorRouteInline]
     actions = ["approve", "reject", "suspend", "verify"]
     actions_row = ["approve_row"]
     actions_detail = ["approve_detail", "reject_detail", "verify_detail"]
     readonly_fields = ("created_at", "updated_at", "verified_at", "verification_requested_at")
     fieldsets = (
         ("Business", {"classes": ["tab"], "fields": (
-            ("name", "slug"), ("kind", "island"), "owner", "short_description", "description", ("logo", "cover_image"))}),
+            ("name", "slug"), ("kind", "island"), "owner", "short_description", "description")}),
         ("Review & verification", {"classes": ["tab"], "fields": (
             ("status", "is_featured", "is_claimed"), "admin_note", ("is_verified", "registration_number"), "verification_document",
             ("verification_requested_at", "verified_at"), ("created_at", "updated_at"))}),
