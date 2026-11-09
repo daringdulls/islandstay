@@ -154,6 +154,17 @@ class UploadsNotConfigured(Storage):
         pass
 
 
+def _describe(exc):
+    """Short, secret-free description of a failed Blob request."""
+    if isinstance(exc, HTTPError):
+        try:
+            body = exc.read()[:120].decode("utf-8", "replace")
+        except Exception:
+            body = ""
+        return f"HTTP {exc.code} {body}".replace("\n", " ")
+    return f"{type(exc).__name__}: {str(exc)[:160]}".replace("\n", " ")
+
+
 def blob_proxy(request, path):
     """Serve a file from a private Vercel Blob store (photos must be viewable by visitors)."""
     from django.core.files.storage import default_storage
@@ -164,14 +175,20 @@ def blob_proxy(request, path):
     # Only serve files the site itself uploads (photos and verification documents to staff).
     if path.startswith("verification/") and not (request.user.is_authenticated and request.user.is_staff):
         raise Http404
+    errors = []
     try:
         data, content_type = default_storage.fetch_private(path)
-    except Exception:
+    except Exception as exc:
+        errors.append(f"private: {_describe(exc)}")
         try:  # a file in a public store
             with urllib.request.urlopen(default_storage.base_url + urllib.parse.quote(path, safe="/"), timeout=60) as r:
                 data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
-        except Exception:
-            raise Http404
+        except Exception as exc2:
+            errors.append(f"public: {_describe(exc2)}")
+            resp = HttpResponse("Photo not found", status=404, content_type="text/plain")
+            resp["X-Blob-Error"] = " | ".join(errors)[:400]
+            resp["X-Blob-Auth"] = "oidc" if default_storage.oidc else "token"
+            return resp
     response = HttpResponse(data, content_type=content_type)
     if path.startswith("verification/"):
         response["Cache-Control"] = "private, no-store"
