@@ -1170,3 +1170,17 @@ class IslandImportAndShopsTests(TestCase):
         self.assertNotContains(r, "Harbour Bites Truck")
         self.assertContains(self.client.get(reverse("directory:food_list") + "?kind=food_truck"), "Harbour Bites Truck")
         self.assertContains(self.client.get(isl.get_absolute_url()), "Coral Craft Corner")
+
+
+class IslandDuplicateTests(TestCase):
+    def test_removes_imported_spelling_twin_only(self):
+        from .island_import import remove_spelling_duplicates
+        from .models import Atoll
+        raa = Atoll.objects.create(name="Raa", official_name="Raa", slug="raa-t")
+        mine = Island.objects.create(atoll=raa, name="Maduvvari", slug="maduvvari-t")
+        Island.objects.create(atoll=raa, name="Maduvvaree", slug="maduvvaree-t", details_verified=False, population=1500)
+        Island.objects.create(atoll=raa, name="Meedhoo", slug="meedhoo-t", details_verified=False)
+        self.assertEqual(remove_spelling_duplicates(Island, log=lambda *a: None), 1)
+        self.assertEqual(Island.objects.filter(atoll=raa).count(), 2)
+        mine.refresh_from_db()
+        self.assertEqual(mine.population, 1500)

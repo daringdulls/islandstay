@@ -23,6 +23,19 @@ def _norm(s):
     return "".join(c for c in s if c.isalnum())
 
 
+def _sound(s):
+    """Spelling-insensitive key: Maduvvari and Maduvvaree both become 'maduvari'."""
+    s = _norm(s)
+    for x, y in (("ee", "i"), ("oo", "u"), ("aa", "a"), ("ey", "e"), ("ei", "e")):
+        s = s.replace(x, y)
+    return "".join(c for i, c in enumerate(s) if i == 0 or c != s[i - 1])
+
+
+def similar(a, b):
+    """Same island spelled differently, e.g. Maduvvari / Maduvvaree, Hulhumale / Hulhumalé."""
+    return _norm(a) == _norm(b) or _sound(a) == _sound(b)
+
+
 def _km(lat, lon):
     la1, lo1, la2, lo2 = map(math.radians, (AIRPORT[0], AIRPORT[1], lat, lon))
     a = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
@@ -57,7 +70,7 @@ def import_islands(Island, Atoll, data=None, log=print):
         else:
             atoll = candidates[0]
         same = [i for i in existing if (i.wikipedia_title and i.wikipedia_title == rec["wikipedia"])
-                or (_norm(i.name) == _norm(rec["name"]) and i.atoll_id in {a.pk for a in candidates})]
+                or (similar(i.name, rec["name"]) and i.atoll_id in {a.pk for a in candidates})]
         if same:
             isl = same[0]
             changed = []
@@ -95,3 +108,25 @@ def import_islands(Island, Atoll, data=None, log=print):
         created += 1
     log(f"Islands: {created} added, {updated} existing ones filled in, {skipped} skipped.")
     return created, updated
+
+
+def remove_spelling_duplicates(Island, log=print):
+    """Delete islands the import added that duplicate an existing island under another spelling,
+    when nothing (listings, photos, guides, routes) is attached to the imported copy."""
+    removed = 0
+    islands = list(Island.objects.all())
+    for imp in [i for i in islands if not i.details_verified]:
+        twins = [o for o in islands if o.pk != imp.pk and o.atoll_id == imp.atoll_id and o.details_verified and similar(o.name, imp.name)]
+        if not twins:
+            continue
+        if imp.listings.exists() or imp.photos.exists() or imp.guides.exists() or imp.routes.exists() or imp.cover_image:
+            continue
+        twin = twins[0]
+        for f in ("population", "latitude", "longitude", "area_km2", "wikipedia_title", "overview"):
+            if not getattr(twin, f) and getattr(imp, f):
+                setattr(twin, f, getattr(imp, f))
+        twin.save()
+        imp.delete()
+        removed += 1
+    log(f"Removed {removed} duplicate island(s).")
+    return removed
