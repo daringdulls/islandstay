@@ -224,6 +224,8 @@ def island_list(request):
         "q": q, "atoll_sel": atoll, "activity_sel": activity, "sort": sort, "chips": chips,
         "atoll_strip": atoll_strip, "hero_photo": hero_photo, "hero_credit": hero_credit, "filtered": filtered,
         "atoll_obj": next((a for a in atoll_strip if a.slug == atoll), None),
+        "regions": [("all", "All")] + [(k, v) for k, v in Atoll._meta.get_field("region").choices if any(a.region == k for a in atoll_strip)],
+        "region_sel": next((a.region for a in atoll_strip if a.slug == atoll), "all"),
         "figures": {"islands": base.count(), "atolls": len(atoll_strip), "bikini": base.filter(has_bikini_beach=True).count(),
                     "stays": _live_listings().filter(kind__in=Listing.STAY_KINDS).count(), "min_shown": 20},
     })

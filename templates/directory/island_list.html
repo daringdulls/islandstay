@@ -31,13 +31,29 @@
 {% if atoll_strip|length > 1 %}
 <section class="il-atolls-wrap">
   <div class="container">
-    <div class="il-atolls-head"><span>Browse by atoll</span><small>North to south</small></div>
-    <div class="il-atolls">
-      <a class="il-atoll{% if not atoll_sel %} on{% endif %}" href="?{% if q %}q={{ q|urlencode }}{% endif %}#islands"><b>All</b><small>{{ figures.islands }} islands</small></a>
-      {% for a in atoll_strip %}<a class="il-atoll{% if a.slug == atoll_sel %} on{% endif %}" href="?atoll={{ a.slug }}#islands"><b>{{ a.name }}</b><small>{% if a.official_name %}{{ a.official_name }} · {% endif %}{{ a.n }} island{{ a.n|pluralize }}</small></a>{% endfor %}
+    <div class="il-atolls-head">
+      <div><span>Browse by atoll</span><small>{{ atoll_strip|length }} atolls, north to south</small></div>
+      <div class="il-regions" role="tablist" aria-label="Region">
+        {% for key, label in regions %}<button type="button" role="tab" data-region="{{ key }}" aria-selected="{% if key == region_sel %}true{% else %}false{% endif %}">{{ label }}</button>{% endfor %}
+      </div>
+    </div>
+    <div class="il-atolls" data-region-list>
+      <a class="il-atoll il-atoll-all{% if not atoll_sel %} on{% endif %}" href="?{% if q %}q={{ q|urlencode }}{% endif %}#islands">All atolls<em>{{ figures.islands }}</em></a>
+      {% for a in atoll_strip %}<a class="il-atoll{% if a.slug == atoll_sel %} on{% endif %}" data-region="{{ a.region }}" href="?atoll={{ a.slug }}#islands" title="{% if a.official_name and a.official_name != a.name %}{{ a.official_name }} · {% endif %}{{ a.n }} island{{ a.n|pluralize }}">{{ a.name }}<em>{{ a.n }}</em></a>{% endfor %}
     </div>
   </div>
 </section>
+<script>
+(function () {
+  var tabs = document.querySelectorAll(".il-regions [data-region]"), list = document.querySelector("[data-region-list]");
+  function show(r) {
+    tabs.forEach(function (t) { t.setAttribute("aria-selected", t.dataset.region === r ? "true" : "false"); });
+    list.querySelectorAll(".il-atoll[data-region]").forEach(function (a) { a.hidden = r !== "all" && a.dataset.region !== r; });
+  }
+  tabs.forEach(function (t) { t.addEventListener("click", function () { show(t.dataset.region); }); });
+  show(document.querySelector('.il-regions [aria-selected="true"]').dataset.region);
+})();
+</script>
 {% endif %}
 
 {# ---------- results ---------- #}

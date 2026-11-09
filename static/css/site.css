@@ -1748,3 +1748,27 @@ a.card:hover .cover img.cowrie { transform: none; }
 .gb-facts > p { margin: 10px 0 0; font-size: .9rem; color: var(--ink-2); }
 .gb-warn { padding: 10px 14px; border-radius: 10px; background: #FFF4DB; color: #7A5200; font-size: .9rem; }
 .gb-text > :last-child { margin-bottom: 0; }
+
+/* ===================================================== Atoll picker and chips without scroll bars */
+.il-atolls-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-top: 18px; }
+.il-atolls-head > div:first-child { display: flex; align-items: baseline; gap: 10px; }
+.il-regions { display: inline-flex; padding: 4px; border-radius: 999px; background: var(--shoal); }
+.il-regions button { border: 0; background: transparent; font: inherit; font-size: .86rem; font-weight: 600; color: var(--ink-2); padding: 6px 16px; border-radius: 999px; cursor: pointer; }
+.il-regions button[aria-selected="true"] { background: #fff; color: var(--sea-2); box-shadow: 0 1px 4px rgba(10, 61, 76, .15); }
+.il-atolls { display: flex; flex-wrap: wrap; gap: 8px; overflow: visible; padding: 14px 0 20px; }
+.il-atoll { flex: none; min-width: 0; display: inline-flex; flex-direction: row; align-items: center; gap: 8px; padding: 7px 8px 7px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-weight: 600; font-size: .9rem; line-height: 1.2; }
+.il-atoll[hidden] { display: none; }
+.il-atoll em { font-style: normal; font-size: .74rem; font-weight: 700; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--shoal); color: var(--sea-2); }
+.il-atoll:hover { text-decoration: none; border-color: var(--sea); }
+.il-atoll.on { background: var(--sea-2); border-color: var(--sea-2); color: #fff; }
+.il-atoll.on em { background: rgba(255, 255, 255, .18); color: #fff; }
+.il-atoll-all { font-weight: 700; }
+/* Filter chips: wrap on larger screens, swipe without a visible scroll bar on phones */
+.st-chips { flex-wrap: wrap; overflow: visible; padding-bottom: 2px; }
+@media (max-width: 640px) {
+  .st-chips, .gd-topics { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  .st-chips::-webkit-scrollbar, .gd-topics::-webkit-scrollbar { display: none; }
+  .il-atolls-head { align-items: flex-start; }
+}
+.anchor-nav { scrollbar-width: none; }
+.anchor-nav::-webkit-scrollbar { display: none; }
