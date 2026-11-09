@@ -175,7 +175,7 @@ def blob_proxy(request, path):
     # Only serve files the site itself uploads (photos and verification documents to staff).
     if path.startswith("verification/") and not (request.user.is_authenticated and request.user.is_staff):
         raise Http404
-    errors = []
+    errors = []  # kept for debugging with a breakpoint; never shown to visitors
     try:
         data, content_type = default_storage.fetch_private(path)
     except Exception as exc:
@@ -190,30 +190,7 @@ def blob_proxy(request, path):
             except Exception as exc2:
                 errors.append(f"{label}: {_describe(exc2)}")
         if data is None:
-            try:  # ask Vercel where this file lives
-                meta = default_storage._request("GET", f"{API_URL}?{urllib.parse.urlencode({'url': public_url})}")
-                head_url = meta.get("downloadUrl") or meta.get("url") or ""
-                errors.append("head: " + head_url.split("?")[0][:160])
-                if head_url:
-                    with urllib.request.urlopen(urllib.request.Request(head_url, headers=default_storage._auth_headers()), timeout=60) as r:
-                        data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
-            except Exception as exc3:
-                errors.append(f"head: {_describe(exc3)}")
-        if data is None:
-            resp = HttpResponse("Photo not found", status=404, content_type="text/plain")  # noqa
-            resp["X-Blob-Error"] = " | ".join(errors)[:400]
-            resp["X-Blob-Auth"] = "oidc" if default_storage.oidc else "token"
-            resp["X-Blob-Store"] = default_storage.base_url.split("//")[1].split(".")[0]
-            try:  # what the store holds (counts and a few folder names only)
-                listing = default_storage._request("GET", f"{API_URL}?{urllib.parse.urlencode({'limit': 1000})}")
-                blobs = listing.get("blobs", [])
-                folders = sorted({b.get("pathname", "").split("/")[0] for b in blobs})
-                resp["X-Blob-Contents"] = f"{len(blobs)} files{'+' if listing.get('hasMore') else ''}; folders: {', '.join(folders)[:200]}"
-                same = [b.get("pathname", "") for b in blobs if b.get("pathname", "").split("/")[-1].split("-")[0] == path.split("/")[-1].split("-")[0]]
-                resp["X-Blob-Similar"] = "; ".join(same)[:300]
-            except Exception as exc4:
-                resp["X-Blob-Contents"] = _describe(exc4)
-            return resp
+            raise Http404
     response = HttpResponse(data, content_type=content_type)
     if path.startswith("verification/"):
         response["Cache-Control"] = "private, no-store"
