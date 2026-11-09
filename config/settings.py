@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "config.canonical_host.CanonicalHostMiddleware",
+    "config.blob_storage.BlobLinkMiddleware",
     "config.request_context.RequestContextMiddleware",
     "config.setup_check.SetupCheckMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",

@@ -96,9 +96,12 @@ class VercelBlobStorage(Storage):
         return self.base_url + urllib.parse.quote(name, safe="/")
 
     def url(self, name):
-        if name.startswith(PRIVATE_MARK):
-            return "/media/blob/" + urllib.parse.quote(name[len(PRIVATE_MARK):], safe="/")
-        return self._blob_url(name)
+        # Photos are served through the site (/media/blob/...), which reads them with the store's credentials.
+        # That works for private stores and for files saved before the store's access level was known.
+        # Set BLOB_ACCESS=public to link a public store's files directly instead.
+        if os.environ.get("BLOB_ACCESS", "").lower() == "public" and not name.startswith(PRIVATE_MARK):
+            return self._blob_url(name)
+        return "/media/blob/" + urllib.parse.quote(name.removeprefix(PRIVATE_MARK), safe="/")
 
     def delete(self, name):
         if name:
@@ -164,7 +167,37 @@ def blob_proxy(request, path):
     try:
         data, content_type = default_storage.fetch_private(path)
     except Exception:
-        raise Http404
+        try:  # a file in a public store
+            with urllib.request.urlopen(default_storage.base_url + urllib.parse.quote(path, safe="/"), timeout=60) as r:
+                data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
+        except Exception:
+            raise Http404
     response = HttpResponse(data, content_type=content_type)
-    response["Cache-Control"] = "public, max-age=86400" if not path.startswith("verification/") else "private, no-store"
+    if path.startswith("verification/"):
+        response["Cache-Control"] = "private, no-store"
+    else:
+        # File names carry a random suffix and never change, so browsers and Vercel's CDN can keep them.
+        response["Cache-Control"] = "public, max-age=31536000, immutable"
+        response["CDN-Cache-Control"] = "public, max-age=31536000, immutable"
     return response
+
+
+class BlobLinkMiddleware:
+    """Rewrite direct links to the store (saved in older content) to the site's photo route."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.prefix = None
+        try:
+            from django.core.files.storage import default_storage
+            if isinstance(default_storage, VercelBlobStorage) and os.environ.get("BLOB_ACCESS", "").lower() != "public":
+                self.prefix = default_storage.base_url.encode()
+        except Exception:
+            self.prefix = None
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if self.prefix and not getattr(response, "streaming", False) and \
+                response.get("Content-Type", "").startswith(("text/html", "application/json")) and self.prefix in response.content:
+            response.content = response.content.replace(self.prefix, b"/media/blob/")
+        return response
