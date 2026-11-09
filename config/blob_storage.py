@@ -180,12 +180,27 @@ def blob_proxy(request, path):
         data, content_type = default_storage.fetch_private(path)
     except Exception as exc:
         errors.append(f"private: {_describe(exc)}")
-        try:  # a file in a public store
-            with urllib.request.urlopen(default_storage.base_url + urllib.parse.quote(path, safe="/"), timeout=60) as r:
-                data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
-        except Exception as exc2:
-            errors.append(f"public: {_describe(exc2)}")
-            resp = HttpResponse("Photo not found", status=404, content_type="text/plain")
+        public_url = default_storage.base_url + urllib.parse.quote(path, safe="/")
+        data = None
+        for label, headers in (("public+auth", default_storage._auth_headers), ("public", dict)):
+            try:  # a file saved as public (in a store that may now require sign-in)
+                with urllib.request.urlopen(urllib.request.Request(public_url, headers=headers()), timeout=60) as r:
+                    data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
+                break
+            except Exception as exc2:
+                errors.append(f"{label}: {_describe(exc2)}")
+        if data is None:
+            try:  # ask Vercel where this file lives
+                meta = default_storage._request("GET", f"{API_URL}?{urllib.parse.urlencode({'url': public_url})}")
+                head_url = meta.get("downloadUrl") or meta.get("url") or ""
+                errors.append("head: " + head_url.split("?")[0][:160])
+                if head_url:
+                    with urllib.request.urlopen(urllib.request.Request(head_url, headers=default_storage._auth_headers()), timeout=60) as r:
+                        data, content_type = r.read(), r.headers.get("content-type", "application/octet-stream")
+            except Exception as exc3:
+                errors.append(f"head: {_describe(exc3)}")
+        if data is None:
+            resp = HttpResponse("Photo not found", status=404, content_type="text/plain")  # noqa
             resp["X-Blob-Error"] = " | ".join(errors)[:400]
             resp["X-Blob-Auth"] = "oidc" if default_storage.oidc else "token"
             resp["X-Blob-Store"] = default_storage.base_url.split("//")[1].split(".")[0]
