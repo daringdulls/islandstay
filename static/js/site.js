@@ -137,3 +137,11 @@
     document.addEventListener("click", function (e) { if (!host.contains(e.target)) close(); });
   });
 })();
+
+/* Close the header "More" menu when clicking elsewhere or pressing Escape. */
+(function () {
+  var more = document.querySelector(".nav-more");
+  if (!more) return;
+  document.addEventListener("click", function (e) { if (more.open && !more.contains(e.target)) more.open = false; });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && more.open) { more.open = false; more.querySelector("summary").focus(); } });
+})();

@@ -849,7 +849,7 @@ class PageBanner(models.Model):
     PAGE_CHOICES = [
         ("stays", "Stays"), ("experiences", "Experiences"), ("transport", "Transport"), ("food", "Food"),
         ("list_business", "List your business"), ("islands", "Islands"), ("atolls", "Atolls"),
-        ("how_it_works", "How it works"), ("guides", "Travel guides"), ("shops", "Shops"),
+        ("how_it_works", "How it works"), ("guides", "Travel guides"), ("shops", "Shops"), ("home", "Home page"),
     ]
     page = models.CharField(max_length=20, choices=PAGE_CHOICES, unique=True)
     image = models.ImageField(upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")

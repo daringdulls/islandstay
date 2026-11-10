@@ -706,7 +706,7 @@ class PageBannerAdmin(BaseAdmin):
     readonly_fields = ("preview_large",)
 
     PATHS = {"stays": "/stays/", "experiences": "/experiences/", "transport": "/transport/", "food": "/food/",
-             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/", "guides": "/guides/", "shops": "/shops/"}
+             "list_business": "/list-your-business/", "islands": "/islands/", "atolls": "/atolls/", "how_it_works": "/how-it-works/", "guides": "/guides/", "shops": "/shops/", "home": "/"}
 
     @display(description="Page", header=True)
     def page_col(self, obj):

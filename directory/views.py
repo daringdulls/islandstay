@@ -64,7 +64,20 @@ def home(request):
             slides += extra[: 5 - len(slides)]
     portraits = chosen(HomeFeature.SECTION_PORTRAIT) or featured[:3]
     popular = chosen(HomeFeature.SECTION_POPULAR) or featured[:5]
+    from .models import Review
+    banner, banner_credit = PageBanner.for_page("home", "")
+    hero_photos = [{"url": banner, "credit": banner_credit, "island": None}] if banner else []
+    hero_photos += [{"url": i.photo_url, "credit": i.cover_credit, "island": i} for i in (slides or []) if i.photo_url][: 4 - len(hero_photos)]
+    pop4 = list(popular)[:4]
+    if len(pop4) < 4:
+        pop4 += [i for i in _islands().filter(details_verified=True).order_by("-stay_count", "name") if i not in pop4 and i.photo_url][: 4 - len(pop4)]
+    ideas = [a for a in ActivityType.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0).order_by("-n") if a.image_url][:6]
     return render(request, "directory/home.html", {
+        "hero_photos": hero_photos,
+        "popular4": pop4,
+        "ideas": ideas,
+        "guides": Guide.objects.filter(is_published=True, published_at__lte=timezone.now()).prefetch_related("islands")[:3],
+        "reviews": Review.objects.filter(status="published").select_related("listing", "listing__island").order_by("-created_at")[:3],
         "needs": _plan_by_need(featured),
         "slides": slides or featured[:1],
         "popular": popular,

@@ -299,12 +299,13 @@ class AtollIndexTests(TestCase):
         self.assertFalse(Island.objects.filter(latitude__isnull=True).exists())
         self.assertFalse(Atoll.objects.filter(map_lat__isnull=True).exists())
 
-    def test_home_lists_atolls_north_to_south_without_a_map(self):
-        r = self.client.get(reverse("directory:home"))
-        html = r.content.decode()
+    def test_atolls_listed_north_to_south_and_home_has_logo(self):
+        html = self.client.get(reverse("directory:atoll_list")).content.decode()
         self.assertLess(html.index("/atolls/haa-alif/"), html.index("/atolls/addu/"))
-        self.assertNotIn("leaflet", html)
+        r = self.client.get(reverse("directory:home"))
+        self.assertNotIn("leaflet", r.content.decode())
         self.assertContains(r, "islandstay-horizontal-colour-light.svg")
+        self.assertContains(r, "How Island Stay works")
 
 
 class VercelTests(TestCase):

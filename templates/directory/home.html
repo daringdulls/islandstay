@@ -1,240 +1,181 @@
 {% extends "base.html" %}
-{% load ui humanize %}
+{% load static ui humanize %}
+{% block title %}Local islands of the Maldives: stay with local hosts{% endblock %}
+{% block meta_description %}Find your island in the Maldives, then message the guest houses, operators and cafés who live there. Island guides, local stays and experiences with no booking fees.{% endblock %}
+{% block og_image %}{% if hero_photos %}<meta property="og:image" content="{% if hero_photos.0.url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ hero_photos.0.url }}">{% endif %}{% endblock %}
 {% block content %}
 
-{# 1 — Opening: headline and search beside a featured island, over the atoll chart pattern #}
-<section class="opening">
-  <div class="container opening-grid">
-    <div class="opening-text">
-      <div class="eyebrow">1,192 islands · 26 atolls · one local guide</div>
-      <h1>Find your <span class="accent-word">island</span>, then the people who live there.</h1>
-      <p class="lead">Island guides with facilities, local rules and how to get there, and the guest houses, operators and cafés on each one. Message the host directly.</p>
-      <form class="search-inline" action="{% url 'directory:search' %}" role="search">
-        <label for="hero-q" class="sr-only">Island name</label>
-        {% icon "search" %}
-        <input id="hero-q" type="search" name="q" placeholder="Island, activity or place, e.g. whale sharks" autocomplete="off" data-suggest required>
-        <button class="btn btn-accent btn-sm" type="submit">Search</button>
-      </form>
-      <div class="opening-links">
-        <a href="{% url 'directory:stay_list' %}">{% icon "house" %} Stays</a>
-        <a href="{% url 'directory:service_list' %}">{% icon "sailboat" %} Experiences</a>
-        <a href="{% url 'directory:transport_list' %}">{% icon "ship" %} Transport</a>
-        <a href="{% url 'directory:food_list' %}">{% icon "utensils" %} Food</a>
+{# ---------- 1. hero + search ---------- #}
+<section class="hm-hero" id="hm-hero">
+  <div class="hm-hero-photos" aria-hidden="true">
+    {% for ph in hero_photos %}<img src="{{ ph.url }}" alt="" class="{% if forloop.first %}on{% endif %}" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} data-island="{% if ph.island %}{{ ph.island.name }} · {{ ph.island.atoll.name }}{% endif %}" data-href="{% if ph.island %}{{ ph.island.get_absolute_url }}{% endif %}" data-credit="{{ ph.credit }}" onerror="this.remove()">{% endfor %}
+  </div>
+  <div class="container hm-hero-inner">
+    <h1>Find your <span class="accent-word">island</span>,<br>then the people who live there.</h1>
+    <p class="hm-lead">Guest houses, boat trips and island cafés run by Maldivian families. Message the host directly, with no booking fees.</p>
+
+    <form class="hm-search" id="hm-search" action="{% url 'directory:stay_list' %}" role="search">
+      <div class="hm-tabs" role="tablist" aria-label="What are you looking for?">
+        <button type="button" role="tab" aria-selected="true" data-action="{% url 'directory:stay_list' %}" data-ph="Island, e.g. Maafushi">{% icon "house" %} Stays</button>
+        <button type="button" role="tab" aria-selected="false" data-action="{% url 'directory:service_list' %}" data-ph="Island or activity, e.g. whale sharks">{% icon "sailboat" %} Experiences</button>
+        <button type="button" role="tab" aria-selected="false" data-action="{% url 'directory:search' %}" data-ph="Island, atoll or anything">{% icon "map" %} Islands</button>
       </div>
-      {% if popular %}<p class="hero-popular"><span>Popular:</span>{% for i in popular %}<a href="{{ i.get_absolute_url }}">{{ i.name }}</a>{% endfor %}</p>{% endif %}
-      <ul class="hero-trust">
-        <li>{% icon "hand-coins" %}<span><b>No booking fees</b>Agree the price with the host</span></li>
-        <li>{% icon "message-circle" %}<span><b>Message hosts directly</b>WhatsApp, Viber or email</span></li>
-        <li>{% cowrie %}<span><b>Verified local hosts</b>Licences checked by our team</span></li>
-      </ul>
-    </div>
-    {% if slides %}
-    <div class="hero-show" data-slides>
-      {% for i in slides %}
-      <a class="hero-slide{% if forloop.first %} is-active{% endif %}" href="{{ i.get_absolute_url }}" aria-label="{{ i.name }}, {{ i.atoll.name }}"{% if not forloop.first %} aria-hidden="true" tabindex="-1"{% endif %}>
-        {% if i.photo_url %}<img src="{{ i.photo_url }}" alt="" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} onerror="this.remove()">{% else %}<div class="chart" style="{{ i.chart_style }}"></div>{% endif %}
-        <span class="hero-slide-body">
-          <small>{% if forloop.first %}Featured island{% else %}Island guide{% endif %} · {{ i.atoll.name }}</small>
+      <div class="hm-fields">
+        <label class="hm-field hm-where"><small>Where</small><input type="search" name="q" placeholder="Island, e.g. Maafushi" autocomplete="off" data-suggest></label>
+        <label class="hm-field hm-guests" data-stays-only><small>Guests</small>
+          <select name="guests"><option value="">Any</option>{% for n in "123456" %}<option value="{{ n }}">{{ n }} guest{% if n != "1" %}s{% endif %}</option>{% endfor %}<option value="8">8+ guests</option></select></label>
+        <button class="btn btn-accent hm-go" type="submit">{% icon "search" %}<span>Search</span></button>
+      </div>
+    </form>
+
+    <ul class="hm-trust">
+      <li>{% icon "hand-coins" %} No booking fees</li>
+      <li>{% icon "message-circle" %} Message hosts directly</li>
+      <li>{% cowrie %} Verified local hosts</li>
+    </ul>
+  </div>
+  <a class="hm-credit" id="hm-credit" href="{% if hero_photos.0.island %}{{ hero_photos.0.island.get_absolute_url }}{% else %}#{% endif %}">{% if hero_photos.0.island %}{{ hero_photos.0.island.name }} · {{ hero_photos.0.island.atoll.name }}{% endif %}{% if hero_photos.0.credit %} <span>Photo: {{ hero_photos.0.credit }}</span>{% endif %}</a>
+</section>
+
+{# ---------- 2. popular islands ---------- #}
+{% if popular4 %}
+<section class="hm-section">
+  <div class="container">
+    <div class="hm-head"><div><h2>Popular islands</h2><p>Easy to reach, plenty of local places to stay.</p></div><a class="hm-all" href="{% url 'directory:island_list' %}">See all islands {% icon "arrow-right" %}</a></div>
+    <div class="hm-islands">
+      {% for i in popular4 %}
+      <a class="hm-island{% if forloop.first %} big{% endif %}" href="{{ i.get_absolute_url }}">
+        {% if i.photo_url %}<img src="{% if forloop.first %}{{ i.photo_url }}{% else %}{{ i.card_photo_url }}{% endif %}" alt="{{ i.name }}, {{ i.atoll.name }}" loading="lazy" onerror="this.remove()">{% endif %}
+        <span class="hm-island-body">
+          <small>{{ i.atoll.name }}</small>
           <b>{{ i.name }}</b>
-          <span class="hero-slide-tag">{{ i.tagline }}</span>
-          <span class="hero-slide-facts">
-            {% if i.transfer_time %}<span>{% icon "ship" %}{{ i.transfer_time }}</span>{% endif %}
-            {% if i.has_bikini_beach %}<span>{% icon "umbrella" %}Bikini beach</span>{% endif %}
-            {% for a in i.activities.all|slice:":2" %}<span>{% icon a.icon %}{{ a.name }}</span>{% endfor %}
-          </span>
-          <span class="hero-slide-cta">Explore {{ i.name }} {% icon "arrow-right" %}</span>
+          <em>{{ i.tagline|truncatechars:70 }}</em>
+          <span class="hm-island-facts">{% if i.transfer_time %}<span>{% icon "ship" %}{{ i.transfer_time }}</span>{% endif %}{% if i.stay_count %}<span>{% icon "house" %}{{ i.stay_count }} place{{ i.stay_count|pluralize }} to stay</span>{% endif %}{% if SHOW_PRICES and i.min_price %}<span class="hm-from">from ${{ i.min_price|floatformat:0 }}</span>{% endif %}</span>
         </span>
-        {% if i.cover_credit %}<span class="opening-credit">Photo: {{ i.cover_credit|truncatechars:40 }}{% if i.cover_license %}, {{ i.cover_license }}{% endif %}</span>{% endif %}
       </a>
       {% endfor %}
-      {% if slides|length > 1 %}<div class="hero-dots" role="tablist" aria-label="Featured islands">{% for i in slides %}<button type="button" role="tab" aria-label="Show {{ i.name }}"{% if forloop.first %} aria-selected="true" class="on"{% endif %}><i></i></button>{% endfor %}</div>{% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- 3. stay with locals ---------- #}
+{% if featured_stays %}
+<section class="hm-section hm-sand">
+  <div class="container">
+    <div class="hm-head"><div><h2>Stay with <span class="accent-word">locals</span></h2><p>Family-run guest houses. You talk to the people who run them.</p></div><a class="hm-all" href="{% url 'directory:stay_list' %}">All stays {% icon "arrow-right" %}</a></div>
+    <div class="hm-cards">{% for l in featured_stays %}{% include "partials/listing_card.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- 4. how it works ---------- #}
+<section class="hm-section">
+  <div class="container">
+    <div class="hm-head hm-head-center"><div><h2>How Island Stay works</h2><p>No booking engine, no middleman. A real conversation leads to a real island stay.</p></div></div>
+    <ol class="hm-steps">
+      <li><span class="hm-step-ico">{% icon "map" %}</span><b>Find your island</b><p>Each guide covers the beaches, local rules, facilities and how to get there from the airport.</p></li>
+      <li><span class="hm-step-ico">{% icon "message-circle" %}</span><b>Message the host</b><p>Send a request with your dates. The host replies on WhatsApp, Viber or email, usually within a day.</p></li>
+      <li><span class="hm-step-ico">{% icon "heart-handshake" %}</span><b>Agree and stay</b><p>Agree the price and the transfer with your host. You pay them directly: no booking fees, ever.</p></li>
+    </ol>
+  </div>
+</section>
+
+{# ---------- 5. trip ideas + guides ---------- #}
+{% if ideas or guides %}
+<section class="hm-section hm-mist">
+  <div class="container">
+    <div class="hm-head"><div><h2>Trip ideas</h2><p>Choose your island by what you want to do.</p></div><a class="hm-all" href="{% url 'directory:service_list' %}">All experiences {% icon "arrow-right" %}</a></div>
+    {% if ideas %}
+    <div class="hm-ideas">
+      {% for a in ideas %}<a class="hm-idea" href="{% url 'directory:activity_detail' a.slug %}"><img src="{{ a.image_url|thumb }}" alt="" loading="lazy" onerror="this.remove()"><span><b>{{ a.name }}</b><small>{{ a.n }} island{{ a.n|pluralize }}</small></span></a>{% endfor %}
+    </div>
+    {% endif %}
+    {% if guides %}
+    <div class="hm-guides">
+      <div class="hm-guides-head"><h3>Before you go</h3><a class="hm-all" href="{% url 'directory:guide_list' %}">All travel guides {% icon "arrow-right" %}</a></div>
+      <div class="hm-guides-list">{% for g in guides %}<a href="{{ g.get_absolute_url }}">{% if g.photo_url %}<img src="{{ g.photo_url|thumb }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span><small>{{ g.get_category_display }} · {{ g.reading_minutes }} min read</small><b>{{ g.title }}</b></span>{% icon "arrow-right" %}</a>{% endfor %}</div>
     </div>
     {% endif %}
   </div>
 </section>
+{% endif %}
 
-{# 2 — Figures #}
-<section class="figures">
-  <div class="container figures-row">
-    {% for f in figures %}<div>{% if f.count %}<b data-count="{{ f.n }}">{{ f.n }}</b>{% else %}<b>{{ f.text }}</b>{% endif %}<span>{{ f.label }}</span></div>{% endfor %}
-  </div>
-</section>
-
-{# Atolls north to south #}
-<section class="section" style="padding-bottom:0">
+{# ---------- 6a. reviews (only real, published ones) ---------- #}
+{% if reviews %}
+<section class="hm-section">
   <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">North to south</div><h2>Browse by <span class="accent-word">atoll</span></h2></div>
-      <a class="link-arrow" href="{% url 'directory:atoll_list' %}">About the atolls {% icon "arrow-right" %}</a></div>
-    <div class="atoll-index reveal" aria-label="Atolls from north to south">
-      <ol>
-        {% for a in atoll_index %}
-          <li><a href="{{ a.get_absolute_url }}" class="{% if not a.n %}is-empty{% endif %}">
-            <span class="code">{{ a.code|default:"–" }}</span><span class="name">{{ a.name }}</span><span class="n">{{ a.n }} guide{{ a.n|pluralize }}</span></a></li>
-        {% endfor %}
-      </ol>
-    </div>
-  </div>
-</section>
-
-{# 3 — Island portraits: editorial rows rather than a card grid #}
-<section class="section">
-  <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">Island portraits</div><h2>Three islands, three different trips</h2></div>
-      <a class="link-arrow" href="{% url 'directory:island_list' %}">All {{ stats.islands }} islands {% icon "arrow-right" %}</a></div>
-    {% for island in portraits %}
-    <article class="portrait reveal {% cycle '' 'flip' %}">
-      <a class="portrait-media" href="{{ island.get_absolute_url }}">
-        {% if island.photo_url %}<img src="{{ island.photo_url }}" alt="{{ island.name }}, {{ island.atoll.name }}" loading="lazy">{% else %}<div class="chart" style="{{ island.chart_style }}"></div>{% endif %}
-        <span class="portrait-num">0{{ forloop.counter }}</span>
-      </a>
-      <div class="portrait-text">
-        <div class="eyebrow">{{ island.atoll.name }}{% if island.atoll.code %} · {{ island.atoll.code }}{% endif %}</div>
-        <h3>{{ island.name }}</h3>
-        <p class="portrait-tagline">{{ island.tagline }}</p>
-        <ul class="list-check">{% for f in island.famous_for_list|slice:":3" %}<li>{{ f }}</li>{% endfor %}</ul>
-        <dl class="portrait-facts">
-          {% if island.population %}<div><dt>Population</dt><dd>{{ island.population|intcomma }}</dd></div>{% endif %}
-          {% if island.transfer_time %}<div><dt>From Malé</dt><dd>{{ island.transfer_time }}</dd></div>{% endif %}
-          {% if island.stay_count %}<div><dt>Stays</dt><dd>{{ island.stay_count }}</dd></div>{% endif %}
-          {% if island.service_count %}<div><dt>Experiences</dt><dd>{{ island.service_count }}</dd></div>{% endif %}
-          {% if not island.stay_count or not island.service_count %}<div><dt>Bikini beach</dt><dd>{{ island.has_bikini_beach|yesno:"Yes,No" }}</dd></div>{% endif %}
-          {% if not island.stay_count and not island.service_count %}<div><dt>Healthcare</dt><dd>{{ island.healthcare_label }}</dd></div>{% endif %}
-        </dl>
-        <a class="btn" href="{{ island.get_absolute_url }}">Read the {{ island.name }} guide {% icon "arrow-right" %}</a>
-      </div>
-    </article>
-    {% endfor %}
-    {% if more_islands %}
-    <div class="more-islands reveal"><span>Also popular:</span>{% for i in more_islands %}<a href="{{ i.get_absolute_url }}">{{ i.name }}</a>{% endfor %}</div>
-    {% endif %}
-  </div>
-</section>
-
-{# 4 — Plan by need: four photo cards #}
-<section class="section band">
-  <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">Plan by need</div><h2>Where to stay, what to do, <span class="accent-word">how</span> to get there</h2></div></div>
-    <div class="needs">
-      {% for c in needs %}
-      <article class="need-card reveal need-{{ c.key }}" data-delay="{% widthratio forloop.counter0 1 80 %}">
-        <a class="need-photo" href="{{ c.url }}" aria-label="{{ c.title }}">
-          {% if c.photo %}<img src="{{ c.photo }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
-          <span class="need-count">{% icon c.icon %}{% if c.n or c.key == "exp" %}{{ c.count }}{% else %}Coming soon{% endif %}</span>
-        </a>
-        <div class="need-body">
-          <h3><a href="{{ c.url }}">{{ c.title }}</a></h3>
-          <p class="need-text">{{ c.text }}</p>
-          {% if c.chips %}<div class="need-chips">{% for label, href in c.chips %}<a href="{{ href }}">{{ label }}</a>{% endfor %}</div>{% endif %}
-          {% if c.items %}
-          <ul class="need-items">
-            {% for it in c.items %}<li><a href="{{ it.url }}">
-              <span class="need-thumb">{% if it.img %}<img src="{{ it.img }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}{% icon it.icon %}</span>
-              <span class="need-item-text"><b>{{ it.name }}</b><small>{{ it.meta }}</small></span>{% icon "arrow-right" %}</a></li>{% endfor %}
-          </ul>
-          {% else %}
-          <div class="need-empty">{% icon "sparkles" %}<span>{{ c.empty }} <a href="{% url 'directory:list_your_business' %}">Run one? List it free</a></span></div>
-          {% endif %}
-          <a class="need-cta" href="{{ c.url }}">{{ c.cta }} {% icon "arrow-right" %}</a>
-        </div>
-      </article>
+    <div class="hm-head"><div><h2>From guests</h2><p>Reviews from travellers who stayed with local hosts.</p></div></div>
+    <div class="hm-reviews">
+      {% for r in reviews %}
+      <figure class="hm-review">
+        <div class="hm-stars" aria-label="{{ r.rating }} out of 5">{% stars r.rating %}</div>
+        {% if r.title %}<b>{{ r.title }}</b>{% endif %}
+        <blockquote>{{ r.text|truncatechars:220 }}</blockquote>
+        <figcaption><span class="hm-avatar">{{ r.name|first|upper }}</span><span><b>{{ r.name }}</b><small>{% if r.country %}{{ r.country }} · {% endif %}stayed at <a href="{{ r.listing.get_absolute_url }}">{{ r.listing.name }}</a>, {{ r.listing.island.name }}</small></span></figcaption>
+      </figure>
       {% endfor %}
     </div>
   </div>
 </section>
+{% endif %}
 
-{# 5 — Experiences mosaic #}
-<section class="section">
+{# ---------- 6b. hosts ---------- #}
+<section class="hm-section hm-host-wrap">
   <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">Under the surface and on it</div><h2>Choose an island by what you want to do</h2></div></div>
-    <div class="mosaic">
-      {% for a in activities %}
-      <a class="mosaic-tile reveal" data-delay="{% widthratio forloop.counter0 1 60 %}" href="{% url 'directory:activity_detail' a.slug %}">
-        {% if a.image_url %}<img src="{% if forloop.first %}{{ a.image_url }}{% else %}{{ a.thumb_url }}{% endif %}" alt="{{ a.name }}" loading="lazy">{% else %}<div class="chart" style="--x:{% cycle '35%' '62%' '48%' '70%' '30%' '55%' '66%' %};--y:58%"></div>{% endif %}
-        <span class="mosaic-body"><span class="mosaic-icon">{% icon a.icon %}</span><b>{{ a.name }}</b><small>{{ a.description }}</small><em>{{ a.n }} island{{ a.n|pluralize }}</em></span>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-{# 6 — How requests work #}
-<section class="section band-dark">
-  <div class="container">
-    <div class="section-head reveal"><div><div class="eyebrow">Direct requests</div><h2>No booking engine. No fees.</h2></div></div>
-    <div class="steps reveal">
-      <div class="step"><h3>Read the island guide</h3><p>What it's known for, local rules, facilities and how to get there.</p></div>
-      <div class="step"><h3>Choose a host</h3><p>Guest houses, dive centres, transfer operators and cafés on that island.</p></div>
-      <div class="step"><h3>Send a request</h3><p>Your dates and questions, written out for you to send on WhatsApp, Viber or email. No card details.</p></div>
-      <div class="step"><h3>Agree directly</h3><p>The host confirms availability, price and payment with you.</p></div>
-    </div>
-  </div>
-</section>
-
-{# 7 — For businesses #}
-<section class="section">
-  <div class="container">
-    <div class="biz reveal">
-      <div class="biz-text">
-        <div class="eyebrow">For island businesses</div>
+    <div class="hm-host">
+      <div>
+        <div class="eyebrow">For local businesses</div>
         <h2>Your island already has a page. Put your <span class="accent-word">business</span> on it.</h2>
-        <p class="biz-lead">Guest houses, dive centres, boat operators and cafés: list free, and travellers who are already reading your island's guide can message you directly.</p>
-        <ol class="biz-steps">
-          <li><b>1</b><span>Create a free account</span></li>
-          <li><b>2</b><span>Add your listing and photos</span></li>
-          <li><b>3</b><span>Guests message you on WhatsApp, Viber or email</span></li>
-        </ol>
-        <div class="biz-cta">
-          <a class="btn biz-btn" href="{% url 'directory:list_your_business' %}">List your business free {% icon "arrow-right" %}</a>
-          <a class="biz-link" href="{% url 'directory:how_it_works' %}#verified">How verification works</a>
-        </div>
-      </div>
-      <div class="biz-visual" aria-hidden="true">
-        <div class="biz-card">
-          <div class="biz-card-photo"><span class="biz-badge rec">{% icon "star" %}Recommended</span></div>
-          <div class="biz-card-body">
-            <small>Guest house · Your island</small>
-            <b>Your business here</b>
-            <span class="biz-badge ok">{% cowrie %}Verified host</span>
-            <span class="biz-card-line"><i></i><i></i></span>
-          </div>
-        </div>
-        <div class="biz-bubble">{% icon "message-circle" %}<span><b>New request</b>2 adults · 4 nights · 12–16 Dec</span></div>
-        <ul class="biz-perks">
-          <li>{% icon "hand-coins" %}No commission</li>
-          <li>{% icon "map-pin" %}On your island's guide</li>
-          <li>{% icon "route" %}Transfers shown on every island you serve</li>
+        <ul>
+          <li>{% icon "check" %} Free to list: guest houses, excursions, transfers, cafés and shops</li>
+          <li>{% icon "check" %} Guests message you directly, with no commission</li>
+          <li>{% icon "check" %} Get the Verified host badge after a quick licence check</li>
         </ul>
+        <div class="hm-host-btns"><a class="btn hm-host-btn" href="{% url 'directory:list_your_business' %}">List your business free {% icon "arrow-right" %}</a><a class="hm-host-link" href="{% url 'directory:how_it_works' %}#verified">How verification works</a></div>
       </div>
+      <img class="hm-host-mark" src="{% static 'img/brand/islandstay-symbol-colour-dark.svg' %}" alt="" aria-hidden="true">
     </div>
   </div>
 </section>
-{% endblock %}
-{% block extra_js %}
+
+<a class="hm-sticky" id="hm-sticky" href="#hm-hero">{% icon "search" %} Search islands and stays</a>
+
 <script>
 (function () {
-  var show = document.querySelector('[data-slides]'); if (!show) return;
-  var slides = show.querySelectorAll('.hero-slide'), dots = show.querySelectorAll('.hero-dots button');
-  if (slides.length < 2) return;
-  var i = 0, timer, reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function go(n) {
-    slides[i].classList.remove('is-active'); slides[i].setAttribute('aria-hidden', 'true'); slides[i].tabIndex = -1;
-    dots[i].classList.remove('on'); dots[i].removeAttribute('aria-selected');
-    i = (n + slides.length) % slides.length;
-    slides[i].classList.add('is-active'); slides[i].removeAttribute('aria-hidden'); slides[i].removeAttribute('tabindex');
-    dots[i].classList.add('on'); dots[i].setAttribute('aria-selected', 'true');
-    // restart the progress bar animation
-    var bar = dots[i].firstElementChild; bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  // search tabs: Stays / Experiences / Islands
+  var form = document.getElementById("hm-search");
+  if (form) {
+    var q = form.querySelector("[name=q]"), guests = form.querySelector("[data-stays-only]");
+    form.querySelectorAll("[role=tab]").forEach(function (t) {
+      t.addEventListener("click", function () {
+        form.querySelectorAll("[role=tab]").forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); });
+        form.action = t.dataset.action; q.placeholder = t.dataset.ph;
+        var stays = t === form.querySelector("[role=tab]");
+        guests.hidden = !stays; guests.querySelector("select").disabled = !stays;
+        q.focus();
+      });
+    });
+    form.addEventListener("submit", function () { if (!form.querySelector("[name=guests]").value) form.querySelector("[name=guests]").disabled = true; });
   }
-  function play() { if (reduce) return; clearInterval(timer); timer = setInterval(function () { if (!show.classList.contains('paused')) go(i + 1); }, 7000); }
-  dots.forEach(function (d, n) { d.addEventListener('click', function () { go(n); play(); }); });
-  show.addEventListener('mouseenter', function () { show.classList.add('paused'); });
-  show.addEventListener('mouseleave', function () { show.classList.remove('paused'); });
-  show.addEventListener('focusin', function () { show.classList.add('paused'); });
-  show.addEventListener('focusout', function () { show.classList.remove('paused'); });
-  var x0 = null;
-  show.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
-  show.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) { go(i + (dx < 0 ? 1 : -1)); play(); } x0 = null; });
-  play();
+  // slow photo crossfade in the hero
+  var imgs = Array.prototype.slice.call(document.querySelectorAll(".hm-hero-photos img")), credit = document.getElementById("hm-credit"), n = 0;
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function label(img) {
+    credit.href = img.dataset.href || "#";
+    credit.innerHTML = "";
+    if (img.dataset.island) credit.appendChild(document.createTextNode(img.dataset.island));
+    if (img.dataset.credit) { var s = document.createElement("span"); s.textContent = " Photo: " + img.dataset.credit; credit.appendChild(s); }
+    credit.hidden = !(img.dataset.island || img.dataset.credit);
+  }
+  if (imgs.length) label(imgs[0]);
+  if (imgs.length > 1 && !reduce) setInterval(function () {
+    imgs = imgs.filter(function (i) { return i.isConnected; }); if (imgs.length < 2) return;
+    imgs[n % imgs.length].classList.remove("on"); n++; imgs[n % imgs.length].classList.add("on"); label(imgs[n % imgs.length]);
+  }, 7000);
+  // phones: a search button appears once the hero is out of view
+  var sticky = document.getElementById("hm-sticky"), hero = document.getElementById("hm-hero");
+  if (sticky && "IntersectionObserver" in window) new IntersectionObserver(function (e) { sticky.classList.toggle("show", !e[0].isIntersecting); }).observe(hero);
 })();
 </script>
 {% endblock %}
