@@ -50,7 +50,7 @@
           <small>{{ i.atoll.name }}</small>
           <b>{{ i.name }}</b>
           <em>{{ i.tagline|truncatechars:70 }}</em>
-          <span class="hm-island-facts">{% if i.transfer_time %}<span>{% icon "ship" %}{{ i.transfer_time }}</span>{% endif %}{% if i.stay_count %}<span>{% icon "house" %}{{ i.stay_count }} place{{ i.stay_count|pluralize }} to stay</span>{% endif %}{% if SHOW_PRICES and i.min_price %}<span class="hm-from">from ${{ i.min_price|floatformat:0 }}</span>{% endif %}</span>
+          <span class="hm-island-facts">{% if i.transfer_time %}<span>{% icon i.transfer_time|transfer_icon %}{{ i.transfer_time }}</span>{% endif %}{% if i.stay_count %}<span>{% icon "house" %}{{ i.stay_count }} place{{ i.stay_count|pluralize }} to stay</span>{% endif %}{% if SHOW_PRICES and i.min_price %}<span class="hm-from">from ${{ i.min_price|floatformat:0 }}</span>{% endif %}</span>
         </span>
       </a>
       {% endfor %}

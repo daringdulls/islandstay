@@ -49,7 +49,7 @@
     <a class="chip-link" href="#about">Overview</a>
     <a class="chip-link" href="#stays">{% icon "house" %} Stays <span class="count">{{ island.stay_count }}</span></a>
     <a class="chip-link" href="#experiences">{% icon "sailboat" %} Experiences <span class="count">{{ island.service_count }}</span></a>
-    <a class="chip-link" href="#transport">{% icon "ship" %} Transport <span class="count">{{ island.route_count }}</span></a>
+    <a class="chip-link" href="#transport">{% icon "route" %} Transport <span class="count">{{ island.route_count }}</span></a>
     <a class="chip-link" href="#food">{% icon "utensils" %} Food <span class="count">{{ island.food_count }}</span></a>
     <a class="chip-link" href="#guide">{% icon "compass" %} Island guide</a>
   </nav>
@@ -152,7 +152,7 @@
         <ul class="contact-list">
           <li>{% icon "house" %}<a href="#stays">{{ island.stay_count }} place{{ island.stay_count|pluralize }} to stay</a></li>
           <li>{% icon "sailboat" %}<a href="#experiences">{{ island.service_count }} experience operator{{ island.service_count|pluralize }}</a></li>
-          <li>{% icon "ship" %}<a href="#transport">{{ island.route_count }} way{{ island.route_count|pluralize }} to get there</a></li>
+          <li>{% icon "route" %}<a href="#transport">{{ island.route_count }} way{{ island.route_count|pluralize }} to get there</a></li>
           <li>{% icon "utensils" %}<a href="#food">{{ island.food_count }} place{{ island.food_count|pluralize }} to eat</a></li>
         </ul>
         {% if island.transfer_labels %}<div class="pills" style="margin-top:14px">{% for t in island.transfer_labels %}<span class="pill info">{{ t }}</span>{% endfor %}</div>{% endif %}

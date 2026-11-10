@@ -24,7 +24,7 @@
       <div>{% icon "clock" %}<span>From the airport</span><b>{{ island.transfer_time|cut:"≈"|default:"Ask your host" }}</b></div>
       <div>{% icon "route" %}<span>Distance</span><b>{% if island.distance_from_airport_km %}{{ island.distance_from_airport_km }} km{% else %}–{% endif %}</b></div>
       <div>{% icon "plane-landing" %}<span>Nearest airport</span><b>{{ island.nearest_airport|default:"Velana (MLE)" }}</b></div>
-      <div>{% icon "ship" %}<span>Ways to get there</span><b>{{ island.transfer_labels|join:", "|default:"Speedboat" }}</b></div>
+      <div>{% icon "route" %}<span>Ways to get there</span><b>{{ island.transfer_labels|join:", "|default:"Speedboat" }}</b></div>
     </div>
     {% if paragraphs %}<h2>Overview</h2>{% for p in paragraphs %}<p>{{ p }}</p>{% endfor %}{% endif %}
     <h2>Routes and schedules</h2>

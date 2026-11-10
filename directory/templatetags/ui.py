@@ -127,3 +127,16 @@ def ld_breadcrumbs(context, *pairs):
         items.append({"@type": "ListItem", "position": len(items) + 1, "name": name, "item": base + str(url)})
     data = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
     return mark_safe('<script type="application/ld+json">%s</script>' % json.dumps(data, ensure_ascii=False).replace("<", "\\u003c"))
+
+
+@register.filter
+def transfer_icon(text):
+    """Icon for a transfer time like '≈35 min by domestic flight': plane, boat, car or a general route."""
+    t = (text or "").lower()
+    if "flight" in t or "fly" in t or "seaplane" in t or "plane" in t:
+        return "plane"
+    if "road" in t or "taxi" in t or "car" in t or "bus" in t or "causeway" in t:
+        return "car-front"
+    if "boat" in t or "ferry" in t or "dhoni" in t or "launch" in t:
+        return "ship"
+    return "route"

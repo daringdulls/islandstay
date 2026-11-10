@@ -18,7 +18,7 @@
       <div class="opening-links">
         <a href="{% url 'directory:stay_list' %}">{% icon "house" %} Stays</a>
         <a href="{% url 'directory:service_list' %}">{% icon "sailboat" %} Experiences</a>
-        <a href="{% url 'directory:transport_list' %}">{% icon "ship" %} Transport</a>
+        <a href="{% url 'directory:transport_list' %}">{% icon "route" %} Transport</a>
         <a href="{% url 'directory:food_list' %}">{% icon "utensils" %} Food</a>
       </div>
       {% if popular %}<p class="hero-popular"><span>Popular:</span>{% for i in popular %}<a href="{{ i.get_absolute_url }}">{{ i.name }}</a>{% endfor %}</p>{% endif %}
@@ -38,7 +38,7 @@
           <b>{{ i.name }}</b>
           <span class="hero-slide-tag">{{ i.tagline }}</span>
           <span class="hero-slide-facts">
-            {% if i.transfer_time %}<span>{% icon "ship" %}{{ i.transfer_time }}</span>{% endif %}
+            {% if i.transfer_time %}<span>{% icon i.transfer_time|transfer_icon %}{{ i.transfer_time }}</span>{% endif %}
             {% if i.has_bikini_beach %}<span>{% icon "umbrella" %}Bikini beach</span>{% endif %}
             {% for a in i.activities.all|slice:":2" %}<span>{% icon a.icon %}{{ a.name }}</span>{% endfor %}
           </span>

@@ -96,7 +96,7 @@
         </ul>
       </article>
       {% empty %}
-      <div class="tr-empty">{% icon "ship" %}<h3>No routes listed for this choice yet</h3><p>Try another way to travel, or ask your guest house: hosts arrange transfers for their guests every day.</p><a class="btn btn-sm" href="{% url 'directory:transport_list' %}">See all routes</a></div>
+      <div class="tr-empty">{% icon "route" %}<h3>No routes listed for this choice yet</h3><p>Try another way to travel, or ask your guest house: hosts arrange transfers for their guests every day.</p><a class="btn btn-sm" href="{% url 'directory:transport_list' %}">See all routes</a></div>
       {% endfor %}
       <p class="small muted" style="margin-top:12px">Schedules and fares change with the season and the weather. Always confirm with the operator or your host before you travel.</p>
     </div>
