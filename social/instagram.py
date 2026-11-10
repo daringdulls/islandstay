@@ -1,4 +1,4 @@
-"""Publishing to Instagram with the Instagram API with Instagram Login (graph.instagram.com).
+"""Publishing to Instagram with the Instagram API (graph.instagram.com, or graph.facebook.com for Meta tokens).
 
 Setup: a Meta developer app with the "Instagram API with Instagram Login" product. Its Instagram app ID and
 secret go in INSTAGRAM_APP_ID / INSTAGRAM_APP_SECRET. Instagram can't schedule API posts itself, so
@@ -21,6 +21,12 @@ from django.utils import timezone
 from .models import InstagramAccount, SocialAsset, SocialPost
 
 GRAPH = "https://graph.instagram.com/v21.0"
+FB_GRAPH = "https://graph.facebook.com/v21.0"  # Meta tokens (EAA..., e.g. Unified login system-user tokens)
+
+
+def base(account):
+    """Instagram-login tokens use graph.instagram.com; Meta (Facebook/Unified login) tokens use graph.facebook.com."""
+    return FB_GRAPH if account.access_token.startswith("EAA") else GRAPH
 AUTHORIZE_URL = "https://www.instagram.com/oauth/authorize"
 TOKEN_URL = "https://api.instagram.com/oauth/access_token"
 SCOPES = "instagram_business_basic,instagram_business_content_publish"
@@ -91,20 +97,41 @@ def connect(code, redirect_uri):
     )
 
 
-def connect_with_token(token):
-    """Save a token generated in the Meta app dashboard (API setup -> Generate access tokens)."""
-    token = token.strip()
-    me = _call("GET", f"{GRAPH}/me", params={"fields": "user_id,username", "access_token": token})
+def connect_with_token(token, ig_user_id=""):
+    """Save a token generated in the Meta app dashboard (API setup -> Generate access tokens).
+
+    Instagram-login tokens (IGAA...) identify the account themselves and last 60 days (renewed automatically).
+    Meta tokens (EAA..., from a Unified login configuration) need the Instagram account ID and usually never expire.
+    """
+    token, ig_user_id = token.strip(), ig_user_id.strip()
+    if token.startswith("EAA"):
+        if not ig_user_id.isdigit():
+            raise InstagramError("This is a Meta key: also enter the Instagram account ID (the number under the "
+                                 "account name in the Meta app, e.g. 17841…).")
+        me = _call("GET", f"{FB_GRAPH}/{ig_user_id}", params={"fields": "id,username", "access_token": token})
+        expires = None
+        try:
+            info = _call("GET", f"{FB_GRAPH}/debug_token", params={"input_token": token, "access_token": token}).get("data", {})
+            if info.get("expires_at"):
+                expires = dt.datetime.fromtimestamp(int(info["expires_at"]), tz=dt.timezone.utc)
+        except InstagramError:
+            pass
+        user_id, username = str(me.get("id") or ig_user_id), me.get("username", "")
+    else:
+        me = _call("GET", f"{GRAPH}/me", params={"fields": "user_id,username", "access_token": token})
+        user_id, username = str(me.get("user_id") or me.get("id")), me.get("username", "")
+        expires = timezone.now() + dt.timedelta(days=55)  # dashboard tokens are long-lived (60 days)
     InstagramAccount.objects.all().delete()
     return InstagramAccount.objects.create(
-        ig_user_id=str(me.get("user_id") or me.get("id")), username=me.get("username", ""), access_token=token,
-        token_refreshed_at=timezone.now() - dt.timedelta(days=1),  # dashboard tokens are long-lived (60 days)
-        token_expires_at=timezone.now() + dt.timedelta(days=55),
+        ig_user_id=user_id, username=username, access_token=token,
+        token_refreshed_at=timezone.now() - dt.timedelta(days=1), token_expires_at=expires,
     )
 
 
 def refresh_if_needed(account):
     """Long-lived tokens last 60 days; refresh once they are more than a day old and within 20 days of expiry."""
+    if base(account) == FB_GRAPH:
+        return False  # Meta system-user tokens don't expire; other Meta tokens can't be renewed this way
     if not account.token_expires_at or account.token_expires_at - timezone.now() > dt.timedelta(days=20):
         return False
     if account.token_refreshed_at and timezone.now() - account.token_refreshed_at < dt.timedelta(days=1):
@@ -141,11 +168,11 @@ def problems(post):
 
 # ------------------------------------------------------------------ publishing
 def _container(account, **fields):
-    return _call("POST", f"{GRAPH}/{account.ig_user_id}/media", data={**fields, "access_token": account.access_token})["id"]
+    return _call("POST", f"{base(account)}/{account.ig_user_id}/media", data={**fields, "access_token": account.access_token})["id"]
 
 
 def _status(account, container_id):
-    data = _call("GET", f"{GRAPH}/{container_id}", params={"fields": "status_code,status", "access_token": account.access_token})
+    data = _call("GET", f"{base(account)}/{container_id}", params={"fields": "status_code,status", "access_token": account.access_token})
     return data.get("status_code", ""), data.get("status", "")
 
 
@@ -206,11 +233,11 @@ def publish_post(account, post):
             return f"{post.pk} {post.title}: Instagram is still processing, will check again."
         if code != "FINISHED":
             raise InstagramError(f"Instagram could not process the media ({code}{': ' + detail if detail else ''}).")
-        media = _call("POST", f"{GRAPH}/{account.ig_user_id}/media_publish",
+        media = _call("POST", f"{base(account)}/{account.ig_user_id}/media_publish",
                       data={"creation_id": post.ig_container_id, "access_token": account.access_token})
         post.ig_media_id = media["id"]
         try:
-            link = _call("GET", f"{GRAPH}/{post.ig_media_id}", params={"fields": "permalink", "access_token": account.access_token})
+            link = _call("GET", f"{base(account)}/{post.ig_media_id}", params={"fields": "permalink", "access_token": account.access_token})
             post.posted_url = link.get("permalink", "") or post.posted_url
         except InstagramError:
             pass

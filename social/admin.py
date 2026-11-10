@@ -379,7 +379,7 @@ class SocialPostAdmin(ModelAdmin):
                 messages.success(request, "Instagram disconnected. Queued posts stay queued until you connect again.")
             elif request.POST.get("token"):
                 try:
-                    account = ig.connect_with_token(request.POST["token"])
+                    account = ig.connect_with_token(request.POST["token"], request.POST.get("ig_user_id", ""))
                     messages.success(request, f"Connected {account}. Posts you schedule will now publish by themselves.")
                 except ig.InstagramError as exc:
                     messages.error(request, f"That key didn't work: {exc}")

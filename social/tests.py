@@ -237,3 +237,29 @@ class InstagramTokenTests(TestCase):
         r = self.client.get(reverse("admin:social_instagram"))
         self.assertContains(r, "Connected")
         self.assertNotContains(r, "IGAAtoken")
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="ig-test-"))
+class MetaTokenTests(TestCase):
+    def test_meta_system_user_token_uses_facebook_graph(self):
+        from unittest import mock
+        from . import instagram
+        calls = []
+
+        def fake(method, url, params=None, data=None, headers=None, timeout=60):
+            calls.append(url)
+            if "debug_token" in url:
+                return {"data": {"expires_at": 0}}
+            if url.endswith("/media"):
+                return {"id": "c9"}
+            return {"id": "17841454009172679", "username": "islandstaymv"}
+        with mock.patch.object(instagram, "_call", side_effect=fake):
+            with self.assertRaises(instagram.InstagramError):
+                instagram.connect_with_token("EAAGxyz")
+            acc = instagram.connect_with_token("EAAGxyz", "17841454009172679")
+            self.assertIsNone(acc.token_expires_at)
+            self.assertFalse(instagram.refresh_if_needed(acc))
+            post = SocialPost(title="t", headline="h", ig_image_url="https://x/y.jpg")
+            instagram.create_containers(acc, post)
+        self.assertTrue(calls[-1].startswith("https://graph.facebook.com/v21.0/17841454009172679/media"))
+        self.assertEqual(acc.username, "islandstaymv")

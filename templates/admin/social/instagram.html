@@ -13,7 +13,8 @@
   <div class="sd-card" style="margin:16px 0">
     {% if account %}
       <p style="margin:0"><b style="color:#1E7A55">Connected</b> to <b>@{{ account.username|default:account.ig_user_id }}</b> since {{ account.connected_at|date:"j M Y" }}.
-      {% if account.token_expires_at %}The access key renews automatically (current key valid until {{ account.token_expires_at|date:"j M Y" }}).{% endif %}</p>
+      {% if account.access_token|slice:":3" == "EAA" %}{% if account.token_expires_at %}The access key is valid until {{ account.token_expires_at|date:"j M Y" }}: generate a new one before then.{% else %}The access key doesn't expire.{% endif %}
+      {% elif account.token_expires_at %}The access key renews automatically (current key valid until {{ account.token_expires_at|date:"j M Y" }}).{% endif %}</p>
       {% if account.last_run_at %}<p style="margin:8px 0 0;font-size:13px">Last check: {{ account.last_run_at|timesince }} ago. {{ account.last_run_log|linebreaksbr }}</p>
       {% else %}<p style="margin:8px 0 0;font-size:13px;color:#B9442C">The publisher hasn't run yet. Set up the timer (step 5 below).</p>{% endif %}
       <form method="post" class="sd-row" style="margin-top:12px">{% csrf_token %}
@@ -27,6 +28,7 @@
       <summary style="cursor:pointer;font-weight:600;font-size:14px">{% if account %}Replace the access key{% else %}Paste the access key from Meta{% endif %}</summary>
       <form method="post" class="sd-row" style="margin-top:10px">{% csrf_token %}
         <input type="password" name="token" required autocomplete="off" placeholder="Paste the access token" style="flex:1;min-width:260px;border:1px solid #7D9399;border-radius:999px;padding:8px 14px;font-size:13.5px">
+        <input type="text" name="ig_user_id" inputmode="numeric" autocomplete="off" placeholder="Instagram account ID (17841…)" value="{{ account.ig_user_id|default:'' }}" style="width:230px;border:1px solid #7D9399;border-radius:999px;padding:8px 14px;font-size:13.5px">
         <button class="sd-btn primary" type="submit">Connect</button>
       </form>
     </details>
@@ -56,8 +58,10 @@
     <li><b>Meta app.</b> At <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a>, create an app with the use case <i>Manage messaging &amp; content on Instagram</i> and link it to a business portfolio (free; no Page needed).</li>
     <li><b>Make your Instagram a tester.</b> In the app: App roles → Roles → Add people → <b>Instagram Tester</b> → type the Island Stay username.
       Then accept the invite: on instagram.com go to Settings → Apps and websites → <b>Tester invites</b> → Accept.</li>
-    <li><b>Generate the access key.</b> In the app: Use cases → Customize → API setup → <b>2. Generate access tokens</b> → Add account → log in with the Island Stay Instagram → <b>Generate token</b>.
-      Tick the permission to publish content if it asks. Copy the token and paste it in the box at the top of this page. It's checked straight away and renews itself every few weeks, so you won't need to do this again.</li>
+    <li><b>Generate the access key.</b> In the app: Use cases → Customize → API setup.
+      With Unified login, first press <b>Create new configuration</b> in step 1 (General, system-user token, Instagram account: Island Stay) and select it.
+      Then <b>2. Generate access tokens</b> → Add account → <b>Generate token</b>. Copy the token and paste it in the box at the top of this page,
+      with the Instagram account ID (the number under the account name, 17841…). It's checked straight away.</li>
     <li><b>Start the timer.</b> Instagram can't schedule API posts itself, so this site checks for due posts. Sign up free at
       <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a> → Create cronjob:
       <ul>
