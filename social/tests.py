@@ -69,3 +69,42 @@ class SocialTemplateTests(TestCase):
     def test_body_pairs(self):
         p = SocialPost(body="Dec – Apr | Dry season\nAll year")
         self.assertEqual(p.body_pairs, [("Dec – Apr", "Dry season"), ("", "All year")])
+
+
+class MonthPlanTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open(os.devnull, "w"))
+        cls.admin = get_user_model().objects.create_superuser("boss3@x.mv", "boss3@x.mv", "pw")
+
+    def test_month_plan_has_feed_reels_and_stories_in_a_checkerboard(self):
+        from .planner import generate_month
+        posts = generate_month(2026, 12)
+        types = {t: sum(p.post_type == t for p in posts) for t in ("feed", "carousel", "reel", "story")}
+        self.assertGreaterEqual(types["reel"], 4)
+        self.assertGreaterEqual(types["story"], 12)
+        self.assertEqual(types["carousel"], 1)
+        self.assertTrue(all(p.format == "story" for p in posts if p.post_type in ("reel", "story")))
+        self.assertTrue(all(p.script for p in posts if p.post_type in ("reel", "story", "carousel")))
+        photo = {"island", "experience", "host", "stay", "compare", "hostcall"}
+        grid = [p.template in photo for p in sorted(posts, key=lambda p: p.publish_at) if p.on_grid]
+        self.assertTrue(all(a != b for a, b in zip(grid, grid[1:])), grid)
+
+    def test_plan_button_feed_page_and_swap(self):
+        self.client.force_login(self.admin)
+        r = self.client.post(reverse("admin:social_calendar"), {"plan_month": "2026-12"})
+        self.assertEqual(r.status_code, 302)
+        n = SocialPost.objects.count()
+        self.client.post(reverse("admin:social_calendar"), {"plan_month": "2026-12"})
+        self.assertEqual(SocialPost.objects.count(), n)  # no duplicates without "replace"
+        r = self.client.get(reverse("admin:social_feed"), {"month": "2026-12"})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "ig-tile")
+        a, b = SocialPost.objects.order_by("publish_at")[:2]
+        ta, tb = a.publish_at, b.publish_at
+        r = self.client.post(reverse("admin:social_feed_swap"), {"a": a.pk, "b": b.pk})
+        self.assertEqual(r.json(), {"ok": True})
+        a.refresh_from_db(); b.refresh_from_db()
+        self.assertEqual((a.publish_at, b.publish_at), (tb, ta))
+        r = self.client.get(reverse("admin:social_socialpost_design", args=[SocialPost.objects.filter(post_type="reel").first().pk]))
+        self.assertContains(r, "Reel shot list")

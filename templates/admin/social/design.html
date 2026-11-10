@@ -28,6 +28,10 @@
       </div>
       <p id="dl-msg" style="font-size:12.5px;margin:10px 0 0;color:rgb(107 114 128)"></p>
     </div>
+    {% if post.script %}<div class="sd-card">
+      <h3>{% if post.post_type == "reel" %}Reel shot list{% elif post.post_type == "carousel" %}Carousel slides{% else %}Story stickers{% endif %}</h3>
+      <div class="sd-caption">{{ post.script }}</div>
+    </div>{% endif %}
     <div class="sd-card">
       <h3>Caption</h3>
       <div class="sd-caption" id="caption">{{ post.full_caption|default:"No caption yet." }}</div>
@@ -35,6 +39,7 @@
     </div>
     <div class="sd-card">
       <dl class="sd-meta">
+        <dt>Type</dt><dd>{{ post.get_post_type_display }}</dd>
         <dt>Status</dt><dd>{{ post.get_status_display }}</dd>
         <dt>Post on</dt><dd>{{ post.publish_at|date:"D j M Y, H:i"|default:"Not scheduled" }}</dd>
         <dt>Platforms</dt><dd>{{ post.platform_list|join:", " }}</dd>

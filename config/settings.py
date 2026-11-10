@@ -326,6 +326,7 @@ UNFOLD = {
                 "title": "Social media",
                 "items": [
                     {"title": "Calendar", "icon": "calendar_month", "link": reverse_lazy("admin:social_calendar")},
+                    {"title": "Feed preview", "icon": "grid_view", "link": reverse_lazy("admin:social_feed")},
                     {"title": "All posts", "icon": "photo_library", "link": reverse_lazy("admin:social_socialpost_changelist")},
                     {"title": "Design templates", "icon": "palette", "link": reverse_lazy("admin:social_templates")},
                     {"title": "Playbook", "icon": "menu_book", "link": reverse_lazy("admin:social_playbook")},

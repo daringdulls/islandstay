@@ -1,0 +1,154 @@
+{% extends 'admin/base.html' %}
+{% load static social_design %}
+{% block title %}Instagram feed preview{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
+{% block content %}
+{% with active="feed" %}{% include "admin/social/_nav.html" %}{% endwith %}
+<div class="ig-wrap">
+  <div class="ig-phone">
+    <header class="ig-head">
+      <div class="ig-avatar"><img src="{% static 'img/brand/islandstay-symbol-colour-light.svg' %}" alt=""></div>
+      <div class="ig-who">
+        <div class="ig-handle">islandstaymv</div>
+        <div class="ig-stats"><span><b>{{ tiles|length }}</b> posts</span><span><b>{{ reels|length }}</b> reels</span><span><b>{{ stories|length }}</b> stories this month</span></div>
+      </div>
+    </header>
+    <div class="ig-bio">
+      <b>Island Stay Maldives</b>
+      <p>Local island stays, hosts and guides across all 26 atolls.<br>Message a local. Live the island.</p>
+      <a>islandstaymv.com</a>
+    </div>
+    <div class="ig-highlights">
+      {% for label, icon in highlights %}<div><span>{% inline_icon icon %}</span>{{ label }}</div>{% endfor %}
+    </div>
+    <div class="ig-tabs" role="tablist">
+      <button type="button" class="on" data-tab="grid">{% inline_icon "columns-3" %} Grid</button>
+      <button type="button" data-tab="reels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg> Reels</button>
+      <button type="button" data-tab="stories">{% inline_icon "sparkles" %} Stories</button>
+    </div>
+
+    <div class="ig-pane" data-pane="grid">
+      {% if not tiles %}<p class="ig-empty">Nothing planned yet. Use “Plan this month” on the right.</p>{% endif %}
+      <div class="ig-grid" id="grid">
+        {% for t in tiles %}{% with post=t.post photo=t.photo photo_b=t.photo_b %}
+        <a class="ig-tile{% if t.in_month %} in-month{% endif %}{% if t.clash %} clash{% endif %}{% if post.status == 'posted' %} posted{% endif %}" href="{% url 'admin:social_socialpost_design' post.pk %}"
+           data-id="{{ post.pk }}" draggable="{% if post.status == 'posted' %}false{% else %}true{% endif %}" title="{{ post.title }} · {{ post.publish_at|date:'D j M, H:i' }}">
+          <div class="ig-fit">{% include "admin/social/_canvas.html" %}</div>
+          {% if post.post_type == "reel" %}<i class="ig-type"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg></i>{% elif post.post_type == "carousel" %}<i class="ig-type">{% inline_icon "copy" %}</i>{% endif %}
+          <span class="ig-when">{{ post.publish_at|date:"D j M" }} · <b class="st-{{ post.status }}">{{ post.get_status_display }}</b></span>
+        </a>
+        {% endwith %}{% endfor %}
+      </div>
+    </div>
+
+    <div class="ig-pane" data-pane="reels" hidden>
+      <div class="ig-grid ig-reels">
+        {% for t in reels %}{% with post=t.post photo=t.photo photo_b=t.photo_b %}
+        <a class="ig-tile ig-tall" href="{% url 'admin:social_socialpost_design' post.pk %}" title="{{ post.title }}">
+          <div class="ig-fit">{% include "admin/social/_canvas.html" %}</div>
+          <span class="ig-when">{{ post.publish_at|date:"D j M" }} · <b class="st-{{ post.status }}">{{ post.get_status_display }}</b></span>
+        </a>
+        {% endwith %}{% empty %}<p class="ig-empty">No Reels planned.</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="ig-pane" data-pane="stories" hidden>
+      <div class="ig-stories">
+        {% for t in stories %}{% with post=t.post photo=t.photo photo_b=t.photo_b %}
+        <a class="ig-story" href="{% url 'admin:social_socialpost_design' post.pk %}">
+          <div class="ig-tile ig-tall"><div class="ig-fit">{% include "admin/social/_canvas.html" %}</div></div>
+          <b>{{ post.publish_at|date:"D j M, H:i" }}</b>
+          <small>{{ post.script|truncatechars:90 }}</small>
+        </a>
+        {% endwith %}{% empty %}<p class="ig-empty">No Stories planned for {{ month|date:"F" }}.</p>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <aside class="sd-side">
+    <div class="sd-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <a class="sd-btn" href="?month={{ prev_month|date:'Y-m' }}">&larr;</a>
+        <h3 style="margin:0;font-size:16px">{{ month|date:"F Y" }}</h3>
+        <a class="sd-btn" href="?month={{ next_month|date:'Y-m' }}">&rarr;</a>
+      </div>
+      <dl class="sd-meta" style="margin-top:14px">
+        <dt>Grid posts</dt><dd>{{ n_month }} ({{ n_reels }} Reels, {{ n_carousels }} carousel{{ n_carousels|pluralize }})</dd>
+        <dt>Stories</dt><dd>{{ stories|length }}</dd>
+        <dt>Grid check</dt><dd>{% if clashes %}<span style="color:#B9442C">{{ clashes }} tile{{ clashes|pluralize }} next to the same template. Drag to fix.</span>{% elif n_month %}<span style="color:#1E7A55">Balanced</span>{% else %}–{% endif %}</dd>
+      </dl>
+      <form method="post" action="{% url 'admin:social_calendar' %}" style="margin-top:14px">{% csrf_token %}
+        <input type="hidden" name="plan_month" value="{{ month|date:'Y-m' }}">
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px"><input type="checkbox" name="replace" value="1"> Replace this month's drafts</label>
+        <button class="sd-btn primary" type="submit" style="width:100%">Plan {{ month|date:"F" }}</button>
+      </form>
+    </div>
+    <div class="sd-card">
+      <h3>How to use it</h3>
+      <ul style="font-size:13.5px;line-height:1.55;padding-left:18px;list-style:disc;margin:0">
+        <li>Newest post is top left, just like the profile. Tiles with a dashed outline are in {{ month|date:"F" }}.</li>
+        <li><b>Drag a tile onto another to swap their dates.</b> The calendar updates too.</li>
+        <li>The plan alternates photo and solid-colour tiles, so the grid reads as a checkerboard.</li>
+        <li>Click a tile to download the image and copy the caption. Reels and Stories have a shot list or sticker note.</li>
+        <li>Schedule each one in Meta Business Suite (Planner → Create post / reel / story), then mark it Scheduled.</li>
+      </ul>
+    </div>
+    <div class="sd-card">
+      <h3>Weekly rhythm</h3>
+      <table style="font-size:12.5px;width:100%;border-collapse:collapse">
+        <tr><td>Mon 18:00</td><td>Island spotlight</td></tr>
+        <tr><td>Tue 12:00</td><td><i>Story</i> · This or that poll</td></tr>
+        <tr><td>Tue 19:00</td><td>Tip, getting there or when to go</td></tr>
+        <tr><td>Wed 18:00</td><td><b>Reel</b> · experience or a day on an island</td></tr>
+        <tr><td>Thu 12:00</td><td><i>Story</i> · tip with a question sticker</td></tr>
+        <tr><td>Thu 18:00</td><td>Top list carousel or did you know</td></tr>
+        <tr><td>Fri 17:00</td><td>Host, stay or this or that</td></tr>
+        <tr><td>Sat 11:00</td><td>Dhivehi word or guest quote</td></tr>
+        <tr><td>Sun 10:00</td><td><i>Story</i> · island of the week</td></tr>
+      </table>
+    </div>
+    <p id="ig-msg" style="font-size:13px;margin:0"></p>
+  </aside>
+</div>
+<script>
+(function () {
+  function fitTiles() {
+    document.querySelectorAll('.ig-tile').forEach(function (t) {
+      var sp = t.querySelector('.sp'); if (!sp) return;
+      var w = +sp.dataset.w, h = +sp.dataset.h, tw = t.clientWidth, th = t.clientHeight;
+      var s = Math.max(tw / w, th / h);
+      var fit = t.querySelector('.ig-fit');
+      fit.style.transform = 'translate(' + ((tw - w * s) / 2) + 'px,' + ((th - h * s) / 2) + 'px) scale(' + s + ')';
+    });
+  }
+  addEventListener('load', fitTiles); addEventListener('resize', fitTiles); fitTiles();
+  document.querySelectorAll('.ig-tabs button').forEach(function (b) {
+    b.onclick = function () {
+      document.querySelectorAll('.ig-tabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      document.querySelectorAll('.ig-pane').forEach(function (p) { p.hidden = p.dataset.pane !== b.dataset.tab; });
+      fitTiles();
+    };
+  });
+  var dragged = null, msg = document.getElementById('ig-msg');
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  document.querySelectorAll('#grid .ig-tile[draggable=true]').forEach(function (t) {
+    t.addEventListener('dragstart', function (e) { dragged = t; t.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+    t.addEventListener('dragend', function () { t.classList.remove('dragging'); document.querySelectorAll('.drop').forEach(function (x) { x.classList.remove('drop'); }); });
+    t.addEventListener('dragover', function (e) { if (dragged && dragged !== t) { e.preventDefault(); t.classList.add('drop'); } });
+    t.addEventListener('dragleave', function () { t.classList.remove('drop'); });
+    t.addEventListener('drop', function (e) {
+      e.preventDefault(); t.classList.remove('drop');
+      if (!dragged || dragged === t) return;
+      var a = dragged, body = new URLSearchParams({ a: a.dataset.id, b: t.dataset.id });
+      fetch('{% url "admin:social_feed_swap" %}', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: body })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { msg.style.color = '#B9442C'; msg.textContent = d.error || 'Could not move it.'; return; }
+          location.reload();
+        });
+    });
+  });
+})();
+</script>
+{% endblock %}

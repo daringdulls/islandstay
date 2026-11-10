@@ -1,5 +1,6 @@
 <div class="sd-row" style="margin-bottom:20px">
   <a class="sd-btn{% if active == 'calendar' %} primary{% endif %}" href="{% url 'admin:social_calendar' %}">Calendar</a>
+  <a class="sd-btn{% if active == 'feed' %} primary{% endif %}" href="{% url 'admin:social_feed' %}">Feed preview</a>
   <a class="sd-btn" href="{% url 'admin:social_socialpost_changelist' %}">All posts</a>
   <a class="sd-btn{% if active == 'templates' %} primary{% endif %}" href="{% url 'admin:social_templates' %}">Design templates</a>
   <a class="sd-btn{% if active == 'playbook' %} primary{% endif %}" href="{% url 'admin:social_playbook' %}">Playbook</a>

@@ -11,14 +11,20 @@
     <a class="sd-btn" href="?month={{ next_month|date:'Y-m' }}">&rarr;</a>
   </div>
   <form method="post" style="display:flex;align-items:center;gap:8px">{% csrf_token %}
+    <input type="hidden" name="plan_month" value="{{ month|date:'Y-m' }}">
+    <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" name="replace" value="1"> Replace drafts</label>
+    <button class="sd-btn primary" type="submit">Plan {{ month|date:"F" }}: feed, Reels &amp; Stories</button>
+    <a class="sd-btn" href="{% url 'admin:social_feed' %}?month={{ month|date:'Y-m' }}">Feed preview</a>
+  </form>
+  <form method="post" style="display:flex;align-items:center;gap:8px">{% csrf_token %}
     <label for="weeks" style="font-size:13px">Draft the next</label>
     <select id="weeks" name="weeks" class="sd-btn" style="padding:6px 10px"><option>2</option><option selected>4</option><option>8</option></select>
     <span style="font-size:13px">weeks</span>
-    <button class="sd-btn primary" type="submit">Draft plan</button>
+    <button class="sd-btn" type="submit">Draft plan</button>
   </form>
 </div>
 <div class="sd-legend" style="margin-bottom:10px">
-  {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#7D9399{% elif key == 'draft' %}#EBA62A{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
+  {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#7D9399{% elif key == 'draft' %}#5B3A22{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
 </div>
 {% if overdue %}<p style="color:#B9442C;font-size:13.5px;margin:0 0 8px">{{ overdue|length }} post{{ overdue|length|pluralize }} past their date and not posted yet.</p>{% endif %}
 <div style="overflow-x:auto">
@@ -28,7 +34,7 @@
   {% for week in weeks %}<tr>
     {% for day in week %}<td class="{% if not day.in_month %}out{% endif %}{% if day.today %} today{% endif %}">
       <div class="sd-day">{{ day.date|date:"j" }}</div>
-      {% for p in day.posts %}<a class="sd-chip {{ p.status }}" href="{% url 'admin:social_socialpost_design' p.pk %}" title="{{ p.title }} · {{ p.get_status_display }}">{{ p.publish_at|time:"H:i" }} {{ p.get_template_display }}<small>{{ p.headline }}</small></a>{% endfor %}
+      {% for p in day.posts %}<a class="sd-chip {{ p.status }}" href="{% url 'admin:social_socialpost_design' p.pk %}" title="{{ p.title }} · {{ p.get_status_display }}">{{ p.publish_at|time:"H:i" }} {% if p.post_type != "feed" %}<span class="ty">{{ p.get_post_type_display }}</span>{% endif %}{{ p.get_template_display }}<small>{{ p.headline }}</small></a>{% endfor %}
     </td>{% endfor %}
   </tr>{% endfor %}
   </tbody>
@@ -36,5 +42,5 @@
 </div>
 {% if unscheduled %}<h3 style="font-weight:600;margin:20px 0 8px">Ideas without a date</h3>
 <div class="sd-row">{% for p in unscheduled %}<a class="sd-chip {{ p.status }}" style="display:inline-block" href="{% url 'admin:social_socialpost_change' p.pk %}">{{ p.title }}</a>{% endfor %}</div>{% endif %}
-<p style="font-size:12.5px;color:rgb(107 114 128);margin-top:16px">“Draft plan” adds six posts a week after the last scheduled one, using islands, hosts and activities that haven't been posted about yet. Everything is a draft until you mark it ready.</p>
+<p style="font-size:12.5px;color:rgb(107 114 128);margin-top:16px">“Plan month” drafts the whole month for Instagram: six grid posts a week (one of them a Reel), three Stories a week, in an order that keeps the grid balanced. “Draft plan” adds six posts a week after the last scheduled one, using islands, hosts and activities that haven't been posted about yet. Everything is a draft until you mark it ready.</p>
 {% endblock %}

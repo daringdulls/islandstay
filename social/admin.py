@@ -5,7 +5,7 @@ import urllib.request
 
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
@@ -18,7 +18,7 @@ from unfold.decorators import action, display
 from directory.models import Island
 
 from .models import SocialPost
-from .planner import generate_plan
+from .planner import generate_month, generate_plan
 
 STATUS_COLORS = {"idea": "info", "draft": "warning", "ready": "primary", "scheduled": "info", "posted": "success"}
 PROXY_HOSTS = ("upload.wikimedia.org", ".blob.vercel-storage.com")
@@ -119,20 +119,21 @@ class SocialPostAdmin(ModelAdmin):
     warn_unsaved_form = True
     list_filter_submit = True
     list_per_page = 50
-    list_display = ("post", "when", "template_badge", "format", "platform_names", "status_badge", "design_link")
-    list_filter = (("status", ChoicesDropdownFilter), ("template", ChoicesDropdownFilter), ("pillar", ChoicesDropdownFilter), "format")
+    list_display = ("post", "when", "post_type", "template_badge", "format", "platform_names", "status_badge", "design_link")
+    list_filter = (("status", ChoicesDropdownFilter), "post_type", ("template", ChoicesDropdownFilter), ("pillar", ChoicesDropdownFilter), "format")
     search_fields = ("title", "headline", "caption", "island__name", "listing__name")
     autocomplete_fields = ("island", "listing", "activity", "island_b")
     date_hierarchy = "publish_at"
     actions = ["mark_ready", "mark_scheduled", "mark_posted"]
-    actions_list = ["open_calendar", "open_templates", "open_playbook"]
+    actions_list = ["open_calendar", "open_feed", "open_templates", "open_playbook"]
     actions_detail = ["open_design"]
     actions_row = ["row_design"]
     fieldsets = (
-        ("Plan", {"classes": ["tab"], "fields": ("title", ("status", "publish_at"), ("pillar", "platforms"), "posted_url", "notes")}),
+        ("Plan", {"classes": ["tab"], "fields": ("title", ("post_type", "status", "publish_at"), ("pillar", "platforms"), "posted_url", "notes")}),
         ("Design", {"classes": ["tab"], "fields": (("template", "format"), "eyebrow", ("headline", "accent_word"), "body",
                                                     "attribution", ("island", "listing", "activity"), "island_b", "image", "image_url", "photo_credit")}),
         ("Caption", {"classes": ["tab"], "fields": ("caption", "hashtags", "link")}),
+        ("Reel / story", {"classes": ["tab"], "fields": ("script",)}),
     )
 
     def get_changeform_initial_data(self, request):
@@ -187,6 +188,10 @@ class SocialPostAdmin(ModelAdmin):
     def open_calendar(self, request):
         return redirect("admin:social_calendar")
 
+    @action(description="Feed preview", icon="grid_view", url_path="go-feed")
+    def open_feed(self, request):
+        return redirect("admin:social_feed")
+
     @action(description="Design templates", icon="palette", url_path="go-templates")
     def open_templates(self, request):
         return redirect("admin:social_templates")
@@ -208,6 +213,8 @@ class SocialPostAdmin(ModelAdmin):
         view = self.admin_site.admin_view
         return [
             path("calendar/", view(self.calendar_view), name="social_calendar"),
+            path("feed/", view(self.feed_view), name="social_feed"),
+            path("feed/swap/", view(self.feed_swap), name="social_feed_swap"),
             path("templates/", view(self.templates_view), name="social_templates"),
             path("playbook/", view(self.playbook_view), name="social_playbook"),
             path("image/", view(self.image_proxy), name="social_image_proxy"),
@@ -251,6 +258,24 @@ class SocialPostAdmin(ModelAdmin):
             first = dt.date(year, month, 1)
         except ValueError:
             first = today.replace(day=1)
+        if request.method == "POST" and self.has_add_permission(request) and request.POST.get("plan_month"):
+            try:
+                y, m = (int(x) for x in request.POST["plan_month"].split("-"))
+                target = dt.date(y, m, 1)
+            except ValueError:
+                target = first
+            existing = SocialPost.objects.filter(publish_at__year=target.year, publish_at__month=target.month)
+            if request.POST.get("replace"):
+                removed, _ = existing.filter(status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+            if existing.exists() and not request.POST.get("replace"):
+                messages.warning(request, f"{target:%B} already has {existing.count()} posts. Tick 'Replace drafts' to redo the month's drafts.")
+            else:
+                posts = generate_month(target.year, target.month)
+                n_story = sum(p.post_type == "story" for p in posts)
+                n_reel = sum(p.post_type == "reel" for p in posts)
+                messages.success(request, f"Planned {target:%B}: {len(posts) - n_story - n_reel} feed posts, {n_reel} Reels and {n_story} Stories. "
+                                          "Check the feed preview, drag tiles to reorder, then review each post.")
+            return redirect(reverse("admin:social_calendar") + f"?month={target:%Y-%m}")
         if request.method == "POST" and self.has_add_permission(request):
             weeks = max(1, min(int(request.POST.get("weeks", 4) or 4), 12))
             start = SocialPost.objects.filter(publish_at__isnull=False).order_by("-publish_at").first()
@@ -277,6 +302,55 @@ class SocialPostAdmin(ModelAdmin):
             counts=[(label, counts[k], k) for k, label in SocialPost.STATUS_CHOICES],
             unscheduled=SocialPost.objects.filter(publish_at__isnull=True).exclude(status=SocialPost.STATUS_POSTED)[:20],
             overdue=[p for p in posts if p.is_overdue and p.status != SocialPost.STATUS_SCHEDULED]))
+
+    def feed_view(self, request):
+        """A preview of the Instagram profile: the grid as it will look once the month's posts are out."""
+        today = timezone.localdate()
+        try:
+            year, month = (int(x) for x in request.GET.get("month", "").split("-"))
+            first = dt.date(year, month, 1)
+        except ValueError:
+            first = today.replace(day=1)
+        end = (first + dt.timedelta(days=32)).replace(day=1)
+        base = (SocialPost.objects.filter(platforms__contains="instagram", publish_at__isnull=False)
+                .select_related("island", "island__atoll", "listing", "activity", "island_b", "island_b__atoll"))
+        grid = list(base.filter(post_type__in=SocialPost.GRID_TYPES, publish_at__date__lt=end).order_by("-publish_at")[:45])
+        stories = list(base.filter(post_type=SocialPost.TYPE_STORY, publish_at__date__gte=first, publish_at__date__lt=end).order_by("publish_at"))
+
+        def tile(p):
+            return {"post": p, "photo": proxied(p.photo), "photo_b": proxied(p.photo_b),
+                    "in_month": first <= timezone.localtime(p.publish_at).date() < end,
+                    "upcoming": p.status != SocialPost.STATUS_POSTED}
+        tiles = [tile(p) for p in grid]
+        # Same template side by side in a row reads as repetitive on the grid.
+        for i, t in enumerate(tiles):
+            t["clash"] = bool(i % 3 and tiles[i - 1]["post"].template == t["post"].template)
+        month_grid = [t for t in tiles if t["in_month"]]
+        return TemplateResponse(request, "admin/social/feed.html", self._context(
+            request, title="Instagram feed preview", month=first,
+            highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
+            reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
+            prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,
+            n_month=len(month_grid), n_reels=sum(t["post"].post_type == "reel" for t in month_grid),
+            n_carousels=sum(t["post"].post_type == "carousel" for t in month_grid),
+            n_total=SocialPost.objects.filter(platforms__contains="instagram", post_type__in=SocialPost.GRID_TYPES,
+                                              status=SocialPost.STATUS_POSTED).count(),
+            clashes=sum(t["clash"] for t in tiles if t["in_month"])))
+
+    def feed_swap(self, request):
+        """Swap the dates of two posts, so dragging a tile in the feed preview moves it in the schedule."""
+        if request.method != "POST" or not self.has_change_permission(request):
+            raise PermissionDenied
+        try:
+            a, b = (SocialPost.objects.get(pk=int(request.POST[k])) for k in ("a", "b"))
+        except (KeyError, ValueError, SocialPost.DoesNotExist):
+            raise Http404
+        if SocialPost.STATUS_POSTED in (a.status, b.status):
+            return JsonResponse({"ok": False, "error": "Posted posts can't be moved."}, status=400)
+        a.publish_at, b.publish_at = b.publish_at, a.publish_at
+        a.save(update_fields=["publish_at", "updated_at"])
+        b.save(update_fields=["publish_at", "updated_at"])
+        return JsonResponse({"ok": True})
 
     def playbook_view(self, request):
         return TemplateResponse(request, "admin/social/playbook.html", self._context(

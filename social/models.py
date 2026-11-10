@@ -52,6 +52,9 @@ class SocialPost(models.Model):
         "brand": "The brand story on Channel: the atoll, the kandu and the cowrie, with the symbol.",
         "hostcall": "On Channel. Invite guest houses, dive centres and boat operators to list. One benefit per line.",
     }
+    TYPE_FEED, TYPE_CAROUSEL, TYPE_REEL, TYPE_STORY = "feed", "carousel", "reel", "story"
+    TYPE_CHOICES = [(TYPE_FEED, "Feed post"), (TYPE_CAROUSEL, "Carousel"), (TYPE_REEL, "Reel"), (TYPE_STORY, "Story")]
+    GRID_TYPES = (TYPE_FEED, TYPE_CAROUSEL, TYPE_REEL)
     PILLAR_CHOICES = [
         ("islands", "Islands"), ("hosts", "Local hosts"), ("experiences", "Experiences"),
         ("practical", "Practical tips"), ("culture", "Culture & story"), ("news", "News"),
@@ -66,6 +69,10 @@ class SocialPost(models.Model):
     pillar = models.CharField(max_length=12, choices=PILLAR_CHOICES, default="islands")
     template = models.CharField("Design template", max_length=12, choices=TEMPLATE_CHOICES, default="island")
     format = models.CharField(max_length=10, choices=FORMAT_CHOICES, default="portrait")
+    post_type = models.CharField("Type", max_length=10, choices=TYPE_CHOICES, default=TYPE_FEED,
+                                 help_text="Feed posts, carousels and Reels show on the profile grid. Stories don't.")
+    script = models.TextField("Reel / story plan", blank=True,
+                              help_text="Reels: hook, shots, on-screen text and audio. Stories: which sticker to add (poll, quiz, link).")
     platforms = models.CharField(max_length=80, default="instagram,facebook",
                                  help_text="Comma-separated: instagram, facebook, tiktok, x, linkedin")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_DRAFT)
@@ -133,6 +140,10 @@ class SocialPost(models.Model):
             if url:
                 return url
         return ""
+
+    @property
+    def on_grid(self):
+        return self.post_type in self.GRID_TYPES
 
     @property
     def photo_b(self):
