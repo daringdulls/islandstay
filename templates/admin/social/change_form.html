@@ -1,0 +1,118 @@
+{% extends "admin/change_form.html" %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
+{% block content %}
+<div class="le-wrap">
+  <div class="le-form">{{ block.super }}</div>
+  <aside class="le-side" id="live" aria-label="Live preview">
+    <div class="le-head">
+      <b>Live preview</b>
+      <span id="le-size"></span>
+    </div>
+    <div class="le-stage" id="le-stage"><div class="le-frame" id="le-frame"><div class="le-scale" id="le-scale"></div></div></div>
+    <div class="le-modes" role="radiogroup" aria-label="Drag to move">
+      <span>Drag to move</span>
+      <button type="button" class="on" data-mode="text" role="radio" aria-checked="true">Text</button>
+      <button type="button" data-mode="photo" role="radio" aria-checked="false">Photo</button>
+    </div>
+    <label class="le-slider">Photo zoom <input type="range" min="1" max="3" step="0.05" data-key="pz"><output></output></label>
+    <label class="le-slider">Headline size <input type="range" min="0.5" max="1.8" step="0.05" data-key="hs"><output></output></label>
+    <label class="le-slider">Text size <input type="range" min="0.6" max="1.6" step="0.05" data-key="bs"><output></output></label>
+    <div class="sd-row" style="margin-top:10px">
+      <button type="button" class="sd-btn" id="le-reset">Reset layout</button>
+      {% if original.pk %}<a class="sd-btn" href="{% url 'admin:social_socialpost_design' original.pk %}">Open design</a>{% endif %}
+    </div>
+    <p class="le-hint">Updates as you type. Drag the preview to move the text or the photo, then press Save. Text always stays on its panel.</p>
+  </aside>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('socialpost_form');
+  if (!form) return;
+  var layoutInput = form.querySelector('[name=layout]');
+  var stage = document.getElementById('le-stage'), frame = document.getElementById('le-frame'), holder = document.getElementById('le-scale');
+  var sizeLabel = document.getElementById('le-size'), mode = 'text', scale = 1, timer = null, busy = false, again = false;
+  var DEFAULTS = { px: 50, py: 50, pz: 1, tx: 0, ty: 0, hs: 1, bs: 1 };
+  var csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  function layout() { try { return Object.assign({}, DEFAULTS, JSON.parse(layoutInput.value || '{}')); } catch (e) { return Object.assign({}, DEFAULTS); } }
+  function saveLayout(v) {
+    var out = {};
+    Object.keys(DEFAULTS).forEach(function (k) { if (Math.abs(v[k] - DEFAULTS[k]) > 0.001) out[k] = Math.round(v[k] * 100) / 100; });
+    layoutInput.value = JSON.stringify(out);
+    form.dispatchEvent(new Event('change', { bubbles: true }));  // tells the admin there are unsaved changes
+    apply(v);
+  }
+  function apply(v) {
+    var sp = holder.querySelector('.sp'); if (!sp) return;
+    sp.style.setProperty('--px', v.px + '%'); sp.style.setProperty('--py', v.py + '%'); sp.style.setProperty('--pz', v.pz);
+    sp.style.setProperty('--tx', v.tx + 'px'); sp.style.setProperty('--ty', v.ty + 'px');
+    sp.style.setProperty('--hs', v.hs); sp.style.setProperty('--bs', v.bs);
+    document.querySelectorAll('.le-slider input').forEach(function (i) { i.value = v[i.dataset.key]; i.nextElementSibling.textContent = Math.round(v[i.dataset.key] * 100) + '%'; });
+  }
+  function fit() {
+    var sp = holder.querySelector('.sp'); if (!sp) return;
+    var w = +sp.dataset.w, h = +sp.dataset.h;
+    scale = Math.min((stage.clientWidth - 24) / w, 560 / h);
+    frame.style.width = w * scale + 'px'; frame.style.height = h * scale + 'px';
+    holder.style.transform = 'scale(' + scale + ')';
+    sizeLabel.textContent = w + ' × ' + h;
+  }
+  function refresh() {
+    if (busy) { again = true; return; }
+    busy = true;
+    var fd = new FormData(form), body = new FormData();
+    fd.forEach(function (v, k) { if (!(v instanceof File)) body.append(k, v); });
+    body.append('pk', '{{ original.pk|default:"" }}');
+    fetch('{% url "admin:social_live_preview" %}', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: body })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { holder.innerHTML = d.html; fit(); apply(layout()); })
+      .catch(function () {})
+      .finally(function () { busy = false; if (again) { again = false; refresh(); } });
+  }
+  form.addEventListener('input', function (e) { if (e.target !== layoutInput) { clearTimeout(timer); timer = setTimeout(refresh, 350); } });
+  form.addEventListener('change', function (e) { if (e.target !== form && e.target !== layoutInput) { clearTimeout(timer); timer = setTimeout(refresh, 150); } });
+  addEventListener('resize', fit);
+
+  document.querySelectorAll('.le-modes [data-mode]').forEach(function (b) {
+    b.onclick = function () {
+      mode = b.dataset.mode;
+      document.querySelectorAll('.le-modes [data-mode]').forEach(function (x) { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
+      stage.dataset.mode = mode;
+    };
+  });
+  stage.dataset.mode = mode;
+  document.querySelectorAll('.le-slider input').forEach(function (i) {
+    i.addEventListener('input', function () { var v = layout(); v[i.dataset.key] = +i.value; saveLayout(v); });
+  });
+  document.getElementById('le-reset').onclick = function () { saveLayout(Object.assign({}, DEFAULTS)); };
+
+  // Drag: text moves its block; photo pans the picture inside its frame.
+  var drag = null;
+  stage.addEventListener('pointerdown', function (e) {
+    var sp = holder.querySelector('.sp'); if (!sp) return;
+    var photo = sp.querySelector('.sp-photo');
+    if (mode === 'photo' && !photo) { mode = 'text'; }
+    drag = { x: e.clientX, y: e.clientY, start: layout(), photo: photo };
+    stage.setPointerCapture(e.pointerId); stage.classList.add('dragging'); e.preventDefault();
+  });
+  stage.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var dx = (e.clientX - drag.x) / scale, dy = (e.clientY - drag.y) / scale, v = Object.assign({}, drag.start);
+    if (mode === 'photo' && drag.photo) {
+      var r = drag.photo.getBoundingClientRect();
+      v.px = Math.min(100, Math.max(0, drag.start.px - (e.clientX - drag.x) / r.width * 100 / v.pz * 1.5));
+      v.py = Math.min(100, Math.max(0, drag.start.py - (e.clientY - drag.y) / r.height * 100 / v.pz * 1.5));
+    } else {
+      v.tx = Math.min(600, Math.max(-600, Math.round(drag.start.tx + dx)));
+      v.ty = Math.min(900, Math.max(-900, Math.round(drag.start.ty + dy)));
+    }
+    apply(v); drag.now = v;
+  });
+  function end() { if (drag && drag.now) saveLayout(drag.now); drag = null; stage.classList.remove('dragging'); }
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+
+  apply(layout());
+  refresh();
+})();
+</script>
+{% endblock %}

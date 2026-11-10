@@ -1,5 +1,5 @@
 {% load static social_design %}{% with p=post w=post.size.0 h=post.size.1 parts=post.headline_parts %}
-<div class="sp sp-{{ p.template }} sp-{{ p.format }}{% if not photo %} sp-nophoto{% endif %}" style="width:{{ w }}px;height:{{ h }}px" data-w="{{ w }}" data-h="{{ h }}">
+<div class="sp sp-{{ p.template }} sp-{{ p.format }}{% if not photo %} sp-nophoto{% endif %}" style="width:{{ w }}px;height:{{ h }}px;{{ p.layout_style }}" data-w="{{ w }}" data-h="{{ h }}">
   {% if p.template == "intro" %}
     <div class="sp-waves"></div>
     <div class="sp-panel">

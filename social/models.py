@@ -107,6 +107,8 @@ class SocialPost(models.Model):
     link = models.CharField(max_length=200, blank=True, help_text="Link in bio / link to share")
     notes = models.TextField(blank=True, help_text="Internal notes")
     posted_url = models.URLField(blank=True, help_text="Link to the published post")
+    layout = models.JSONField("Layout adjustments", default=dict, blank=True,
+                              help_text="Set in the live editor: photo position and zoom, text position and sizes.")
     ig_state = models.CharField("Instagram", max_length=12, choices=IG_CHOICES, default="", blank=True)
     ig_image_url = models.URLField("Rendered image", max_length=500, blank=True)
     ig_container_id = models.CharField(max_length=40, blank=True)
@@ -153,6 +155,27 @@ class SocialPost(models.Model):
             if url:
                 return url
         return ""
+
+    LAYOUT_LIMITS = {"px": (0, 100, 50), "py": (0, 100, 50), "pz": (1, 3, 1), "tx": (-600, 600, 0), "ty": (-900, 900, 0),
+                     "hs": (0.5, 1.8, 1), "bs": (0.6, 1.6, 1)}
+
+    @property
+    def layout_values(self):
+        """The live-editor adjustments, clamped to safe ranges (missing ones use the template's default)."""
+        out = {}
+        raw = self.layout if isinstance(self.layout, dict) else {}
+        for key, (lo, hi, default) in self.LAYOUT_LIMITS.items():
+            try:
+                out[key] = min(hi, max(lo, float(raw.get(key, default))))
+            except (TypeError, ValueError):
+                out[key] = default
+        return out
+
+    @property
+    def layout_style(self):
+        v = self.layout_values
+        return (f"--px:{v['px']:g}%;--py:{v['py']:g}%;--pz:{v['pz']:g};--tx:{v['tx']:g}px;--ty:{v['ty']:g}px;"
+                f"--hs:{v['hs']:g};--bs:{v['bs']:g}")
 
     @property
     def on_grid(self):

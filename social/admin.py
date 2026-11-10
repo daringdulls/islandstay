@@ -124,6 +124,7 @@ def sample_post(template, fmt="portrait"):
 class SocialPostAdmin(ModelAdmin):
     compressed_fields = True
     warn_unsaved_form = True
+    change_form_template = "admin/social/change_form.html"
     list_filter_submit = True
     list_per_page = 50
     list_display = ("post", "when", "post_type", "template_badge", "format", "platform_names", "status_badge", "design_link")
@@ -138,7 +139,7 @@ class SocialPostAdmin(ModelAdmin):
     fieldsets = (
         ("Plan", {"classes": ["tab"], "fields": ("title", ("post_type", "status", "publish_at"), ("pillar", "platforms"), "posted_url", "notes")}),
         ("Design", {"classes": ["tab"], "fields": (("template", "format"), "eyebrow", ("headline", "accent_word"), "body",
-                                                    "attribution", ("island", "listing", "activity"), "island_b", "image", "image_url", "photo_credit")}),
+                                                    "attribution", ("island", "listing", "activity"), "island_b", "layout", "image", "image_url", "photo_credit")}),
         ("Caption", {"classes": ["tab"], "fields": ("caption", "hashtags", "link")}),
         ("Reel / story", {"classes": ["tab"], "fields": ("script",)}),
     )
@@ -225,6 +226,7 @@ class SocialPostAdmin(ModelAdmin):
         return [
             path("calendar/", view(self.calendar_view), name="social_calendar"),
             path("feed/", view(self.feed_view), name="social_feed"),
+            path("preview/", view(self.live_preview), name="social_live_preview"),
             path("instagram/", view(self.instagram_view), name="social_instagram"),
             path("instagram/connect/", view(self.instagram_connect), name="social_instagram_connect"),
             path("instagram/callback/", view(self.instagram_callback), name="social_instagram_callback"),
@@ -556,6 +558,45 @@ class SocialPostAdmin(ModelAdmin):
         name = default_storage.save(f"social/assets/{post.pk}-video-{part:03d}.part", f)
         SocialAsset.objects.create(post=post, kind=kind, file=name, name=request.POST.get("name", "")[:120], order=part, size=f.size)
         return JsonResponse({"ok": True})
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "layout":
+            from django import forms
+            kwargs["widget"] = forms.HiddenInput
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    PREVIEW_FIELDS = ("title", "template", "format", "post_type", "eyebrow", "headline", "accent_word", "body",
+                      "attribution", "image_url", "photo_credit")
+
+    def live_preview(self, request):
+        """Render the design from the edit form's current (unsaved) values, for the live editor."""
+        import json
+
+        from django.template.loader import render_to_string
+        from directory.models import ActivityType, Listing
+
+        if request.method != "POST" or not self.has_view_permission(request):
+            raise PermissionDenied
+        saved = SocialPost.objects.filter(pk=request.POST.get("pk") or 0).first()
+        post = SocialPost(image=saved.image if saved else "")
+        for name in self.PREVIEW_FIELDS:
+            if name in request.POST:
+                setattr(post, name, request.POST[name])
+        if post.template not in dict(SocialPost.TEMPLATE_CHOICES):
+            post.template = "island"
+        if post.format not in SocialPost.FORMAT_SIZES:
+            post.format = "portrait"
+        models = {"island": Island, "listing": Listing, "activity": ActivityType, "island_b": Island}
+        for name, model in models.items():
+            value = request.POST.get(name, "")
+            setattr(post, name, model.objects.filter(pk=value).first() if value.isdigit() else None)
+        try:
+            post.layout = json.loads(request.POST.get("layout") or "{}")
+        except ValueError:
+            post.layout = {}
+        html = render_to_string("admin/social/_canvas.html", {"post": post, "photo": proxied(post.photo),
+                                                               "photo_b": proxied(post.photo_b)}, request=request)
+        return JsonResponse({"html": html, "w": post.size[0], "h": post.size[1]})
 
     def feed_swap(self, request):
         """Swap the dates of two posts, so dragging a tile in the feed preview moves it in the schedule."""

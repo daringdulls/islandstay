@@ -396,3 +396,22 @@ class PostAsTests(TestCase):
         self.assertIn(f"/{copy.pk}/design/", r.json()["url"])
         r = self.client.get(r.json()["url"])
         self.assertContains(r, 'data-type="story"')
+
+
+class LiveEditorTests(TestCase):
+    def test_preview_renders_unsaved_values_and_layout(self):
+        admin = get_user_model().objects.create_superuser("boss12@x.mv", "boss12@x.mv", "pw")
+        self.client.force_login(admin)
+        r = self.client.post(reverse("admin:social_live_preview"), {
+            "template": "intro", "format": "square", "headline": "Hello reef", "accent_word": "reef",
+            "layout": '{"tx": 40, "ty": -9999, "hs": 1.2, "evil": "x;}"}'})
+        d = r.json()
+        self.assertEqual((d["w"], d["h"]), (1080, 1080))
+        self.assertIn("Hello <em>reef</em>", d["html"])
+        self.assertIn("--tx:40px;--ty:-900px", d["html"])  # clamped
+        self.assertIn("--hs:1.2", d["html"])
+        self.assertNotIn("evil", d["html"])
+        post = SocialPost.objects.create(title="t", headline="h")
+        r = self.client.get(reverse("admin:social_socialpost_change", args=[post.pk]))
+        self.assertContains(r, 'id="le-stage"')
+        self.assertContains(r, 'name="layout"')
