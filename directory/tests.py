@@ -1273,3 +1273,16 @@ class SeoTests(TestCase):
         from django.test import override_settings
         with override_settings(GOOGLE_SITE_VERIFICATION="abc123"):
             self.assertContains(self.client.get("/"), '<meta name="google-site-verification" content="abc123">', html=False)
+
+
+class GoogleTagTests(TestCase):
+    def test_tag_only_when_configured_and_never_in_back_office(self):
+        from django.test import override_settings
+        self.assertNotContains(self.client.get("/privacy/"), "googletagmanager")
+        with override_settings(GA_MEASUREMENT_ID="G-TEST123"):
+            r = self.client.get("/privacy/")
+            self.assertContains(r, "gtag/js?id=")
+            self.assertContains(r, '"G-TEST123"')
+            self.assertContains(r, 'analytics_storage: "denied"')
+            self.assertContains(self.client.get("/cookies/"), "Google Analytics")
+            self.assertNotContains(self.client.get("/accounts/login/"), "googletagmanager")

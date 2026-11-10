@@ -22,7 +22,16 @@
     <tr><td>is_vid</td><td>A random ID that lets us recognise a returning browser, so we can see which pages and islands people visit, what they search for and click, and where they leave. It doesn't contain your name or contact details.</td><td>13 months</td></tr>
     <tr><td>is_sid (browser storage)</td><td>Groups the pages you view in one visit; a new visit starts after 30 minutes without activity.</td><td>Until cleared</td></tr>
   </table>
-  <p>If you choose “Essential only”, we count page views anonymously, without any ID.</p>
+  {% if GA_MEASUREMENT_ID %}
+  <h3>Google Analytics (only if you choose “Accept all”)</h3>
+  <p>We also use Google Analytics to understand how visitors find and use the site. Google sets these cookies and processes the data under its <a href="https://policies.google.com/privacy" rel="noopener">privacy policy</a>. IP addresses are shortened, and no advertising features are used.</p>
+  <table>
+    <tr><th>Name</th><th>Purpose</th><th>Lasts</th></tr>
+    <tr><td>_ga</td><td>Distinguishes visitors for Google Analytics.</td><td>2 years</td></tr>
+    <tr><td>_ga_&lt;ID&gt;</td><td>Keeps the state of a visit for Google Analytics.</td><td>2 years</td></tr>
+  </table>
+  {% endif %}
+  <p>If you choose “Essential only”, we count page views anonymously, without any ID, and Google Analytics is not loaded.</p>
 
   <h2>Changing your mind</h2>
   <p>Use <a href="#" data-cookie-settings>Cookie settings</a> at any time, or delete cookies in your browser settings. Withdrawing consent stops analytics from then on.</p>

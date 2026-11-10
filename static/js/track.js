@@ -15,6 +15,7 @@
     setCookie('is_consent', level, 180);
     if (level !== 'all') { setCookie('is_vid', '', -1); }
     if (banner) banner.hidden = true;
+    try { document.dispatchEvent(new CustomEvent('is:consent', { detail: level })); } catch (e) {}
     start();
   }
   if (banner) {

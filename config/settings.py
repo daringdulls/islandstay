@@ -357,3 +357,6 @@ BING_SITE_VERIFICATION = os.environ.get("BING_SITE_VERIFICATION", "").strip()
 
 # Island Stay's social media profiles (shown to Google as the same organisation). Comma separated full URLs.
 SOCIAL_PROFILES = [u.strip() for u in os.environ.get("SOCIAL_PROFILES", "").split(",") if u.strip().startswith("https://")]
+
+# Google Analytics 4 "Measurement ID" (G-XXXXXXXXXX). Empty = no Google tag. Loads only after "Accept all".
+GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()

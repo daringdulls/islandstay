@@ -125,6 +125,26 @@
 </div>
 <script src="{% static 'js/site.js' %}" defer></script>
 {% if not preview %}<script src="{% static 'js/track.js' %}" defer></script>{% endif %}
+{% if GA_MEASUREMENT_ID and not preview %}
+<script>
+/* Google Analytics: loads only after the visitor chooses "Accept all" on the cookie banner. */
+(function () {
+  var id = "{{ GA_MEASUREMENT_ID }}", loaded = false;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function () { dataLayer.push(arguments); };
+  gtag("consent", "default", { analytics_storage: "denied", ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+  function load() {
+    if (loaded) return; loaded = true;
+    gtag("consent", "update", { analytics_storage: "granted" });
+    var s = document.createElement("script"); s.async = true; s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+    document.head.appendChild(s);
+    gtag("js", new Date()); gtag("config", id, { anonymize_ip: true });
+  }
+  if (/(?:^|; )is_consent=all/.test(document.cookie)) load();
+  document.addEventListener("is:consent", function (e) { if (e.detail === "all") load(); });
+})();
+</script>
+{% endif %}
 {% block extra_js %}{% endblock %}
 </body>
 </html>
