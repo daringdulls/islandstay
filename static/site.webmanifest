@@ -1,0 +1,14 @@
+{
+  "name": "Island Stay",
+  "short_name": "Island Stay",
+  "description": "Local islands of the Maldives: stay with local hosts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8EC",
+  "theme_color": "#0A3D4C",
+  "icons": [
+    {"src": "/static/img/brand/icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/static/img/brand/icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/static/img/brand/app-icon.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}

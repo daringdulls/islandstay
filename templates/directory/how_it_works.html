@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}How it works{% endblock %}
+{% block title %}How Island Stay works{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "How it works" "" %}{% endblock %}
 {% block content %}
 {% page_banner "how_it_works" as banner %}<section class="page-hero{% if banner.0 %} has-photo{% endif %}">{% if banner.0 %}<img class="page-hero-bg" src="{{ banner.0 }}" alt="" onerror="this.remove()">{% if banner.1 %}<span class="hero-credit">{{ banner.1 }}</span>{% endif %}{% endif %}<div class="container"><div class="eyebrow">About</div><h1>How {{ SITE_NAME }} works</h1><p>An independent guide, not a booking engine. We connect you directly with the people who run the guest houses, operators and restaurants on each island.</p></div></section>
 <div class="container section" style="max-width:880px">

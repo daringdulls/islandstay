@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if island %}Shops and souvenirs on {{ island.name }}{% else %}Shops, souvenirs and handicrafts on the local islands{% endif %}{% endblock %}
+{% block title %}{% if island %}Shops and souvenirs on {{ island.name }}{% else %}Souvenir shops on Maldives local islands{% endif %}{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Shops" "" %}{% endblock %}
 {% block meta_description %}Souvenir and handicraft shops, supermarkets and local stores on the inhabited islands of the Maldives. Find what is on each island and message the shop directly.{% endblock %}
 {% block content %}
 

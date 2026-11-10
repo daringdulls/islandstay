@@ -4,20 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Local islands of the Maldives — stays, experiences, transport & food{% endblock %} · {{ SITE_NAME }}</title>
-  <meta name="description" content="{% block meta_description %}A guide to the local islands of the Maldives. Find guest houses, experiences, transport and places to eat, and contact local hosts directly.{% endblock %}">
+  <meta name="description" content="{% filter striptags|truncatechars:160 %}{% block meta_description %}A guide to the local islands of the Maldives. Find guest houses, experiences, transport and places to eat, and contact local hosts directly.{% endblock %}{% endfilter %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://upload.wikimedia.org" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;800&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
   <script>if (!window.matchMedia || !matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("motion");</script>
-  <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <link rel="canonical" href="{{ CANONICAL_URL }}">
+  <meta name="theme-color" content="#0A3D4C">
+  <link rel="apple-touch-icon" href="{% static 'img/brand/icon-180.png' %}">
+  <link rel="manifest" href="{% static 'site.webmanifest' %}">
+  {% if GOOGLE_SITE_VERIFICATION %}<meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION }}">{% endif %}
+  {% if BING_SITE_VERIFICATION %}<meta name="msvalidate.01" content="{{ BING_SITE_VERIFICATION }}">{% endif %}
   <meta property="og:site_name" content="{{ SITE_NAME }}">
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
   <meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}: local islands of the Maldives{% endblock %}">
   <meta property="og:description" content="{% block og_description %}Guest houses, experiences, transport and food on the local islands of the Maldives. Contact local hosts directly, with no booking fees.{% endblock %}">
-  <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
-  {% block og_image %}{% endblock %}
+  <meta property="og:url" content="{{ CANONICAL_URL }}">
+  <meta property="og:locale" content="en_GB">
+  {% block og_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'img/brand/og-default.png' %}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">{% endblock %}
   <meta name="twitter:card" content="summary_large_image">
   {% for item in ld %}<script type="application/ld+json">{{ item|jsonld }}</script>
   {% endfor %}
@@ -103,6 +109,7 @@
         <li><a href="#" data-cookie-settings>Cookie settings</a></li>
       </ul></div>
     </div>
+    {% if FOOTER_ISLANDS %}<div class="footer-islands"><h4>Popular islands</h4><ul>{% for name, url in FOOTER_ISLANDS %}<li><a href="{{ url }}">{{ name }}</a></li>{% endfor %}<li><a href="{% url 'directory:island_list' %}">All islands</a></li></ul></div>{% endif %}
     <div class="footer-bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span>Island facts: 2022 Maldives Population and Housing Census and Wikipedia. Icons: Lucide (ISC).</span></div>
   </div>
 </footer>

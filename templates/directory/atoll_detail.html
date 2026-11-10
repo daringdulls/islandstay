@@ -1,5 +1,8 @@
 {% extends "base.html" %}
-{% block title %}{{ atoll.name }} Atoll — local islands{% endblock %}
+{% load ui %}
+{% block title %}{{ atoll.name }} Atoll, Maldives: local islands and stays{% endblock %}
+{% block meta_description %}{{ atoll.name }} Atoll{% if atoll.official_name and atoll.official_name != atoll.name %} ({{ atoll.official_name }}){% endif %}, Maldives: local islands, guest houses, experiences and how to get there.{% if atoll.description %} {{ atoll.description|truncatechars:90 }}{% endif %}{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Atolls" "/atolls/" atoll.name "" %}{% endblock %}
 {% block content %}
 <section class="page-hero"><div class="container">
   <div class="crumbs"><a href="{% url 'directory:atoll_list' %}">Atolls</a></div>

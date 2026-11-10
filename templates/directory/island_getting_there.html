@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
 {% block title %}How to get to {{ island.name }} from Malé airport{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Islands" "/islands/" island.name island.get_absolute_url "Getting there" "" %}{% endblock %}
 {% block meta_description %}Getting to {{ island.name }}, {{ island.atoll.name }}: {% if island.transfer_time %}about {{ island.transfer_time|cut:"≈" }} from Velana Airport. {% endif %}Speedboat, ferry and flight options, schedules and transfer operators.{% endblock %}
 {% block og_title %}How to get to {{ island.name }}{% endblock %}
 {% block content %}

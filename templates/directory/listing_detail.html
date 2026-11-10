@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{{ listing.name }}, {{ listing.island.name }}{% endblock %}
-{% block meta_description %}{{ listing.short_description }}{% endblock %}
+{% block title %}{{ listing.name }}, {{ listing.island.name }}, Maldives{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Islands" "/islands/" listing.island.name listing.island.get_absolute_url listing.name "" %}{% endblock %}
+{% block meta_description %}{{ listing.short_description|default:listing.name }}{% if listing.short_description and listing.short_description|last != "." %}.{% endif %} {{ listing.get_kind_display }} on {{ listing.island.name }}, {{ listing.island.atoll.name }}, Maldives.{% if listing.is_verified %} Verified local host.{% endif %} Message them directly, no booking fees.{% endblock %}
 {% block og_title %}{{ listing.name }}, {{ listing.island.name }}{% endblock %}
 {% block og_description %}{{ listing.short_description }}{% endblock %}
-{% block og_image %}{% if listing.photo_url %}<meta property="og:image" content="{% if listing.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ listing.photo_url }}">{% endif %}{% endblock %}
+{% block og_image %}{% if listing.photo_url %}<meta property="og:image" content="{% if listing.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ listing.photo_url }}">{% else %}{{ block.super }}{% endif %}{% endblock %}
 {% block content %}
 <div class="container" style="padding-top:28px">
   {% if not listing.is_live %}<div class="notice warn" style="margin-bottom:16px">{% icon "info" %}<span>Preview: this listing is <b>{{ listing.get_status_display|lower }}</b> and not visible to the public.{% if listing.admin_note %} Note from our team: {{ listing.admin_note }}{% endif %}</span></div>{% endif %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if island %}Getting to {{ island.name }}{% else %}Getting around the Maldives{% endif %}: ferries, speedboats and flights{% endblock %}
+{% block title %}{% if island %}Getting to {{ island.name }}: ferry and speedboat{% else %}Maldives ferries, speedboats and flights{% endif %}{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Transport" "" %}{% endblock %}
 {% block meta_description %}How to reach the local islands of the Maldives from Velana Airport and Malé: public ferries, shared and private speedboats, domestic flights and seaplanes, with journey times and transfer operators.{% endblock %}
 {% block content %}
 

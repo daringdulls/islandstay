@@ -72,7 +72,19 @@ def home(request):
     if len(pop4) < 4:
         pop4 += [i for i in _islands().filter(details_verified=True).order_by("-stay_count", "name") if i not in pop4 and i.photo_url][: 4 - len(pop4)]
     ideas = [a for a in ActivityType.objects.annotate(n=Count("islands", filter=Q(islands__is_published=True))).filter(n__gt=0).order_by("-n") if a.image_url][:6]
+    base = request.build_absolute_uri("/").rstrip("/")
+    from django.templatetags.static import static as _static
+    ld = [
+        {"@context": "https://schema.org", "@type": "Organization", "name": settings.SITE_NAME, "url": base + "/",
+         "logo": base + _static("img/brand/icon-512.png"),
+         "description": "An independent guide to the local islands of the Maldives, connecting travellers directly with local hosts.",
+         **({"sameAs": settings.SOCIAL_PROFILES} if getattr(settings, "SOCIAL_PROFILES", None) else {})},
+        {"@context": "https://schema.org", "@type": "WebSite", "name": settings.SITE_NAME, "url": base + "/",
+         "potentialAction": {"@type": "SearchAction", "target": {"@type": "EntryPoint", "urlTemplate": base + "/search/?q={search_term_string}"},
+                             "query-input": "required name=search_term_string"}},
+    ]
     return render(request, "directory/home.html", {
+        "ld": ld,
         "hero_photos": hero_photos,
         "popular4": pop4,
         "ideas": ideas,

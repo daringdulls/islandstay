@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if activity %}{{ activity.name }} in the Maldives{% elif island %}Things to do on {{ island.name }}{% else %}Experiences on the local islands{% endif %}{% endblock %}
-{% block meta_description %}Snorkelling, diving, manta and whale shark trips, sandbank picnics and fishing on the local islands of the Maldives, run by local operators you can message directly.{% endblock %}
+{% block title %}{% if activity %}{{ activity.name }} in the Maldives: islands and trips{% elif island %}Things to do on {{ island.name }}, Maldives{% else %}Things to do on Maldives local islands{% endif %}{% endblock %}
+{% block extra_head %}{% if activity %}{% ld_breadcrumbs "Experiences" "/experiences/" activity.name "" %}{% elif island %}{% ld_breadcrumbs "Islands" "/islands/" island.name island.get_absolute_url "Things to do" "" %}{% else %}{% ld_breadcrumbs "Experiences" "" %}{% endif %}{% endblock %}
+{% block meta_description %}{% if activity %}{{ activity.name }} in the Maldives{% if activity.description %}: {{ activity.description|lower }}{% endif %}. Find the local islands for it and message local operators directly.{% elif island %}Things to do on {{ island.name }}, {{ island.atoll.name }}: excursions, snorkelling and diving run by local operators you can message directly.{% else %}Snorkelling, diving, manta and whale shark trips, sandbank picnics and fishing on the local islands of the Maldives, run by local operators you can message directly.{% endif %}{% endblock %}
 {% block content %}
 
 {# ---------- banner ---------- #}

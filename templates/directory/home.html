@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load static ui humanize %}
-{% block title %}Local islands of the Maldives: stay with local hosts{% endblock %}
+{% block title %}Maldives local islands: stay with local hosts{% endblock %}
 {% block meta_description %}Find your island in the Maldives, then message the guest houses, operators and cafés who live there. Island guides, local stays and experiences with no booking fees.{% endblock %}
-{% block og_image %}{% if hero_photos %}<meta property="og:image" content="{% if hero_photos.0.url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ hero_photos.0.url }}">{% endif %}{% endblock %}
+{% block og_image %}{% if hero_photos %}<meta property="og:image" content="{% if hero_photos.0.url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ hero_photos.0.url }}">{% else %}{{ block.super }}{% endif %}{% endblock %}
 {% block content %}
 
 {# ---------- 1. hero + search ---------- #}

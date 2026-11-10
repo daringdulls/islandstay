@@ -349,3 +349,11 @@ UNFOLD = {
 
 # Vercel Cron calls /cron/photos/ with this secret to link missing Wikimedia photos.
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
+
+# Search engine verification codes (Google Search Console / Bing Webmaster Tools, "HTML tag" method):
+# paste only the content="..." value into these Vercel environment variables.
+GOOGLE_SITE_VERIFICATION = os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip()
+BING_SITE_VERIFICATION = os.environ.get("BING_SITE_VERIFICATION", "").strip()
+
+# Island Stay's social media profiles (shown to Google as the same organisation). Comma separated full URLs.
+SOCIAL_PROFILES = [u.strip() for u in os.environ.get("SOCIAL_PROFILES", "").split(",") if u.strip().startswith("https://")]

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
 {% block title %}{% if islands %}Compare {% for i in islands %}{{ i.name }}{% if not forloop.last %} vs {% endif %}{% endfor %}{% else %}Compare local islands{% endif %}{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Islands" "/islands/" "Compare islands" "" %}{% endblock %}
 {% block meta_description %}Compare local islands of the Maldives side by side: transfer time, bikini beach, ATM, health care, mobile data, places to stay and activities.{% endblock %}
 {% block content %}
 <section class="sv-head">

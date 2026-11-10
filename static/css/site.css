@@ -2013,3 +2013,15 @@ a.card:hover .cover img.cowrie { transform: none; }
   .hm-sticky:hover { text-decoration: none; }
   .hm-sticky .i { width: 18px; height: 18px; }
 }
+.footer-islands { margin-top: 36px; padding-top: 24px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.footer-islands ul { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.footer-islands a { color: rgba(255, 255, 255, .85); }
+.nf { max-width: 720px; text-align: center; }
+.nf-ico { display: inline-grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--shoal); margin-bottom: 12px; }
+.nf-ico .i { width: 34px; height: 34px; color: var(--sea); }
+.nf .lead { color: var(--ink-2); }
+.nf-search { margin: 22px auto 0; text-align: left; box-shadow: var(--shadow); border: 1px solid var(--line); }
+.nf-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 26px; }
+.nf-links a { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+.nf-links a:hover { text-decoration: none; border-color: var(--sea); }
+.nf-links .i { width: 17px; height: 17px; color: var(--sea); }

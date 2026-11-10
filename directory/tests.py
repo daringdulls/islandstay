@@ -1241,3 +1241,35 @@ class ContributionTests(TestCase):
         url = reverse("directory:island_contribute", args=["gulhi"])
         self.client.post(url, {"name": "Bot", "relation": "local", "fac_has_atm": "yes", "website": "spam"})
         self.assertFalse(IslandContribution.objects.exists())
+
+
+class SeoTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_home_structured_data_and_meta(self):
+        r = self.client.get("/")
+        for needle in ('"@type": "Organization"', '"@type": "WebSite"', "search_term_string", 'rel="canonical"',
+                       "og-default.png", 'name="theme-color"', "apple-touch-icon", "site.webmanifest", "Popular islands"):
+            self.assertContains(r, needle)
+
+    def test_breadcrumbs_canonical_and_description_length(self):
+        import re
+        r = self.client.get(reverse("directory:stay_list") + "?page=2&kind=hotel")
+        self.assertContains(r, '<link rel="canonical" href="http://testserver/stays/?page=2">', html=False)
+        self.assertContains(r, '"@type": "BreadcrumbList"')
+        listing = Listing.objects.filter(status="approved").first()
+        html = self.client.get(listing.get_absolute_url()).content.decode()
+        desc = re.search(r'<meta name="description" content="([^"]*)"', html).group(1)
+        self.assertLessEqual(len(desc), 160)
+        self.assertIn(listing.island.name, desc)
+
+    def test_404_page(self):
+        r = self.client.get("/no-such-page/")
+        self.assertEqual(r.status_code, 404)
+
+    def test_verification_meta(self):
+        from django.test import override_settings
+        with override_settings(GOOGLE_SITE_VERIFICATION="abc123"):
+            self.assertContains(self.client.get("/"), '<meta name="google-site-verification" content="abc123">', html=False)

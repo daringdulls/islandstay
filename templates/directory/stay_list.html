@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if island %}Where to stay on {{ island.name }}{% else %}Guest houses and places to stay on the local islands{% endif %}{% endblock %}
+{% block title %}{% if island %}Where to stay on {{ island.name }}: guest houses{% else %}Guest houses on Maldives local islands{% endif %}{% endblock %}
+{% block extra_head %}{% if island %}{% ld_breadcrumbs "Islands" "/islands/" island.name island.get_absolute_url "Where to stay" "" %}{% else %}{% ld_breadcrumbs "Stays" "" %}{% endif %}{% endblock %}
 {% block meta_description %}Guest houses, island hotels and home stays on the local islands of the Maldives. Message the host directly with no booking fees.{% endblock %}
 {% block content %}
 

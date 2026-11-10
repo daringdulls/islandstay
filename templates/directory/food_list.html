@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
-{% block title %}{% if island %}Where to eat on {{ island.name }}{% else %}Restaurants, cafés, beach huts and food trucks on the local islands{% endif %}{% endblock %}
+{% block title %}{% if island %}Where to eat on {{ island.name }}, Maldives{% else %}Cafés and restaurants on Maldives local islands{% endif %}{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Food" "" %}{% endblock %}
 {% block meta_description %}Cafés and family restaurants on the local islands of the Maldives: Maldivian breakfasts, reef fish, short eats and fresh juice. Find places to eat and message them directly.{% endblock %}
 {% block content %}
 

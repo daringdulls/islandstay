@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui humanize %}
-{% block title %}{% if atoll_obj %}Local islands in {{ atoll_obj.name }}{% else %}Local islands of the Maldives{% endif %}{% endblock %}
+{% block title %}{% if atoll_obj %}Local islands in {{ atoll_obj.name }}, Maldives{% else %}Local islands of the Maldives: island guides{% endif %}{% endblock %}
+{% block extra_head %}{% if atoll_obj %}{% ld_breadcrumbs "Islands" "/islands/" atoll_obj.name "" %}{% else %}{% ld_breadcrumbs "Islands" "" %}{% endif %}{% endblock %}
 {% block meta_description %}Guides to the inhabited local islands of the Maldives: what each island is known for, bikini beaches, facilities, local rules and how to get there from Malé.{% endblock %}
 {% block content %}
 

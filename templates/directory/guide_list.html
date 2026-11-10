@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load ui %}
 {% block title %}{% if cat_label %}{{ cat_label }}: {% elif island %}{{ island.name }}: {% endif %}Maldives local island travel guides{% endblock %}
+{% block extra_head %}{% ld_breadcrumbs "Travel guides" "" %}{% endblock %}
 {% block meta_description %}Practical guides to the local islands of the Maldives: local rules, airport transfers, the best time for whale sharks, mantas and surf, money and SIM cards.{% endblock %}
 {% block content %}
 <section class="il-hero gd-hero">

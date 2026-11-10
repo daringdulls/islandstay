@@ -111,3 +111,19 @@ def thumb(url):
 def guide_todo(text):
     """Escape text and highlight [prompts] still to replace (used in the editor preview)."""
     return mark_safe(_PLACEHOLDER.sub(r'<mark class="gd-todo">[\1]</mark>', str(conditional_escape(text))))
+
+
+@register.simple_tag(takes_context=True)
+def ld_breadcrumbs(context, *pairs):
+    """BreadcrumbList structured data: {% ld_breadcrumbs "Islands" "/islands/" island.name "" %}.
+    The last item may have an empty link: the current page is used."""
+    request = context.get("request")
+    if request is None:
+        return ""
+    base = f"{request.scheme}://{request.get_host()}"
+    items = [{"@type": "ListItem", "position": 1, "name": "Island Stay", "item": base + "/"}]
+    for n in range(0, len(pairs) - 1, 2):
+        name, url = str(pairs[n]), pairs[n + 1] or request.path
+        items.append({"@type": "ListItem", "position": len(items) + 1, "name": name, "item": base + str(url)})
+    data = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
+    return mark_safe('<script type="application/ld+json">%s</script>' % json.dumps(data, ensure_ascii=False).replace("<", "\\u003c"))

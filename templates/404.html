@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Page not found{% endblock %}
+{% block extra_head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="container nf">
+    <span class="nf-ico">{% icon "compass" %}</span>
+    <h1>This page has drifted off the chart</h1>
+    <p class="lead">The link may be old, or the page has moved. Try searching, or start from one of these.</p>
+    <form class="sr-form nf-search" action="{% url 'directory:search' %}" role="search">{% icon "search" %}<label class="sr-only" for="nf-q">Search</label><input id="nf-q" type="search" name="q" placeholder="Island, activity, guest house…" autocomplete="off" data-suggest><button class="btn btn-accent" type="submit">Search</button></form>
+    <div class="nf-links">
+      <a href="{% url 'directory:island_list' %}">{% icon "map" %} Islands</a>
+      <a href="{% url 'directory:stay_list' %}">{% icon "house" %} Stays</a>
+      <a href="{% url 'directory:service_list' %}">{% icon "sailboat" %} Experiences</a>
+      <a href="{% url 'directory:guide_list' %}">{% icon "book-open" %} Travel guides</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
