@@ -426,3 +426,8 @@
 .sp-landscape .sp-intro-steps i { width: 38px; height: 38px; } .sp-landscape .sp-intro-steps i svg { width: 20px; height: 20px; }
 .sp-landscape .sp-intro-steps b { font-size: 13px; } .sp-landscape .sp-intro-steps span { font-size: 20px; }
 .sp-landscape.sp-intro .sp-foot { margin-bottom: 60px; padding-top: 20px; }
+.ig-as { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.ig-as span { font-size: 12.5px; font-weight: 600; color: rgb(107 114 128); margin-right: 2px; }
+.ig-as button { padding: 5px 12px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12.5px; font-weight: 600; color: #0A3D4C; background: #fff; }
+.ig-as button.on { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
+.dark .ig-as button:not(.on) { background: transparent; color: #FFF8EC; }

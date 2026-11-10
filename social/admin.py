@@ -253,7 +253,7 @@ class SocialPostAdmin(ModelAdmin):
         idx = siblings.index(post.pk) if post.pk in siblings else -1
         return TemplateResponse(request, "admin/social/design.html", self._context(
             request, title=post.title, post=post, photo=proxied(post.photo), photo_b=proxied(post.photo_b), formats=SocialPost.FORMAT_CHOICES,
-            ig_account=InstagramAccount.current(), ig_problems=issues,
+            ig_account=InstagramAccount.current(), ig_problems=issues, post_types=SocialPost.TYPE_CHOICES,
             slides=post.assets.filter(kind=SocialAsset.KIND_SLIDE), video_parts=list(post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
             video_size=sum(a.size for a in post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
             format_override=bool(fmt and fmt != saved_format),
@@ -461,6 +461,30 @@ class SocialPostAdmin(ModelAdmin):
         if request.method != "POST" or not self.has_change_permission(request):
             raise PermissionDenied
         post = get_object_or_404(SocialPost, pk=pk)
+        if request.POST.get("action") == "set_type":
+            kind = request.POST.get("post_type")
+            if kind not in dict(SocialPost.TYPE_CHOICES):
+                return JsonResponse({"ok": False, "error": "Unknown type."}, status=400)
+            if post.ig_state in (SocialPost.IG_PUBLISHED, SocialPost.IG_PROCESSING) and kind != post.post_type:
+                # Already on Instagram: make a copy for the other placement (e.g. share the feed post as a Story).
+                copy = SocialPost.objects.get(pk=post.pk)
+                copy.pk = None
+                copy.title = f"{post.title} ({dict(SocialPost.TYPE_CHOICES)[kind]})"[:120]
+                copy.status, copy.ig_state, copy.ig_media_id, copy.ig_container_id = SocialPost.STATUS_READY, "", "", ""
+                copy.ig_error, copy.ig_attempts, copy.posted_url, copy.ig_image_url = "", 0, "", ""
+                target = copy
+            else:
+                target = post
+            target.post_type = kind
+            if kind in (SocialPost.TYPE_STORY, SocialPost.TYPE_REEL):
+                target.format = "story"
+            elif target.format == "story":
+                target.format = "portrait"
+            if target.ig_state == SocialPost.IG_QUEUED:
+                target.ig_state = ""  # the queued image was for the old placement
+                target.status = SocialPost.STATUS_READY
+            target.save()
+            return JsonResponse({"ok": True, "url": reverse("admin:social_socialpost_design", args=[target.pk])})
         if post.ig_state == SocialPost.IG_PUBLISHED and request.POST.get("repost"):
             # Posted wrongly and deleted on Instagram: allow it to go out again.
             post.ig_state, post.ig_media_id, post.ig_container_id, post.posted_url = "", "", "", ""

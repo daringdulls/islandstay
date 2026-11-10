@@ -369,3 +369,30 @@ class RepostTests(TestCase):
         with mock.patch.object(instagram, "_call", side_effect=lambda m, u, **k: next(v for key, v in answers.items() if key in u)):
             r = self.client.post(reverse("admin:social_instagram_queue", args=[post.pk]), {"now": "1", "repost": "1", "image": img()})
         self.assertEqual(r.json()["posted"], "https://instagram.com/p/new")
+
+
+class PostAsTests(TestCase):
+    def test_switch_type_in_place_and_copy_when_published(self):
+        from django.utils import timezone
+        from .models import InstagramAccount
+        InstagramAccount.objects.create(ig_user_id="1", username="islandstaymv", access_token="EAAx")
+        admin = get_user_model().objects.create_superuser("boss11@x.mv", "boss11@x.mv", "pw")
+        self.client.force_login(admin)
+        draft = SocialPost.objects.create(title="Tip", headline="Ferry days", template="tip", format="portrait", publish_at=timezone.now())
+        url = reverse("admin:social_instagram_queue", args=[draft.pk])
+        r = self.client.post(url, {"action": "set_type", "post_type": "story"})
+        draft.refresh_from_db()
+        self.assertEqual((draft.post_type, draft.format), ("story", "story"))
+        self.assertTrue(r.json()["url"].endswith(f"/{draft.pk}/design/"))
+        self.client.post(url, {"action": "set_type", "post_type": "feed"})
+        draft.refresh_from_db()
+        self.assertEqual((draft.post_type, draft.format), ("feed", "portrait"))
+        live = SocialPost.objects.create(title="Intro", headline="Hi", template="intro", status="posted", ig_state="published",
+                                         ig_media_id="m", publish_at=timezone.now())
+        r = self.client.post(reverse("admin:social_instagram_queue", args=[live.pk]), {"action": "set_type", "post_type": "story"})
+        copy = SocialPost.objects.exclude(pk__in=[draft.pk, live.pk]).get()
+        self.assertEqual((copy.post_type, copy.format, copy.ig_state, copy.status), ("story", "story", "", "ready"))
+        self.assertEqual(SocialPost.objects.get(pk=live.pk).post_type, "feed")
+        self.assertIn(f"/{copy.pk}/design/", r.json()["url"])
+        r = self.client.get(r.json()["url"])
+        self.assertContains(r, 'data-type="story"')
