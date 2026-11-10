@@ -165,6 +165,13 @@ def _describe(exc):
     return f"{type(exc).__name__}: {str(exc)[:160]}".replace("\n", " ")
 
 
+SAFE_MEDIA_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif",
+    "avif": "image/avif", "heic": "image/heic", "heif": "image/heif", "pdf": "application/pdf",
+    "mp4": "video/mp4", "mov": "video/quicktime", "webm": "video/webm",
+}
+
+
 def blob_proxy(request, path):
     """Serve a file from a private Vercel Blob store (photos must be viewable by visitors)."""
     from django.core.files.storage import default_storage
@@ -191,7 +198,16 @@ def blob_proxy(request, path):
                 errors.append(f"{label}: {_describe(exc2)}")
         if data is None:
             raise Http404
-    response = HttpResponse(data, content_type=content_type)
+    # Never trust the type the uploader's browser sent: serve only known media types, as files that can't run
+    # scripts on this domain (a valid image can also be HTML, so anything else is a plain download).
+    ext = path.rsplit(".", 1)[-1].lower() if "." in path.rsplit("/", 1)[-1] else ""
+    safe_type = SAFE_MEDIA_TYPES.get(ext)
+    response = HttpResponse(data, content_type=safe_type or "application/octet-stream")
+    response["X-Content-Type-Options"] = "nosniff"
+    if ext != "pdf":  # the browser's PDF viewer doesn't run inside a sandbox
+        response["Content-Security-Policy"] = "default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'; sandbox"
+    if not safe_type:
+        response["Content-Disposition"] = "attachment"
     if path.startswith("verification/"):
         response["Cache-Control"] = "private, no-store"
     else:

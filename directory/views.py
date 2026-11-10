@@ -1192,10 +1192,35 @@ def search_suggest(request):
 
 
 # ---------------------------------------------------------------- the public helps update island guides
+def _clean_public_photo(f, max_side=2600):
+    """Re-save a photo sent by the public as a plain JPEG: removes hidden data such as the GPS location
+    and camera details, fixes rotation, and makes sure the file really is just an image."""
+    import io
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image, ImageOps
+
+    try:
+        try:
+            import pillow_heif
+            pillow_heif.register_heif_opener()
+        except ImportError:
+            pass
+        img = Image.open(f)
+        img.load()
+        img = ImageOps.exif_transpose(img).convert("RGB")
+        img.thumbnail((max_side, max_side))
+        buf = io.BytesIO()
+        img.save(buf, "JPEG", quality=88, optimize=True)  # no exif= argument, so no metadata is written
+    except Exception:
+        return None
+    base = (f.name.rsplit(".", 1)[0] or "photo")[:60]
+    return SimpleUploadedFile(base + ".jpg", buf.getvalue(), content_type="image/jpeg")
+
+
 def island_contribute(request, slug):
     from .forms import IslandContributionForm
     from .models import ContributionPhoto, IslandContribution
-    from PIL import Image
 
     island = get_object_or_404(_islands(), slug=slug)
     form = IslandContributionForm(request.POST or None, initial={"photo_consent": True})
@@ -1208,12 +1233,10 @@ def island_contribute(request, slug):
             if f.size > 15 * 1024 * 1024:
                 photo_errors.append(f"{f.name} is larger than 15 MB.")
                 continue
-            try:
-                img = Image.open(f)
-                img.verify()
-                f.seek(0)
-                good.append(f)
-            except Exception:
+            clean = _clean_public_photo(f)
+            if clean:
+                good.append(clean)
+            else:
                 photo_errors.append(f"{f.name} isn't a photo we can read.")
         facilities = {k: request.POST.get("fac_" + k) for k, _ in IslandContribution.FACILITIES
                       if request.POST.get("fac_" + k) in ("yes", "no")}

@@ -43,3 +43,12 @@ class SignupForm(UserCreationForm):
 
 class EmailLoginForm(AuthenticationForm):
     username = forms.CharField(label="Email", widget=forms.EmailInput(attrs={"autofocus": True}))
+
+    def clean(self):
+        try:
+            return super().clean()
+        except forms.ValidationError:
+            if getattr(self.request, "login_locked", False):
+                raise forms.ValidationError("Too many sign-in attempts. Please wait 15 minutes and try again, "
+                                            "or reset your password.", code="locked")
+            raise

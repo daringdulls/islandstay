@@ -11,3 +11,13 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.business_name or self.user.get_username()
+
+
+class LoginFailure(models.Model):
+    """Failed sign-ins per account and per IP address, to slow down password guessing."""
+    key = models.CharField(max_length=200, unique=True)
+    count = models.PositiveIntegerField(default=0)
+    first_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.key}: {self.count}"
