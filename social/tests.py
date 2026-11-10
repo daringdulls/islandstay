@@ -304,3 +304,27 @@ class PostNowTests(TestCase):
         post.refresh_from_db()
         self.assertEqual((post.status, post.ig_state), ("posted", "published"))
         self.assertIsNotNone(post.publish_at)
+
+
+class PlanFromTodayTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open(os.devnull, "w"))
+
+    def test_plan_current_month_from_today_with_intro(self):
+        import datetime as dt
+        from django.utils import timezone
+        admin = get_user_model().objects.create_superuser("boss8@x.mv", "boss8@x.mv", "pw")
+        self.client.force_login(admin)
+        mine = SocialPost.objects.create(title="My intro", headline="Hello", template="intro", caption="Edited by me")
+        today = timezone.localdate()
+        self.client.post(reverse("admin:social_calendar"), {"plan_month": f"{today:%Y-%m}", "intro": "1"})
+        posts = list(SocialPost.objects.filter(publish_at__isnull=False).order_by("publish_at"))
+        self.assertTrue(posts)
+        self.assertEqual(posts[0].pk, mine.pk)  # the hand-made introduction is used and dated
+        self.assertGreater(posts[0].publish_at, timezone.now())
+        self.assertTrue(all(p.publish_at > timezone.now() - dt.timedelta(minutes=1) for p in posts))
+        self.assertEqual(SocialPost.objects.filter(template="intro", post_type="feed").count(), 1)
+        regular = [p for p in posts if p.template not in ("intro",) and p.title not in ("How Island Stay works", "Our story")]
+        if regular:
+            self.assertGreaterEqual(timezone.localtime(regular[0].publish_at).date(), today + dt.timedelta(3))

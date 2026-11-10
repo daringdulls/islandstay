@@ -87,8 +87,9 @@
       </dl>
       <form method="post" action="{% url 'admin:social_calendar' %}" style="margin-top:14px">{% csrf_token %}
         <input type="hidden" name="plan_month" value="{{ month|date:'Y-m' }}">
+        {% if not launch_planned %}<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px"><input type="checkbox" name="intro" value="1" checked> Start with the introduction</label>{% endif %}
         <label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:10px"><input type="checkbox" name="replace" value="1"> Replace this month's drafts</label>
-        <button class="sd-btn primary" type="submit" style="width:100%">Plan {{ month|date:"F" }}</button>
+        <button class="sd-btn primary" type="submit" style="width:100%">Plan {% if month.year == tomorrow.year and month.month == tomorrow.month %}from today to the end of {{ month|date:"F" }}{% else %}{{ month|date:"F" }}{% endif %}</button>
       </form>
     </div>
     <div class="sd-card">

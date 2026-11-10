@@ -12,8 +12,9 @@
   </div>
   <form method="post" style="display:flex;align-items:center;gap:8px">{% csrf_token %}
     <input type="hidden" name="plan_month" value="{{ month|date:'Y-m' }}">
+    {% if not launch_planned %}<label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" name="intro" value="1" checked> Start with the introduction</label>{% endif %}
     <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" name="replace" value="1"> Replace drafts</label>
-    <button class="sd-btn primary" type="submit">Plan {{ month|date:"F" }}: feed, Reels &amp; Stories</button>
+    <button class="sd-btn primary" type="submit">Plan {% if month.year == tomorrow.year and month.month == tomorrow.month %}from today to the end of {{ month|date:"F" }}{% else %}{{ month|date:"F" }}{% endif %}</button>
     <a class="sd-btn" href="{% url 'admin:social_feed' %}?month={{ month|date:'Y-m' }}">Feed preview</a>
   </form>
   <form method="post" style="display:flex;align-items:center;gap:8px">{% csrf_token %}

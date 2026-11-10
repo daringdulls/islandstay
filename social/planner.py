@@ -366,10 +366,19 @@ def as_story(data, script):
     return data
 
 
-def generate_month(year, month):
-    """Draft a full month for Instagram: 6 grid tiles and 3 stories a week. Returns the posts created."""
+def generate_month(year, month, start=None, with_intro=False):
+    """Draft a month for Instagram: 6 grid tiles and 3 stories a week. Returns the posts created.
+
+    start: first day to plan (e.g. today); with_intro: open with the three introduction posts from `start`.
+    """
     first = dt.date(year, month, 1)
+    start = max(start or first, first)
     days = [first + dt.timedelta(n) for n in range(31) if (first + dt.timedelta(n)).month == month]
+    launched = []
+    if with_intro:
+        launched = launch_plan(start)
+        start = start + dt.timedelta(3)
+    days = [d for d in days if d >= start]
     islands = list(_least_used(Island.objects.filter(is_published=True).select_related("atoll"), "island")
                    .order_by("n_posts", "-is_featured", "last_post", "name"))
     islands.sort(key=lambda i: (i.n_posts, not i.photo_url, not i.is_featured))
@@ -451,8 +460,11 @@ def generate_month(year, month):
             data = island_post(next(isl), fmt="story", story=True)
             plan.append((_at(day, 10), as_story(data, "Add a link sticker to the island guide and a 'Message a local' text.")))
 
-    created = []
+    created = list(launched)
+    now = timezone.now()
     for when, data in plan:
+        if when < now:
+            continue  # today's slots that have already passed
         data.setdefault("platforms", "instagram,facebook")
         data.setdefault("post_type", "feed")
         created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
@@ -501,8 +513,20 @@ def launch_plan(start):
         (_at(start + dt.timedelta(1), 18), howto_post()),
         (_at(start + dt.timedelta(2), 18), brand_post()),
     ]
+    now = timezone.now()
+    if plan[0][0] < now + dt.timedelta(minutes=10):  # too late for 18:00 today: post the introduction soon instead
+        first = now + dt.timedelta(minutes=30)
+        plan[0] = (first.replace(second=0, microsecond=0), plan[0][1])
+        plan[1] = (max(plan[1][0], first + dt.timedelta(hours=1)), plan[1][1])
+    # An Introduction made by hand without a date is used (with its edits) instead of a new one.
+    undated = SocialPost.objects.filter(template="intro", post_type="feed", publish_at__isnull=True).first()
     created = []
-    for when, data in plan:
+    for i, (when, data) in enumerate(plan):
+        if i == 0 and undated:
+            undated.publish_at = when
+            undated.save(update_fields=["publish_at", "updated_at"])
+            created.append(undated)
+            continue
         data.setdefault("platforms", "instagram,facebook")
         data.setdefault("post_type", "feed")
         created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))

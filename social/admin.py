@@ -285,7 +285,7 @@ class SocialPostAdmin(ModelAdmin):
                 start = dt.date.fromisoformat(request.POST["launch"])
             except ValueError:
                 start = today + dt.timedelta(days=1)
-            if SocialPost.objects.filter(template="intro").exclude(status=SocialPost.STATUS_POSTED).exists():
+            if SocialPost.objects.filter(template="intro", publish_at__isnull=False).exclude(status=SocialPost.STATUS_POSTED).exists():
                 messages.warning(request, "The introduction posts are already planned. Delete them first to plan them again.")
             else:
                 posts = launch_plan(start)
@@ -298,16 +298,24 @@ class SocialPostAdmin(ModelAdmin):
                 target = dt.date(y, m, 1)
             except ValueError:
                 target = first
-            existing = SocialPost.objects.filter(publish_at__year=target.year, publish_at__month=target.month)
+            if (target.year, target.month) < (today.year, today.month):
+                messages.error(request, f"{target:%B %Y} is in the past.")
+                return redirect(reverse("admin:social_calendar") + f"?month={target:%Y-%m}")
+            start = max(target, today)
+            existing = SocialPost.objects.filter(publish_at__year=target.year, publish_at__month=target.month,
+                                                 publish_at__date__gte=start)
             if request.POST.get("replace"):
-                removed, _ = existing.filter(status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+                existing.filter(status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+            with_intro = bool(request.POST.get("intro")) and not SocialPost.objects.filter(template="intro", publish_at__isnull=False).exists()
             if existing.exists() and not request.POST.get("replace"):
-                messages.warning(request, f"{target:%B} already has {existing.count()} posts. Tick 'Replace drafts' to redo the month's drafts.")
+                messages.warning(request, f"{target:%B} already has {existing.count()} posts from {start:%d %b}. Tick 'Replace drafts' to redo them.")
             else:
-                posts = generate_month(target.year, target.month)
+                posts = generate_month(target.year, target.month, start=start, with_intro=with_intro)
                 n_story = sum(p.post_type == "story" for p in posts)
                 n_reel = sum(p.post_type == "reel" for p in posts)
-                messages.success(request, f"Planned {target:%B}: {len(posts) - n_story - n_reel} feed posts, {n_reel} Reels and {n_story} Stories. "
+                messages.success(request, f"Planned {start:%d %b} to the end of {target:%B}"
+                                          f"{', starting with the introduction' if with_intro else ''}: "
+                                          f"{len(posts) - n_story - n_reel} feed posts, {n_reel} Reels and {n_story} Stories. "
                                           "Check the feed preview, drag tiles to reorder, then review each post.")
             return redirect(reverse("admin:social_calendar") + f"?month={target:%Y-%m}")
         if request.method == "POST" and self.has_add_permission(request):
@@ -334,7 +342,7 @@ class SocialPostAdmin(ModelAdmin):
         return TemplateResponse(request, "admin/social/calendar.html", self._context(
             request, title="Social calendar", weeks=weeks, month=first, prev_month=prev_month, next_month=next_month,
             counts=[(label, counts[k], k) for k, label in SocialPost.STATUS_CHOICES],
-            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today,
+            launch_planned=SocialPost.objects.filter(template="intro", publish_at__isnull=False).exists(), tomorrow=today,
             unscheduled=SocialPost.objects.filter(publish_at__isnull=True).exclude(status=SocialPost.STATUS_POSTED)[:20],
             overdue=[p for p in posts if p.is_overdue and p.status != SocialPost.STATUS_SCHEDULED]))
 
@@ -363,7 +371,7 @@ class SocialPostAdmin(ModelAdmin):
         month_grid = [t for t in tiles if t["in_month"]]
         return TemplateResponse(request, "admin/social/feed.html", self._context(
             request, title="Instagram feed preview", month=first,
-            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today,
+            launch_planned=SocialPost.objects.filter(template="intro", publish_at__isnull=False).exists(), tomorrow=today,
             highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
             reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
             prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,
