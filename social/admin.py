@@ -461,6 +461,11 @@ class SocialPostAdmin(ModelAdmin):
         if request.method != "POST" or not self.has_change_permission(request):
             raise PermissionDenied
         post = get_object_or_404(SocialPost, pk=pk)
+        if post.ig_state == SocialPost.IG_PUBLISHED and request.POST.get("repost"):
+            # Posted wrongly and deleted on Instagram: allow it to go out again.
+            post.ig_state, post.ig_media_id, post.ig_container_id, post.posted_url = "", "", "", ""
+            post.status = SocialPost.STATUS_READY
+            post.save(update_fields=["ig_state", "ig_media_id", "ig_container_id", "posted_url", "status", "updated_at"])
         if post.ig_state in (SocialPost.IG_PROCESSING, SocialPost.IG_PUBLISHED):
             return JsonResponse({"ok": False, "error": "This post is already with Instagram."}, status=400)
         if request.POST.get("action") == "cancel":

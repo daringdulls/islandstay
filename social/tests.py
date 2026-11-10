@@ -346,3 +346,26 @@ class MissedDraftTests(TestCase):
         self.client.post(reverse("admin:social_feed"), {"delete_missed": "1"})
         self.assertFalse(SocialPost.objects.filter(pk=old.pk).exists())
         self.assertTrue(SocialPost.objects.filter(pk=done.pk).exists())
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="ig-test-"))
+class RepostTests(TestCase):
+    def test_published_post_can_go_again_only_with_repost(self):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.utils import timezone
+        from . import instagram
+        from .models import InstagramAccount
+        InstagramAccount.objects.create(ig_user_id="17841", username="islandstaymv", access_token="EAAtok")
+        admin = get_user_model().objects.create_superuser("boss10@x.mv", "boss10@x.mv", "pw")
+        self.client.force_login(admin)
+        post = SocialPost.objects.create(title="Intro", headline="Hi", template="intro", status="posted", ig_state="published",
+                                         ig_media_id="old", posted_url="https://instagram.com/p/old", publish_at=timezone.now())
+        img = lambda: SimpleUploadedFile("d.jpg", b"\xff\xd8x", content_type="image/jpeg")  # noqa: E731
+        r = self.client.post(reverse("admin:social_instagram_queue", args=[post.pk]), {"now": "1", "image": img()})
+        self.assertEqual(r.status_code, 400)
+        answers = {"/media_publish": {"id": "new"}, "/17841/media": {"id": "c1"}, "/c1": {"status_code": "FINISHED"},
+                   "/new": {"permalink": "https://instagram.com/p/new"}}
+        with mock.patch.object(instagram, "_call", side_effect=lambda m, u, **k: next(v for key, v in answers.items() if key in u)):
+            r = self.client.post(reverse("admin:social_instagram_queue", args=[post.pk]), {"now": "1", "repost": "1", "image": img()})
+        self.assertEqual(r.json()["posted"], "https://instagram.com/p/new")

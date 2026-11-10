@@ -56,6 +56,10 @@
         {% endif %}
         {% if post.post_type == "story" and post.script %}<p style="font-size:12.5px;margin:8px 0 0;color:#5B3A22">Stickers can't be added through the API. If this Story needs one, post it from the Instagram app instead.</p>{% endif %}
         {% if ig_problems and post.ig_state != "published" %}<ul style="font-size:13px;color:#B9442C;margin:10px 0 0;padding-left:18px;list-style:disc">{% for p in ig_problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+        {% if post.ig_state == "published" %}
+        <div class="sd-row" style="margin-top:12px"><button class="sd-btn" type="button" id="ig-repost">Post again</button></div>
+        <small style="color:rgb(107 114 128)">Only if the Instagram post went wrong: delete it in the Instagram app first, then post again.</small>
+        {% endif %}
         {% if post.ig_state != "published" and post.ig_state != "processing" %}
         <div class="sd-row" style="margin-top:12px">
           <button class="sd-btn primary" type="button" id="ig-queue"{% if ig_problems or format_override %} disabled{% endif %}>{% if post.ig_state == "queued" %}Update on Instagram{% elif post.ig_state == "failed" %}Try again{% else %}Schedule on Instagram{% endif %}</button>
@@ -129,18 +133,20 @@ document.getElementById('dl').onclick = async function () {
     var node = document.querySelector('#design .sp');
     await document.fonts.ready;
     node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
-    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, backgroundColor: '#FFF8EC', imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
+    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
     await htmlToImage.toPng(node, opts);
     var url = await htmlToImage.toPng(node, opts);
     var img = new Image(); img.src = url; await img.decode();
     return toJpeg(img, 1920);
   }
-  async function queue(btn, now) {
-    if (now && !confirm('Post this to Instagram right now?')) return;
+  async function queue(btn, now, repost) {
+    if (repost && !confirm('Have you deleted the old post in the Instagram app? This posts it again now.')) return;
+    if (now && !repost && !confirm('Post this to Instagram right now?')) return;
     btn.disabled = true; say(now ? 'Saving the design and posting to Instagram… this can take up to a minute.' : 'Saving the design…');
     try {
       var fd = new FormData(); fd.append('image', await render(), 'design.jpg');
       if (now) fd.append('now', '1');
+      if (repost) fd.append('repost', '1');
       var d = await send('{% url "admin:social_instagram_queue" post.pk %}', fd);
       if (!d.ok) throw new Error(d.error);
       if (d.posted) say('Posted to Instagram.');
@@ -151,6 +157,8 @@ document.getElementById('dl').onclick = async function () {
   }
   var q = document.getElementById('ig-queue');
   if (q) q.onclick = function () { queue(q, false); };
+  var qr = document.getElementById('ig-repost');
+  if (qr) qr.onclick = function () { queue(qr, true, true); };
   var qn = document.getElementById('ig-now');
   if (qn) qn.onclick = function () { queue(qn, true); };
   var c = document.getElementById('ig-cancel');
