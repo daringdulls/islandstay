@@ -6,3 +6,4 @@ dj-database-url>=3.0
 psycopg[binary]>=3.2
 django-unfold==0.110.0
 anthropic>=2.3,<3
+pillow-heif>=0.18

@@ -13,22 +13,30 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function status(text, kindClass) { statusEl.textContent = text || ""; statusEl.className = "pm-status " + (kindClass || ""); if (kindClass === "ok") setTimeout(function () { if (statusEl.textContent === text) status(""); }, 2500); }
 
-  // Shrink big photos in the browser before uploading (keeps PNG logos as PNG).
+  // Shrink photos in the browser before uploading, so every upload stays well under the 4.5 MB request limit.
+  // Formats the browser can't draw (e.g. iPhone HEIC in Chrome) are sent as they are and converted on the server.
+  var LIMIT = 3.8 * 1024 * 1024;
+  function isPhoto(f) { return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|heic|heif|avif|tiff?|bmp)$/i.test(f.name); }
   function resize(file, maxSide, keepPng) {
     return new Promise(function (resolve) {
-      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 400 * 1024 && !keepPng) { resolve(file); return; }
+      if (file.type === "image/gif" || (file.size < 400 * 1024 && /^image\/(jpeg|png|webp)$/.test(file.type) && !keepPng)) { resolve(file); return; }
       var img = new Image(), u = URL.createObjectURL(file);
       img.onload = function () {
         URL.revokeObjectURL(u);
         var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        if (scale === 1 && file.size < 1.5 * 1024 * 1024) { resolve(file); return; }
-        var c = document.createElement("canvas"); c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        var png = keepPng && file.type === "image/png", type = png ? "image/png" : "image/jpeg";
-        c.toBlob(function (b) {
-          if (!b || b.size >= file.size) { resolve(file); return; }
-          resolve(new File([b], file.name.replace(/\.\w+$/, "") + (png ? ".png" : ".jpg"), { type: type }));
-        }, type, 0.85);
+        if (scale === 1 && file.size < 1.5 * 1024 * 1024 && /^image\/(jpeg|png|webp)$/.test(file.type)) { resolve(file); return; }
+        var png = keepPng && file.type === "image/png", type = png ? "image/png" : "image/jpeg", name = file.name.replace(/\.\w+$/, "") + (png ? ".png" : ".jpg");
+        function attempt(side, quality) {
+          var s = Math.min(1, side / Math.max(img.width, img.height)), c = document.createElement("canvas");
+          c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          c.toBlob(function (b) {
+            if (!b) { resolve(file); return; }
+            if (b.size > LIMIT && side > 1200) { attempt(Math.round(side * 0.8), png ? quality : Math.max(0.6, quality - 0.08)); return; }
+            resolve(new File([b], name, { type: type }));
+          }, type, quality);
+        }
+        attempt(maxSide, 0.85);
       };
       img.onerror = function () { URL.revokeObjectURL(u); resolve(file); };
       img.src = u;
@@ -41,7 +49,10 @@
     (files || []).forEach(function (f) { fd.append(fileField || "file", f); });
     root.classList.add("busy");
     return fetch(url, { method: "POST", body: fd, credentials: "same-origin", headers: { "X-CSRFToken": csrf() } })
-      .then(function (r) { return r.json().catch(function () { return { error: "The server didn't answer (" + r.status + ")." }; }); })
+      .then(function (r) {
+        if (r.status === 413) return { error: "That photo is too large to upload. Use a smaller photo (under 4 MB), or save it as JPG first." };
+        return r.json().catch(function () { return { error: "The server didn't answer (" + r.status + "). Please try again." }; });
+      })
       .then(function (d) {
         root.classList.remove("busy");
         if (d.error) { status(d.error, "err"); throw new Error(d.error); }
@@ -84,11 +95,13 @@
 
   // ---------------------------------------------------------------- uploads
   function upload(slot, fileList) {
-    var files = Array.prototype.slice.call(fileList || []).filter(function (f) { return /^image\//.test(f.type); });
-    if (!files.length) { status("Choose a photo file (JPG, PNG or WebP).", "err"); return; }
+    var files = Array.prototype.slice.call(fileList || []).filter(isPhoto);
+    if (!files.length) { status("Choose a photo file (JPG, PNG, WebP or iPhone HEIC).", "err"); return; }
     status(files.length > 1 ? "Uploading " + files.length + " photos…" : "Uploading…", "busy");
     var max = slot === "logo" ? 800 : 2400;
     Promise.all(files.map(function (f) { return resize(f, max, slot === "logo"); })).then(function (ready) {
+      var big = ready.filter(function (f) { return f.size > 4.3 * 1024 * 1024; });
+      if (big.length) { status(big[0].name + " is " + (big[0].size / 1048576).toFixed(1) + " MB and can't be shrunk here. Save it as JPG (under 4 MB) and try again.", "err"); ready = ready.filter(function (f) { return big.indexOf(f) < 0; }); if (!ready.length) return; }
       if (slot === "gallery") {
         // send in small batches so one request never gets too big
         var batches = []; for (var i = 0; i < ready.length; i += 4) batches.push(ready.slice(i, i + 4));

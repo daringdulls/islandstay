@@ -18,20 +18,63 @@ from .models import Island, IslandPhoto, Listing, ListingPhoto
 MAX_BYTES = 15 * 1024 * 1024
 
 
-def _check_image(f):
+try:  # iPhone photos (HEIC/HEIF) and AVIF
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    try:
+        pillow_heif.register_avif_opener()
+    except Exception:
+        pass
+except Exception:
+    pillow_heif = None
+
+KEEP_FORMATS = {"JPEG", "PNG", "WEBP", "GIF"}
+
+
+def _prepare_image(f, max_side=2600):
+    """Check an uploaded photo and return (file, error). Photos in other formats (iPhone HEIC, AVIF, TIFF,
+    BMP…) are converted to JPG, very large ones are scaled down, and phone rotation is applied."""
+    import io
+    import os
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import ImageOps
+
     if not f:
-        return "Choose a photo."
+        return None, "Choose a photo."
     if f.size > MAX_BYTES:
-        return "That photo is larger than 15 MB."
+        return None, f"That photo is {f.size / 1048576:.0f} MB. Use one under 15 MB."
     try:
         img = Image.open(f)
-        img.verify()
-        if (img.format or "").upper() not in ("JPEG", "PNG", "WEBP", "GIF"):
-            return "Use a JPG, PNG or WebP photo."
+        img.load()
     except Exception:
-        return "That file isn't a photo we can read (use JPG, PNG or WebP)."
-    f.seek(0)
-    return None
+        name = (f.name or "").lower()
+        if name.endswith((".heic", ".heif")):
+            return None, "This iPhone photo (HEIC) couldn't be read. Export it as JPG and try again."
+        return None, "That file isn't a photo we can read. Use a JPG, PNG or WebP photo."
+    fmt = (img.format or "").upper()
+    too_big = max(img.size) > max_side
+    if fmt == "GIF" or (fmt in KEEP_FORMATS and not too_big):
+        f.seek(0)
+        return f, None
+    img = ImageOps.exif_transpose(img)
+    keep_png = fmt == "PNG" and img.mode in ("RGBA", "LA", "P")
+    if too_big:
+        img.thumbnail((max_side, max_side))
+    buf = io.BytesIO()
+    base = os.path.splitext(os.path.basename(f.name or "photo"))[0] or "photo"
+    if keep_png:
+        img.save(buf, "PNG", optimize=True)
+        return SimpleUploadedFile(base + ".png", buf.getvalue(), content_type="image/png"), None
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    img.save(buf, "JPEG", quality=86, optimize=True, progressive=True)
+    return SimpleUploadedFile(base + ".jpg", buf.getvalue(), content_type="image/jpeg"), None
+
+
+def _check_image(f):
+    """Kept for callers that only need a yes/no check."""
+    return _prepare_image(f)[1]
 
 
 def _safe_url(field):
@@ -104,8 +147,7 @@ class PhotoManagerMixin:
 
     # cover
     def _photo_cover_upload(self, request, obj):
-        f = request.FILES.get("file")
-        err = _check_image(f)
+        f, err = _prepare_image(request.FILES.get("file"))
         if err:
             return JsonResponse({"error": err}, status=400)
         folder = "islands" if self.photo_kind == "island" else "listings"
@@ -151,8 +193,7 @@ class PhotoManagerMixin:
 
     # logo (listings)
     def _photo_logo_upload(self, request, obj):
-        f = request.FILES.get("file")
-        err = _check_image(f)
+        f, err = _prepare_image(request.FILES.get("file"), max_side=1000)
         if err or self.photo_kind != "listing":
             return JsonResponse({"error": err or "Logos are for listings."}, status=400)
         old = obj.logo.name if obj.logo else ""
@@ -175,10 +216,10 @@ class PhotoManagerMixin:
             return JsonResponse({"error": "Choose one or more photos."}, status=400)
         errors, added = [], 0
         start = (obj.photos.order_by("-order").values_list("order", flat=True).first() or 0) + 1
-        for n, f in enumerate(files[:30]):
-            err = _check_image(f)
+        for n, original in enumerate(files[:30]):
+            f, err = _prepare_image(original)
             if err:
-                errors.append(f"{f.name}: {err}")
+                errors.append(f"{original.name}: {err}")
                 continue
             if self.photo_kind == "island":
                 name = default_storage.save(f"islands/gallery/{f.name}", f)

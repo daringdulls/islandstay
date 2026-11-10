@@ -1291,3 +1291,29 @@ class GoogleTagTests(TestCase):
             self.assertContains(r, 'analytics_storage: "denied"')
             self.assertContains(self.client.get("/cookies/"), "Google Analytics")
             self.assertNotContains(self.client.get("/accounts/login/"), "googletagmanager")
+
+
+class PhotoConversionTests(TestCase):
+    def _upload(self, data, name, ctype):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return SimpleUploadedFile(name, data, content_type=ctype)
+
+    def test_heic_and_large_photos_become_jpg(self):
+        import io
+        import pillow_heif
+        from PIL import Image
+        from .admin_photos import _prepare_image
+        pillow_heif.register_heif_opener()
+        buf = io.BytesIO()
+        Image.new("RGB", (400, 300), (11, 110, 138)).save(buf, "HEIF")
+        f, err = _prepare_image(self._upload(buf.getvalue(), "IMG_0001.HEIC", "image/heic"))
+        self.assertIsNone(err)
+        self.assertTrue(f.name.endswith(".jpg"))
+        self.assertEqual(Image.open(f).format, "JPEG")
+        big = io.BytesIO()
+        Image.new("RGB", (5000, 3000), (76, 195, 199)).save(big, "JPEG")
+        f, err = _prepare_image(self._upload(big.getvalue(), "drone.jpg", "image/jpeg"))
+        self.assertIsNone(err)
+        self.assertLessEqual(max(Image.open(f).size), 2600)
+        f, err = _prepare_image(self._upload(b"not a photo", "x.jpg", "image/jpeg"))
+        self.assertIn("isn't a photo", err)

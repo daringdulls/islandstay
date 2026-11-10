@@ -23,8 +23,8 @@
   </div>
   <div class="pm-gallery-head"><b>Gallery</b> <small id="pm-count"></small><span class="pm-hint"><span class="material-symbols-outlined">drag_indicator</span>Drag to reorder · <span class="material-symbols-outlined">star</span> makes a photo the cover</span></div>
   <div class="pm-gallery" id="pm-gallery"></div>
-  <input type="file" accept="image/*" id="pm-file-one" hidden>
-  <input type="file" accept="image/*" multiple id="pm-file-many" hidden>
+  <input type="file" accept="image/*,.heic,.heif" id="pm-file-one" hidden>
+  <input type="file" accept="image/*,.heic,.heif" multiple id="pm-file-many" hidden>
 </div>
 {{ photo_manager.state|json_script:"pm-state" }}
 <script src="{% static 'js/photo_manager.js' %}" defer></script>
