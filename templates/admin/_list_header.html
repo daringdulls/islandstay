@@ -1,0 +1,14 @@
+{% if tabs or filtered %}
+<div class="lh">
+  {% if tabs %}<nav class="lh-tabs" aria-label="Quick views">
+    {% for t in tabs %}<a href="{{ t.url }}" class="lh-tab{% if t.active %} on{% endif %}"{% if t.active %} aria-current="page"{% endif %}>{{ t.label }}<span>{{ t.count }}</span></a>{% endfor %}
+  </nav>{% endif %}
+  {% if filters or query %}<div class="lh-filters" role="status">
+    <span class="lh-label">Showing {{ result }} of {{ total }} {{ noun }}</span>
+    {% for f in filters %}<span class="lh-chip">{{ f.title }}: <b>{{ f.value }}</b></span>{% endfor %}
+    {% if query %}<span class="lh-chip">Search: <b>{{ query }}</b></span>{% endif %}
+    <a class="lh-clear" href="{{ clear_url }}">Clear</a>
+  </div>{% endif %}
+  {% if filtered and not result %}<p class="lh-empty">No {{ noun }} match this view.{% if total %} There {{ total|pluralize:"is,are" }} {{ total }} in total: <a href="{{ clear_url }}">show all</a>.{% endif %}</p>{% endif %}
+</div>
+{% endif %}

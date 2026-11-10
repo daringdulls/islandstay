@@ -17,12 +17,16 @@ from . import notifications
 from .admin_photos import PhotoManagerMixin
 from .models import ContributionPhoto, Guide, GuideTemplate, HomeFeature, IslandContribution, ListingClaim, PageBanner, Review, ActivityType, Amenity, Atoll, Enquiry, Island, IslandSuggestion, IslandPhoto, Listing, ListingPhoto, RoomType, TransportRoute
 
-LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "info"}
+LISTING_STATUS_COLORS = {"pending": "warning", "approved": "success", "rejected": "danger", "suspended": "danger"}
 ENQUIRY_STATUS_COLORS = {"new": "warning", "replied": "info", "confirmed": "success", "declined": "danger", "closed": "info"}
 
 
 class BaseAdmin(ModelAdmin):
     """Shared back-office behaviour: compact forms, filters applied with a button, unsaved-changes warning."""
+
+    # Quick-view tabs above the list: (label, query parameters, Q filter for the count). See admin/_list_header.html.
+    list_before_template = "admin/_list_before.html"
+    list_tabs = None
 
     # Many-to-many fields shown as tick boxes (one click per activity / amenity) instead of the two-box picker.
     checkbox_m2m = ()
@@ -278,6 +282,14 @@ class VerificationFilter(admin.SimpleListFilter):
 
 @admin.register(Listing)
 class ListingAdmin(PhotoManagerMixin, BaseAdmin):
+    list_tabs = [
+        ("All", {}, None),
+        ("Pending review", {"status__exact": "pending"}, Q(status="pending")),
+        ("Live", {"status__exact": "approved"}, Q(status="approved")),
+        ("Verification requests", {"verification": "requested"}, Q(verification_requested_at__isnull=False, is_verified=False)),
+        ("Suspended", {"status__exact": "suspended"}, Q(status="suspended")),
+        ("Rejected", {"status__exact": "rejected"}, Q(status="rejected")),
+    ]
     photo_kind = "listing"
 
     def get_changeform_initial_data(self, request):
@@ -342,7 +354,7 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
             return "yes", "Verified"
         if obj.verification_requested_at:
             return "requested", "Requested"
-        return "no", "No"
+        return "no", "Not verified"
 
     @display(description="Requests", ordering="_n")
     def enquiry_count(self, obj):
@@ -403,7 +415,8 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
 
     @display(description="Submitted", ordering="created_at")
     def submitted(self, obj):
-        return obj.created_at.strftime("%d %b %Y")
+        from django.utils.html import format_html
+        return format_html('<span style="white-space:nowrap">{}</span>', obj.created_at.strftime("%d %b %Y"))
 
     # One-click buttons
     @action(description="Approve", icon="check_circle", url_path="approve-row")
@@ -431,6 +444,11 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
 
 @admin.register(Enquiry)
 class EnquiryAdmin(BaseAdmin):
+    list_tabs = [
+        ("All", {}, None), ("New", {"status__exact": "new"}, Q(status="new")), ("Replied", {"status__exact": "replied"}, Q(status="replied")),
+        ("Confirmed", {"status__exact": "confirmed"}, Q(status="confirmed")), ("Declined", {"status__exact": "declined"}, Q(status="declined")),
+        ("Closed", {"status__exact": "closed"}, Q(status="closed")),
+    ]
     list_display = ("reference_col", "guest", "listing", "dates", "party", "origin", "sent_label", "status_label")
     list_display_links = ("reference_col",)
     list_filter = (("status", ChoicesDropdownFilter), ("sent_via", ChoicesDropdownFilter), ("listing__kind", ChoicesDropdownFilter),
@@ -620,6 +638,8 @@ class HomeFeatureAdmin(BaseAdmin):
 
 @admin.register(ListingClaim)
 class ListingClaimAdmin(BaseAdmin):
+    list_tabs = [("All", {}, None), ("Waiting for review", {"status__exact": "pending"}, Q(status="pending")),
+                 ("Approved", {"status__exact": "approved"}, Q(status="approved")), ("Rejected", {"status__exact": "rejected"}, Q(status="rejected"))]
     list_display = ("claim", "listing", "phone", "status_label", "created_at")
     list_display_links = ("claim",)
     list_filter = (("status", ChoicesDropdownFilter),)
@@ -661,6 +681,8 @@ class ListingClaimAdmin(BaseAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(BaseAdmin):
+    list_tabs = [("All", {}, None), ("Waiting for review", {"status__exact": "pending"}, Q(status="pending")),
+                 ("Published", {"status__exact": "published"}, Q(status="published")), ("Hidden", {"status__exact": "rejected"}, Q(status="rejected"))]
     list_display = ("review", "listing", "stars_col", "status_label", "created_at")
     list_display_links = ("review",)
     list_filter = (("status", ChoicesDropdownFilter), "rating", ("listing__island", RelatedDropdownFilter))
@@ -880,6 +902,8 @@ class ContributionPhotoInline(TabularInline):
 
 @admin.register(IslandContribution)
 class IslandContributionAdmin(BaseAdmin):
+    list_tabs = [("All", {}, None), ("New", {"status__exact": "new"}, Q(status="new")),
+                 ("Applied", {"status__exact": "applied"}, Q(status="applied")), ("Not used", {"status__exact": "rejected"}, Q(status="rejected"))]
     list_display = ("summary", "island_link", "relation", "answers", "photo_count", "status_label", "created_at")
     list_display_links = ("summary",)
     list_filter = ("status", ("island__atoll", RelatedDropdownFilter), "relation")

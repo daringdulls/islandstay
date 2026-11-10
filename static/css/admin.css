@@ -571,3 +571,24 @@ textarea.ge-body { min-height: 520px !important; font-family: ui-monospace, SFMo
 .pm-img.missing img, .pm-tile.missing img { visibility: hidden; }
 .pm-img.missing .pm-missing, .pm-tile.missing .pm-missing { display: flex; position: absolute; inset: 0 0 auto 0; height: 240px; align-items: center; justify-content: center; gap: 6px; color: #B9442C; font-size: 13px; font-weight: 700; }
 .pm-tile.missing .pm-missing { height: 120px; font-size: 12px; }
+
+/* ------------------------------------------------------------------ list quick-view tabs and active filters */
+.lh { margin: 0 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.lh-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.lh-tab { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid #DCE6E8;
+  background: #fff; color: #0A3D4C; font-size: 13px; font-weight: 600; transition: border-color .15s, background .15s; }
+.lh-tab:hover { border-color: #0B6E8A; }
+.lh-tab span { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: #E3EEF0; color: #0A3D4C; font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+.lh-tab.on { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
+.lh-tab.on span { background: rgba(255, 255, 255, .22); color: #fff; }
+.dark .lh-tab { background: rgb(17 24 39); border-color: rgb(55 65 81); color: #FFF8EC; }
+.dark .lh-tab span { background: rgb(31 41 55); color: #FFF8EC; }
+.dark .lh-tab.on { background: #0B6E8A; border-color: #0B6E8A; }
+.lh-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 12px; background: #F2E4C9; color: #5B3A22; font-size: 13px; }
+.dark .lh-filters { background: rgba(242, 228, 201, .12); color: #F2E4C9; }
+.lh-label { font-weight: 600; margin-right: 4px; }
+.lh-chip { padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, .75); color: #122A31; }
+.dark .lh-chip { background: rgba(255, 255, 255, .1); color: #FFF8EC; }
+.lh-clear { margin-left: auto; font-weight: 600; color: #0B6E8A; text-decoration: underline; }
+.lh-empty { margin: 0; font-size: 13.5px; color: #4A6068; }
+.lh-empty a { color: #0B6E8A; font-weight: 600; }

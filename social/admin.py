@@ -125,6 +125,12 @@ class SocialPostAdmin(ModelAdmin):
     compressed_fields = True
     warn_unsaved_form = True
     change_form_template = "admin/social/change_form.html"
+    list_before_template = "admin/_list_before.html"
+    list_tabs = [
+        ("All", {}, None), ("Drafts", {"status__exact": "draft"}, Q(status="draft")), ("Ready", {"status__exact": "ready"}, Q(status="ready")),
+        ("Scheduled", {"status__exact": "scheduled"}, Q(status="scheduled")), ("Posted", {"status__exact": "posted"}, Q(status="posted")),
+        ("Reels", {"post_type__exact": "reel"}, Q(post_type="reel")), ("Stories", {"post_type__exact": "story"}, Q(post_type="story")),
+    ]
     list_filter_submit = True
     list_per_page = 50
     list_display = ("post", "when", "post_type", "template_badge", "format", "platform_names", "status_badge", "design_link")
