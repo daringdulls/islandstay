@@ -360,3 +360,9 @@ SOCIAL_PROFILES = [u.strip() for u in os.environ.get("SOCIAL_PROFILES", "").spli
 
 # Google Analytics 4 "Measurement ID" (G-XXXXXXXXXX). Empty = no Google tag. Loads only after "Accept all".
 GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
+
+# Google Tag Manager container (GTM-XXXXXXX). Loads only after "Accept all". Override or clear with the
+# GTM_CONTAINER_ID environment variable (set it to "off" to switch Tag Manager off).
+GTM_CONTAINER_ID = os.environ.get("GTM_CONTAINER_ID", "GTM-THSR8C2H").strip()
+if GTM_CONTAINER_ID.lower() == "off":
+    GTM_CONTAINER_ID = ""

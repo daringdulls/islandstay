@@ -1278,8 +1278,13 @@ class SeoTests(TestCase):
 class GoogleTagTests(TestCase):
     def test_tag_only_when_configured_and_never_in_back_office(self):
         from django.test import override_settings
-        self.assertNotContains(self.client.get("/privacy/"), "googletagmanager")
-        with override_settings(GA_MEASUREMENT_ID="G-TEST123"):
+        with override_settings(GTM_CONTAINER_ID=""):
+            self.assertNotContains(self.client.get("/privacy/"), "googletagmanager")
+        r = self.client.get("/privacy/")
+        self.assertContains(r, "gtm.js?id=")
+        self.assertContains(r, '"GTM-THSR8C2H"')
+        self.assertNotContains(self.client.get("/admin/login/"), "GTM-THSR8C2H")
+        with override_settings(GA_MEASUREMENT_ID="G-TEST123", GTM_CONTAINER_ID=""):
             r = self.client.get("/privacy/")
             self.assertContains(r, "gtag/js?id=")
             self.assertContains(r, '"G-TEST123"')

@@ -30,6 +30,8 @@ def site(request):
         "BING_SITE_VERIFICATION": getattr(settings, "BING_SITE_VERIFICATION", ""),
         "GA_MEASUREMENT_ID": "" if request.path.startswith(("/admin/", "/dashboard/", "/accounts/"))
         else __import__("re").sub(r"[^A-Za-z0-9-]", "", getattr(settings, "GA_MEASUREMENT_ID", "")),
+        "GTM_CONTAINER_ID": "" if request.path.startswith(("/admin/", "/dashboard/", "/accounts/"))
+        else __import__("re").sub(r"[^A-Za-z0-9-]", "", getattr(settings, "GTM_CONTAINER_ID", "")),
     }
     try:
         ctx["FOOTER_ISLANDS"] = _popular_islands()
