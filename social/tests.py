@@ -328,3 +328,21 @@ class PlanFromTodayTests(TestCase):
         regular = [p for p in posts if p.template not in ("intro",) and p.title not in ("How Island Stay works", "Our story")]
         if regular:
             self.assertGreaterEqual(timezone.localtime(regular[0].publish_at).date(), today + dt.timedelta(3))
+
+
+class MissedDraftTests(TestCase):
+    def test_past_drafts_hidden_and_deletable(self):
+        import datetime as dt
+        from django.utils import timezone
+        admin = get_user_model().objects.create_superuser("boss9@x.mv", "boss9@x.mv", "pw")
+        self.client.force_login(admin)
+        old = SocialPost.objects.create(title="Old", headline="Old", publish_at=timezone.now() - dt.timedelta(days=3))
+        done = SocialPost.objects.create(title="Done", headline="Done", status="posted", publish_at=timezone.now() - dt.timedelta(days=2))
+        new = SocialPost.objects.create(title="Intro", headline="Hi", template="intro", publish_at=timezone.now() + dt.timedelta(hours=1))
+        r = self.client.get(reverse("admin:social_feed"))
+        ids = [t["post"].pk for t in r.context["tiles"]]
+        self.assertEqual(ids, [new.pk, done.pk])
+        self.assertContains(r, "Delete past drafts")
+        self.client.post(reverse("admin:social_feed"), {"delete_missed": "1"})
+        self.assertFalse(SocialPost.objects.filter(pk=old.pk).exists())
+        self.assertTrue(SocialPost.objects.filter(pk=done.pk).exists())

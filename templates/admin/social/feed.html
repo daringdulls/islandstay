@@ -85,6 +85,10 @@
         <dt>Stories</dt><dd>{{ stories|length }}</dd>
         <dt>Grid check</dt><dd>{% if clashes %}<span style="color:#B9442C">{{ clashes }} tile{{ clashes|pluralize }} next to the same template. Drag to fix.</span>{% elif n_month %}<span style="color:#1E7A55">Balanced</span>{% else %}–{% endif %}</dd>
       </dl>
+      {% if n_missed %}<form method="post" style="margin-top:12px;font-size:13px;background:#F2E4C9;border-radius:10px;padding:10px 12px">{% csrf_token %}
+        {{ n_missed }} past post{{ n_missed|pluralize }} that never went out {{ n_missed|pluralize:"is,are" }} hidden from the grid.
+        <button class="sd-btn" name="delete_missed" value="1" style="margin-top:8px" onclick="return confirm('Delete past drafts that were never posted?')">Delete past drafts</button>
+      </form>{% endif %}
       <form method="post" action="{% url 'admin:social_calendar' %}" style="margin-top:14px">{% csrf_token %}
         <input type="hidden" name="plan_month" value="{{ month|date:'Y-m' }}">
         {% if not launch_planned %}<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-bottom:6px"><input type="checkbox" name="intro" value="1" checked> Start with the introduction</label>{% endif %}

@@ -6,7 +6,7 @@ import urllib.request
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.files.storage import default_storage
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -357,6 +357,15 @@ class SocialPostAdmin(ModelAdmin):
         end = (first + dt.timedelta(days=32)).replace(day=1)
         base = (SocialPost.objects.filter(platforms__contains="instagram", publish_at__isnull=False)
                 .select_related("island", "island__atoll", "listing", "activity", "island_b", "island_b__atoll"))
+        # Drafts whose time has passed will never be posted: leave them off the grid (they can be deleted).
+        missed = Q(publish_at__lt=timezone.now()) & ~Q(status=SocialPost.STATUS_POSTED) & ~Q(ig_state__in=[
+            SocialPost.IG_QUEUED, SocialPost.IG_PROCESSING])
+        if request.method == "POST" and request.POST.get("delete_missed") and self.has_delete_permission(request):
+            n, _ = SocialPost.objects.filter(missed, status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+            messages.success(request, f"Deleted {n} past draft{'s' if n != 1 else ''}.")
+            return redirect(request.get_full_path())
+        n_missed = base.filter(missed).count()
+        base = base.exclude(missed)
         grid = list(base.filter(post_type__in=SocialPost.GRID_TYPES, publish_at__date__lt=end).order_by("-publish_at")[:45])
         stories = list(base.filter(post_type=SocialPost.TYPE_STORY, publish_at__date__gte=first, publish_at__date__lt=end).order_by("publish_at"))
 
@@ -372,6 +381,7 @@ class SocialPostAdmin(ModelAdmin):
         return TemplateResponse(request, "admin/social/feed.html", self._context(
             request, title="Instagram feed preview", month=first,
             launch_planned=SocialPost.objects.filter(template="intro", publish_at__isnull=False).exists(), tomorrow=today,
+            n_missed=n_missed,
             highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
             reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
             prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,
