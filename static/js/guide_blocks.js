@@ -38,7 +38,7 @@
   var ORDER = ["rich_text", "heading", "image", "hero_image", "gallery", "grid", "image_text", "quote", "video", "embed", "cta", "stay", "experience", "island", "related", "facts"];
 
   // Small drawings for the block library.
-  var C = { ink: "#0A3D4C", sea: "#0B6E8A", sh: "#4CC3C7", line: "#CFDDE1", soft: "#E8F4F5", gold: "#EBA62A" };
+  var C = { ink: "#0A3D4C", sea: "#0B6E8A", sh: "#4CC3C7", line: "#DCE6E8", soft: "#E3EEF0", gold: "#EBA62A" };
   function bar(x, y, w, h, c) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + (h || 5) + '" rx="2.5" fill="' + (c || C.line) + '"/>'; }
   function pic(x, y, w, h) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="6" fill="' + C.sh + '" opacity=".55"/><path d="M' + x + ' ' + (y + h) + ' l' + w * .35 + ' -' + h * .45 + ' l' + w * .2 + ' ' + h * .25 + ' l' + w * .2 + ' -' + h * .3 + ' l' + w * .25 + ' ' + h * .5 + 'z" fill="' + C.sea + '" opacity=".7"/><circle cx="' + (x + w * .78) + '" cy="' + (y + h * .3) + '" r="' + h * .1 + '" fill="#fff" opacity=".9"/>'; }
   var TH = {
@@ -59,7 +59,7 @@
     related: [24, 46, 68].map(function (y) { return '<rect x="14" y="' + (y - 6) + '" width="132" height="18" rx="5" fill="#fff" stroke="' + C.line + '"/><rect x="18" y="' + (y - 3) + '" width="18" height="12" rx="3" fill="' + C.sh + '" opacity=".6"/>' + bar(42, y, 70, 5, C.ink); }).join("") + bar(14, 88, 40, 5, C.sea),
     facts: '<rect x="14" y="12" width="132" height="78" rx="10" fill="' + C.soft + '" stroke="' + C.sh + '"/><circle cx="28" cy="26" r="6" fill="' + C.sea + '"/>' + bar(40, 23, 50, 7, C.ink) + [42, 56, 70].map(function (y) { return bar(26, y, 34, 5, C.sea) + bar(70, y, 62); }).join(""),
   };
-  function thumb(t) { return '<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" rx="10" fill="#F6FAFB"/>' + (TH[t] || "") + "</svg>"; }
+  function thumb(t) { return '<svg viewBox="0 0 160 100" aria-hidden="true"><rect width="160" height="100" rx="10" fill="#FFF8EC"/>' + (TH[t] || "") + "</svg>"; }
 
   // ------------------------------------------------------------------ helpers
   function $(n) { return document.querySelector('form [name="' + n + '"]'); }

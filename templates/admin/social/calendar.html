@@ -18,7 +18,7 @@
   </form>
 </div>
 <div class="sd-legend" style="margin-bottom:10px">
-  {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#94a3b8{% elif key == 'draft' %}#EBA62A{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
+  {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#7D9399{% elif key == 'draft' %}#EBA62A{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
 </div>
 {% if overdue %}<p style="color:#B9442C;font-size:13.5px;margin:0 0 8px">{{ overdue|length }} post{{ overdue|length|pluralize }} past their date and not posted yet.</p>{% endif %}
 <div style="overflow-x:auto">

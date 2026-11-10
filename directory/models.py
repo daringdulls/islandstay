@@ -163,7 +163,7 @@ class Island(models.Model):
     cover_license = models.CharField(max_length=60, blank=True, help_text="e.g. CC BY-SA 4.0")
     cover_source_url = models.URLField(blank=True, help_text="Where the photo comes from (e.g. its Wikimedia Commons page)")
     cover_color = models.CharField(
-        max_length=7, default="#0e7c86", help_text="Fallback colour when there is no cover photo"
+        max_length=7, default="#0b6e8a", help_text="Fallback colour when there is no cover photo"
     )
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

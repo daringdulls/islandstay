@@ -6,7 +6,7 @@
 {% block og_title %}{{ guide.title }}{% endblock %}
 {% block og_description %}{{ guide.summary }}{% endblock %}
 {% block og_image %}{% if guide.photo_url %}<meta property="og:image" content="{% if guide.photo_url|slice:':4' != 'http' %}{{ request.scheme }}://{{ request.get_host }}{% endif %}{{ guide.photo_url }}">{% endif %}{% endblock %}
-{% block content %}{% if preview %}<base target="_blank"><style>.cookie-banner{display:none!important}.gd-todo{background:#FFE9A8;color:#6B4A00;border-radius:4px;padding:0 3px}</style>{% endif %}
+{% block content %}{% if preview %}<base target="_blank"><style>.cookie-banner{display:none!important}.gd-todo{background:#F2E4C9;color:#5B3A22;border-radius:4px;padding:0 3px}</style>{% endif %}
 <section class="gd-head{% if guide.photo_url %} has-photo{% endif %}">
   {% if guide.photo_url %}<img class="il-hero-bg" src="{{ guide.photo_url }}" alt="" fetchpriority="high" onerror="this.remove()">{% endif %}
   {% if guide.cover_credit %}<span class="hero-credit">{{ guide.cover_credit }}</span>{% endif %}

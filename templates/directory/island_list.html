@@ -97,7 +97,7 @@
       <form class="ct-pick" action="" onsubmit="if(this.s.value){location.href='/islands/'+this.s.value+'/update/'};return false">
         <label class="sr-only" for="ct-pick">Choose your island</label>
         <select id="ct-pick" name="s"><option value="">Choose your island…</option>{% for a in atoll_strip %}<optgroup label="{{ a.name }}">{% for i in a.islands.all %}{% if i.is_published %}<option value="{{ i.slug }}">{{ i.name }}</option>{% endif %}{% endfor %}</optgroup>{% endfor %}</select>
-        <button class="btn btn-accent" type="submit">{% icon "pencil" %} Update my island</button>
+        <button class="btn" type="submit">{% icon "pencil" %} Update my island</button>
       </form>
     </div>
     <div class="ct-band-list">
