@@ -3,7 +3,10 @@ import datetime as dt
 import urllib.parse
 import urllib.request
 
+from django.conf import settings
 from django.contrib import admin, messages
+from django.core.files.storage import default_storage
+from django.db.models import Max
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -17,7 +20,8 @@ from unfold.decorators import action, display
 
 from directory.models import Island
 
-from .models import SocialPost
+from . import instagram as ig
+from .models import InstagramAccount, SocialAsset, SocialPost
 from .planner import generate_month, generate_plan
 
 STATUS_COLORS = {"idea": "info", "draft": "warning", "ready": "primary", "scheduled": "info", "posted": "success"}
@@ -125,7 +129,7 @@ class SocialPostAdmin(ModelAdmin):
     autocomplete_fields = ("island", "listing", "activity", "island_b")
     date_hierarchy = "publish_at"
     actions = ["mark_ready", "mark_scheduled", "mark_posted"]
-    actions_list = ["open_calendar", "open_feed", "open_templates", "open_playbook"]
+    actions_list = ["open_calendar", "open_feed", "open_instagram", "open_templates", "open_playbook"]
     actions_detail = ["open_design"]
     actions_row = ["row_design"]
     fieldsets = (
@@ -192,6 +196,10 @@ class SocialPostAdmin(ModelAdmin):
     def open_feed(self, request):
         return redirect("admin:social_feed")
 
+    @action(description="Instagram", icon="photo_camera", url_path="go-instagram")
+    def open_instagram(self, request):
+        return redirect("admin:social_instagram")
+
     @action(description="Design templates", icon="palette", url_path="go-templates")
     def open_templates(self, request):
         return redirect("admin:social_templates")
@@ -214,6 +222,11 @@ class SocialPostAdmin(ModelAdmin):
         return [
             path("calendar/", view(self.calendar_view), name="social_calendar"),
             path("feed/", view(self.feed_view), name="social_feed"),
+            path("instagram/", view(self.instagram_view), name="social_instagram"),
+            path("instagram/connect/", view(self.instagram_connect), name="social_instagram_connect"),
+            path("instagram/callback/", view(self.instagram_callback), name="social_instagram_callback"),
+            path("<int:pk>/instagram/queue/", view(self.instagram_queue), name="social_instagram_queue"),
+            path("<int:pk>/instagram/asset/", view(self.instagram_asset), name="social_instagram_asset"),
             path("feed/swap/", view(self.feed_swap), name="social_feed_swap"),
             path("templates/", view(self.templates_view), name="social_templates"),
             path("playbook/", view(self.playbook_view), name="social_playbook"),
@@ -229,12 +242,18 @@ class SocialPostAdmin(ModelAdmin):
             raise PermissionDenied
         post = get_object_or_404(SocialPost.objects.select_related("island", "island__atoll", "listing", "activity", "island_b", "island_b__atoll"), pk=pk)
         fmt = request.GET.get("format")
+        saved_format = post.format
+        issues = ig.problems(post)
         if fmt in SocialPost.FORMAT_SIZES:
             post.format = fmt
         siblings = list(SocialPost.objects.filter(publish_at__isnull=False).order_by("publish_at", "id").values_list("pk", flat=True))
         idx = siblings.index(post.pk) if post.pk in siblings else -1
         return TemplateResponse(request, "admin/social/design.html", self._context(
             request, title=post.title, post=post, photo=proxied(post.photo), photo_b=proxied(post.photo_b), formats=SocialPost.FORMAT_CHOICES,
+            ig_account=InstagramAccount.current(), ig_problems=issues,
+            slides=post.assets.filter(kind=SocialAsset.KIND_SLIDE), video_parts=list(post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
+            video_size=sum(a.size for a in post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
+            format_override=bool(fmt and fmt != saved_format),
             prev_id=siblings[idx - 1] if idx > 0 else None,
             next_id=siblings[idx + 1] if 0 <= idx < len(siblings) - 1 else None,
         ))
@@ -336,6 +355,126 @@ class SocialPostAdmin(ModelAdmin):
             n_total=SocialPost.objects.filter(platforms__contains="instagram", post_type__in=SocialPost.GRID_TYPES,
                                               status=SocialPost.STATUS_POSTED).count(),
             clashes=sum(t["clash"] for t in tiles if t["in_month"])))
+
+    # ------------------------------------------------------------------ Instagram publishing
+    def _callback_url(self, request):
+        url = reverse("admin:social_instagram_callback")
+        host = settings.CANONICAL_HOST
+        return f"https://{host}{url}" if host else request.build_absolute_uri(url)
+
+    def _public_url(self, request, name):
+        url = default_storage.url(name)
+        if url.startswith("http"):
+            return url
+        host = settings.CANONICAL_HOST
+        return f"https://{host}{url}" if host else request.build_absolute_uri(url)
+
+    def instagram_view(self, request):
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        account = InstagramAccount.current()
+        if request.method == "POST" and self.has_change_permission(request):
+            if request.POST.get("disconnect"):
+                InstagramAccount.objects.all().delete()
+                messages.success(request, "Instagram disconnected. Queued posts stay queued until you connect again.")
+            elif request.POST.get("run"):
+                log = ig.run(max_seconds=200)
+                messages.info(request, " · ".join(log)[:600])
+            return redirect("admin:social_instagram")
+        queue = (SocialPost.objects.exclude(ig_state="").exclude(ig_state=SocialPost.IG_PUBLISHED).order_by("publish_at"))
+        published = SocialPost.objects.filter(ig_state=SocialPost.IG_PUBLISHED).order_by("-publish_at")[:10]
+        cron_path = reverse("social_cron_instagram")
+        host = settings.CANONICAL_HOST
+        cron_url = f"https://{host}{cron_path}" if host else request.build_absolute_uri(cron_path)
+        return TemplateResponse(request, "admin/social/instagram.html", self._context(
+            request, title="Instagram publishing", account=account, configured=ig.configured(),
+            callback_url=self._callback_url(request), cron_url=cron_url, has_cron_secret=bool(settings.CRON_SECRET),
+            cron_secret=settings.CRON_SECRET if request.user.is_superuser else "", queue=queue, published=published,
+            now=timezone.now()))
+
+    def instagram_connect(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        if not ig.configured():
+            messages.error(request, "Add INSTAGRAM_APP_ID and INSTAGRAM_APP_SECRET in Vercel first.")
+            return redirect("admin:social_instagram")
+        state = ig.new_state()
+        request.session["ig_state"] = state
+        return redirect(ig.authorize_url(self._callback_url(request), state))
+
+    def instagram_callback(self, request):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        if request.GET.get("error"):
+            messages.error(request, "Instagram didn't connect: " + (request.GET.get("error_description") or request.GET["error"]))
+        elif not request.GET.get("state") or request.GET.get("state") != request.session.pop("ig_state", None):
+            messages.error(request, "That Instagram sign-in link expired. Press Connect Instagram again.")
+        else:
+            try:
+                account = ig.connect(request.GET.get("code", ""), self._callback_url(request))
+                messages.success(request, f"Connected {account}. Posts you schedule will now publish by themselves.")
+            except (ig.InstagramError, KeyError) as exc:
+                messages.error(request, f"Couldn't connect Instagram: {exc}")
+        return redirect("admin:social_instagram")
+
+    def instagram_queue(self, request, pk):
+        """POST image=<jpeg>: save the rendered design and queue the post. POST action=cancel: take it off the queue."""
+        if request.method != "POST" or not self.has_change_permission(request):
+            raise PermissionDenied
+        post = get_object_or_404(SocialPost, pk=pk)
+        if post.ig_state in (SocialPost.IG_PROCESSING, SocialPost.IG_PUBLISHED):
+            return JsonResponse({"ok": False, "error": "This post is already with Instagram."}, status=400)
+        if request.POST.get("action") == "cancel":
+            post.ig_state, post.ig_error = "", ""
+            if post.status == SocialPost.STATUS_SCHEDULED:
+                post.status = SocialPost.STATUS_READY
+            post.save(update_fields=["ig_state", "ig_error", "status", "updated_at"])
+            return JsonResponse({"ok": True})
+        issues = ig.problems(post)
+        if issues:
+            return JsonResponse({"ok": False, "error": " ".join(issues)}, status=400)
+        image = request.FILES.get("image")
+        if not image or image.size > 4_200_000:
+            return JsonResponse({"ok": False, "error": "The design image didn't arrive. Try again."}, status=400)
+        image.content_type = "image/jpeg"
+        name = default_storage.save(f"social/ig/{post.pk}-{post.format}.jpg", image)
+        post.ig_image_url = self._public_url(request, name)
+        post.ig_state, post.ig_error, post.ig_attempts, post.ig_container_id = SocialPost.IG_QUEUED, "", 0, ""
+        post.status = SocialPost.STATUS_SCHEDULED
+        post.save()
+        return JsonResponse({"ok": True, "when": timezone.localtime(post.publish_at).strftime("%a %d %b, %H:%M")})
+
+    def instagram_asset(self, request, pk):
+        """Upload a carousel slide, or one part of a Reel video; or delete one (action=delete)."""
+        if request.method != "POST" or not self.has_change_permission(request):
+            raise PermissionDenied
+        post = get_object_or_404(SocialPost, pk=pk)
+        if request.POST.get("action") == "delete":
+            post.assets.filter(pk=request.POST.get("id")).delete()
+            return JsonResponse({"ok": True})
+        if request.POST.get("action") == "clear-video":
+            post.assets.filter(kind=SocialAsset.KIND_VIDEO).delete()
+            return JsonResponse({"ok": True})
+        f = request.FILES.get("file")
+        kind = request.POST.get("kind")
+        if not f or kind not in (SocialAsset.KIND_SLIDE, SocialAsset.KIND_VIDEO) or f.size > 4_200_000:
+            return JsonResponse({"ok": False, "error": "Upload failed. Try again."}, status=400)
+        if kind == SocialAsset.KIND_SLIDE:
+            if post.assets.filter(kind=kind).count() >= 9:
+                return JsonResponse({"ok": False, "error": "A carousel holds 10 images: the design plus 9 slides."}, status=400)
+            f.content_type = "image/jpeg"
+            order = (post.assets.filter(kind=kind).aggregate(m=Max("order"))["m"] or 0) + 1
+            name = default_storage.save(f"social/assets/{post.pk}-slide.jpg", f)
+            a = SocialAsset.objects.create(post=post, kind=kind, file=name, url=self._public_url(request, name),
+                                           name=request.POST.get("name", "")[:120], order=order, size=f.size)
+            return JsonResponse({"ok": True, "id": a.pk, "url": a.url})
+        part = int(request.POST.get("part", 0))
+        if part == 0:
+            post.assets.filter(kind=kind).delete()
+        f.content_type = "application/octet-stream"
+        name = default_storage.save(f"social/assets/{post.pk}-video-{part:03d}.part", f)
+        SocialAsset.objects.create(post=post, kind=kind, file=name, name=request.POST.get("name", "")[:120], order=part, size=f.size)
+        return JsonResponse({"ok": True})
 
     def feed_swap(self, request):
         """Swap the dates of two posts, so dragging a tile in the feed preview moves it in the schedule."""

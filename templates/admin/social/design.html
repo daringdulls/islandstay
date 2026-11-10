@@ -28,6 +28,44 @@
       </div>
       <p id="dl-msg" style="font-size:12.5px;margin:10px 0 0;color:rgb(107 114 128)"></p>
     </div>
+    <div class="sd-card" id="ig">{% csrf_token %}
+      <h3>Instagram</h3>
+      {% if not ig_account %}
+        <p style="font-size:13.5px;margin:0">Connect Instagram to publish this automatically. <a href="{% url 'admin:social_instagram' %}" style="color:#0B6E8A;font-weight:600">Set up Instagram</a></p>
+      {% else %}
+        <p style="font-size:13.5px;margin:0 0 8px">
+          {% if post.ig_state == "published" %}<b style="color:#1E7A55">Published</b>{% if post.posted_url %} · <a href="{{ post.posted_url }}" target="_blank" rel="noopener" style="color:#0B6E8A">View on Instagram</a>{% endif %}
+          {% elif post.ig_state == "processing" %}<b>Instagram is processing it</b> (Reels can take a few minutes).
+          {% elif post.ig_state == "queued" %}<b style="color:#0B6E8A">Queued</b> for {{ post.publish_at|date:"D j M, H:i" }} on @{{ ig_account.username }}.
+          {% elif post.ig_state == "failed" %}<b style="color:#B9442C">Failed:</b> {{ post.ig_error }}
+          {% else %}Not scheduled on Instagram yet.{% endif %}
+          {% if post.ig_error and post.ig_state != "failed" %}<br><small style="color:#B9442C">Last try: {{ post.ig_error }}</small>{% endif %}
+        </p>
+        {% if post.post_type == "carousel" %}
+          <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Slides after this design ({{ slides|length }}/9)</div>
+          <div class="ig-slides">{% for a in slides %}<figure><img src="{{ a.file.url }}" alt=""><button type="button" class="ig-x" data-del="{{ a.pk }}" title="Remove">&times;</button></figure>{% endfor %}
+            <label class="ig-add">+<input type="file" accept="image/*" multiple hidden id="slide-in"></label></div>
+          <small style="color:rgb(107 114 128)">Tip: download each island's spotlight design and add them here. Instagram crops every slide to this design's shape.</small>
+        {% endif %}
+        {% if post.post_type == "reel" %}
+          <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Reel video</div>
+          {% if video_parts %}<p style="font-size:13px;margin:0 0 6px">{{ video_parts.0.name|default:"Video" }} · {% widthratio video_size 1048576 1 %} MB uploaded. This design is the cover.</p>{% endif %}
+          <label class="sd-btn" style="cursor:pointer">{% if video_parts %}Replace video{% else %}Upload MP4{% endif %}<input type="file" accept="video/mp4,video/quicktime" hidden id="video-in"></label>
+          <div class="ig-bar" hidden><i></i></div>
+          <small style="display:block;color:rgb(107 114 128);margin-top:6px">Vertical 9:16, 3 to 90 seconds, under 300 MB.</small>
+        {% endif %}
+        {% if post.post_type == "story" and post.script %}<p style="font-size:12.5px;margin:8px 0 0;color:#5B3A22">Stickers can't be added through the API. If this Story needs one, post it from the Instagram app instead.</p>{% endif %}
+        {% if ig_problems and post.ig_state != "published" %}<ul style="font-size:13px;color:#B9442C;margin:10px 0 0;padding-left:18px;list-style:disc">{% for p in ig_problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+        {% if post.ig_state != "published" and post.ig_state != "processing" %}
+        <div class="sd-row" style="margin-top:12px">
+          <button class="sd-btn primary" type="button" id="ig-queue"{% if ig_problems or format_override %} disabled{% endif %}>{% if post.ig_state == "queued" %}Update on Instagram{% elif post.ig_state == "failed" %}Try again{% else %}Schedule on Instagram{% endif %}</button>
+          {% if post.ig_state == "queued" or post.ig_state == "failed" %}<button class="sd-btn" type="button" id="ig-cancel">Unschedule</button>{% endif %}
+        </div>
+        {% if format_override %}<small style="color:#B9442C">You're previewing another format. Switch back to the post's own format to schedule it.</small>{% endif %}
+        {% endif %}
+        <p id="ig-msg" style="font-size:12.5px;margin:8px 0 0"></p>
+      {% endif %}
+    </div>
     {% if post.script %}<div class="sd-card">
       <h3>{% if post.post_type == "reel" %}Reel shot list{% elif post.post_type == "carousel" %}Carousel slides{% else %}Story stickers{% endif %}</h3>
       <div class="sd-caption">{{ post.script }}</div>
@@ -60,7 +98,8 @@ document.getElementById('dl').onclick = async function () {
   btn.disabled = true; btn.textContent = 'Preparing…'; msg.textContent = '';
   try {
     await document.fonts.ready;
-    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' } };
+    node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
+    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
     await htmlToImage.toPng(node, opts); // first pass loads fonts and images
     var url = await htmlToImage.toPng(node, opts);
     var a = document.createElement('a');
@@ -69,5 +108,74 @@ document.getElementById('dl').onclick = async function () {
   } catch (e) { msg.textContent = 'Could not create the image: ' + (e && e.message || e) + '. Try again, or take a screenshot of the preview.'; }
   btn.disabled = false; btn.textContent = 'Download PNG';
 };
+
+(function () {
+  var box = document.getElementById('ig'); if (!box) return;
+  var csrf = box.querySelector('[name=csrfmiddlewaretoken]').value, msg = document.getElementById('ig-msg');
+  function say(t, bad) { msg.textContent = t; msg.style.color = bad ? '#B9442C' : '#1E7A55'; }
+  function send(url, data) {
+    return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: data }).then(function (r) {
+      return r.json().catch(function () { return { ok: false, error: r.status === 413 ? 'That file part was too large.' : 'Upload failed (' + r.status + ').' }; });
+    });
+  }
+  function toJpeg(img, max) {
+    var s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+    var g = c.getContext('2d'); g.fillStyle = '#FFF8EC'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    return new Promise(function (ok) { c.toBlob(ok, 'image/jpeg', 0.9); });
+  }
+  var q = document.getElementById('ig-queue');
+  if (q) q.onclick = async function () {
+    q.disabled = true; say('Saving the design…');
+    try {
+      var node = document.querySelector('#design .sp');
+      await document.fonts.ready;
+      node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
+      var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, backgroundColor: '#FFF8EC', imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
+      await htmlToImage.toPng(node, opts);
+      var url = await htmlToImage.toPng(node, opts);
+      var img = new Image(); img.src = url; await img.decode();
+      var blob = await toJpeg(img, 1920), fd = new FormData();
+      fd.append('image', blob, 'design.jpg');
+      var d = await send('{% url "admin:social_instagram_queue" post.pk %}', fd);
+      if (!d.ok) throw new Error(d.error);
+      say('Queued for ' + d.when + '. It will publish by itself.'); setTimeout(function () { location.reload(); }, 1200);
+    } catch (e) { say((e && e.message) || 'Could not save the design image (a photo may not have loaded). Reload and try again.', true); q.disabled = false; }
+  };
+  var c = document.getElementById('ig-cancel');
+  if (c) c.onclick = function () {
+    var fd = new FormData(); fd.append('action', 'cancel');
+    send('{% url "admin:social_instagram_queue" post.pk %}', fd).then(function () { location.reload(); });
+  };
+  var asset = '{% url "admin:social_instagram_asset" post.pk %}';
+  box.querySelectorAll('[data-del]').forEach(function (b) {
+    b.onclick = function () { var fd = new FormData(); fd.append('action', 'delete'); fd.append('id', b.dataset.del); send(asset, fd).then(function () { location.reload(); }); };
+  });
+  var si = document.getElementById('slide-in');
+  if (si) si.onchange = async function () {
+    for (var i = 0; i < si.files.length; i++) {
+      say('Uploading slide ' + (i + 1) + ' of ' + si.files.length + '…');
+      var f = si.files[i], img = new Image(); img.src = URL.createObjectURL(f);
+      try { await img.decode(); } catch (e) { say(f.name + ' is not an image this browser can open.', true); continue; }
+      var fd = new FormData(); fd.append('kind', 'slide'); fd.append('name', f.name); fd.append('file', await toJpeg(img, 1440), 'slide.jpg');
+      var d = await send(asset, fd); if (!d.ok) { say(d.error, true); return; }
+    }
+    location.reload();
+  };
+  var vi = document.getElementById('video-in');
+  if (vi) vi.onchange = async function () {
+    var f = vi.files[0]; if (!f) return;
+    if (f.size > 300 * 1048576) { say('That video is over 300 MB. Export it smaller (1080 × 1920, H.264).', true); return; }
+    var part = 3.5 * 1048576, n = Math.ceil(f.size / part), bar = box.querySelector('.ig-bar'); bar.hidden = false;
+    for (var i = 0; i < n; i++) {
+      var fd = new FormData(); fd.append('kind', 'video'); fd.append('part', i); fd.append('name', f.name);
+      fd.append('file', f.slice(i * part, Math.min(f.size, (i + 1) * part)), 'part');
+      var d = await send(asset, fd);
+      if (!d.ok) { say(d.error + ' Try again.', true); return; }
+      bar.firstElementChild.style.width = Math.round((i + 1) / n * 100) + '%'; say('Uploading video… ' + Math.round((i + 1) / n * 100) + '%');
+    }
+    say('Video uploaded.'); setTimeout(function () { location.reload(); }, 800);
+  };
+})();
 </script>
 {% endblock %}

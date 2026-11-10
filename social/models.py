@@ -55,6 +55,11 @@ class SocialPost(models.Model):
     TYPE_FEED, TYPE_CAROUSEL, TYPE_REEL, TYPE_STORY = "feed", "carousel", "reel", "story"
     TYPE_CHOICES = [(TYPE_FEED, "Feed post"), (TYPE_CAROUSEL, "Carousel"), (TYPE_REEL, "Reel"), (TYPE_STORY, "Story")]
     GRID_TYPES = (TYPE_FEED, TYPE_CAROUSEL, TYPE_REEL)
+    # Instagram auto-publishing
+    IG_NONE, IG_QUEUED, IG_PROCESSING, IG_PUBLISHED, IG_FAILED = "", "queued", "processing", "published", "failed"
+    IG_CHOICES = [(IG_NONE, "Not queued"), (IG_QUEUED, "Queued"), (IG_PROCESSING, "Instagram is processing"),
+                  (IG_PUBLISHED, "Published"), (IG_FAILED, "Failed")]
+
     PILLAR_CHOICES = [
         ("islands", "Islands"), ("hosts", "Local hosts"), ("experiences", "Experiences"),
         ("practical", "Practical tips"), ("culture", "Culture & story"), ("news", "News"),
@@ -100,6 +105,12 @@ class SocialPost(models.Model):
     link = models.CharField(max_length=200, blank=True, help_text="Link in bio / link to share")
     notes = models.TextField(blank=True, help_text="Internal notes")
     posted_url = models.URLField(blank=True, help_text="Link to the published post")
+    ig_state = models.CharField("Instagram", max_length=12, choices=IG_CHOICES, default="", blank=True)
+    ig_image_url = models.URLField("Rendered image", max_length=500, blank=True)
+    ig_container_id = models.CharField(max_length=40, blank=True)
+    ig_media_id = models.CharField(max_length=40, blank=True)
+    ig_error = models.CharField(max_length=500, blank=True)
+    ig_attempts = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -179,3 +190,41 @@ class SocialPost(models.Model):
     @property
     def is_overdue(self):
         return self.publish_at and self.publish_at < timezone.now() and self.status not in (self.STATUS_POSTED,)
+
+
+class SocialAsset(models.Model):
+    """Extra files for a post: carousel slides, or a Reel video stored in parts (uploads are capped at about 4 MB)."""
+    KIND_SLIDE, KIND_VIDEO = "slide", "video"
+    post = models.ForeignKey(SocialPost, on_delete=models.CASCADE, related_name="assets")
+    kind = models.CharField(max_length=8, choices=[(KIND_SLIDE, "Carousel slide"), (KIND_VIDEO, "Reel video part")])
+    file = models.FileField(upload_to="social/assets/", max_length=300)
+    url = models.URLField(max_length=500, blank=True, help_text="Public link Instagram downloads the slide from")
+    name = models.CharField(max_length=120, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    size = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["kind", "order", "id"]
+
+
+class InstagramAccount(models.Model):
+    """The connected Instagram professional account (one per site)."""
+    ig_user_id = models.CharField(max_length=40)
+    username = models.CharField(max_length=60, blank=True)
+    access_token = models.TextField()
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    token_refreshed_at = models.DateTimeField(null=True, blank=True)
+    connected_at = models.DateTimeField(auto_now_add=True)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    last_run_log = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Instagram account"
+
+    def __str__(self):
+        return f"@{self.username or self.ig_user_id}"
+
+    @classmethod
+    def current(cls):
+        return cls.objects.order_by("-connected_at").first()

@@ -22,6 +22,7 @@ from django.contrib.sitemaps.views import sitemap  # noqa: E402
 from django.http import HttpResponse  # noqa: E402
 from django.views.decorators.cache import cache_page  # noqa: E402
 from directory.sitemaps import SITEMAPS  # noqa: E402
+from social.views import cron_instagram  # noqa: E402
 
 
 def robots_txt(request):
@@ -35,6 +36,7 @@ def robots_txt(request):
 urlpatterns = [
     path("media/blob/<path:path>", blob_proxy, name="blob_proxy"),
     path("t/", collect, name="track"),
+    path("cron/instagram/", cron_instagram, name="social_cron_instagram"),
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", cache_page(3600)(sitemap), {"sitemaps": SITEMAPS}, name="django.contrib.sitemaps.views.sitemap"),
     path("admin/ai-assist/", admin.site.admin_view(ai_assist_view), name="ai_assist"),

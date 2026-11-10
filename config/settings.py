@@ -327,6 +327,7 @@ UNFOLD = {
                 "items": [
                     {"title": "Calendar", "icon": "calendar_month", "link": reverse_lazy("admin:social_calendar")},
                     {"title": "Feed preview", "icon": "grid_view", "link": reverse_lazy("admin:social_feed")},
+                    {"title": "Instagram", "icon": "photo_camera", "link": reverse_lazy("admin:social_instagram")},
                     {"title": "All posts", "icon": "photo_library", "link": reverse_lazy("admin:social_socialpost_changelist")},
                     {"title": "Design templates", "icon": "palette", "link": reverse_lazy("admin:social_templates")},
                     {"title": "Playbook", "icon": "menu_book", "link": reverse_lazy("admin:social_playbook")},
@@ -350,6 +351,9 @@ UNFOLD = {
 
 # Vercel Cron calls /cron/photos/ with this secret to link missing Wikimedia photos.
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
+# Instagram API with Instagram Login (Meta developer app -> Instagram -> API setup with Instagram login).
+INSTAGRAM_APP_ID = os.environ.get("INSTAGRAM_APP_ID", "").strip()
+INSTAGRAM_APP_SECRET = os.environ.get("INSTAGRAM_APP_SECRET", "").strip()
 
 # Search engine verification codes (Google Search Console / Bing Webmaster Tools, "HTML tag" method):
 # paste only the content="..." value into these Vercel environment variables.

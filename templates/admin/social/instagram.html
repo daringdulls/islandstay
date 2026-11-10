@@ -1,0 +1,97 @@
+{% extends 'admin/base.html' %}
+{% block title %}Instagram publishing{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
+{% block content %}
+{% with active="instagram" %}{% include "admin/social/_nav.html" %}{% endwith %}
+<div class="sd-wrap">
+<div class="sd-prose" style="max-width:none">
+  <h1 style="font-size:24px;font-weight:600;margin:0">Instagram publishing</h1>
+  <p>Posts you schedule on Instagram from a post's design page are published automatically at their date and time:
+     feed posts, carousels, Stories and Reels.</p>
+
+  <div class="sd-card" style="margin:16px 0">
+    {% if account %}
+      <p style="margin:0"><b style="color:#1E7A55">Connected</b> to <b>@{{ account.username|default:account.ig_user_id }}</b> since {{ account.connected_at|date:"j M Y" }}.
+      {% if account.token_expires_at %}Access renews automatically (current key valid until {{ account.token_expires_at|date:"j M Y" }}).{% endif %}</p>
+      {% if account.last_run_at %}<p style="margin:8px 0 0;font-size:13px">Last check: {{ account.last_run_at|timesince }} ago. {{ account.last_run_log|linebreaksbr }}</p>
+      {% else %}<p style="margin:8px 0 0;font-size:13px;color:#B9442C">The publisher hasn't run yet. Set up the timer in step 5.</p>{% endif %}
+      <form method="post" class="sd-row" style="margin-top:12px">{% csrf_token %}
+        <button class="sd-btn primary" name="run" value="1">Publish due posts now</button>
+        <a class="sd-btn" href="{% url 'admin:social_instagram_connect' %}">Reconnect</a>
+        <button class="sd-btn" name="disconnect" value="1" onclick="return confirm('Disconnect Instagram? Nothing will publish until you connect again.')">Disconnect</button>
+      </form>
+    {% elif configured %}
+      <p style="margin:0">The app keys are set. Connect the Island Stay Instagram account:</p>
+      <a class="sd-btn primary" style="margin-top:12px" href="{% url 'admin:social_instagram_connect' %}">Connect Instagram</a>
+    {% else %}
+      <p style="margin:0"><b>Not set up yet.</b> Follow the steps below (about 15 minutes, once).</p>
+    {% endif %}
+  </div>
+
+  {% if queue %}
+  <h2>Queue</h2>
+  <table>
+    <tr><th>When</th><th>Post</th><th>Type</th><th>Instagram</th></tr>
+    {% for p in queue %}<tr>
+      <td>{{ p.publish_at|date:"D j M, H:i" }}</td>
+      <td><a href="{% url 'admin:social_socialpost_design' p.pk %}">{{ p.title }}</a></td>
+      <td>{{ p.get_post_type_display }}</td>
+      <td>{% if p.ig_state == 'failed' %}<span style="color:#B9442C">Failed: {{ p.ig_error }}</span>{% elif p.ig_error %}{{ p.get_ig_state_display }} <small style="color:#B9442C">(retrying: {{ p.ig_error }})</small>{% elif p.publish_at < now %}Due, publishing on the next check{% else %}{{ p.get_ig_state_display }}{% endif %}</td>
+    </tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if published %}
+  <h2>Recently published</h2>
+  <ul>{% for p in published %}<li>{{ p.publish_at|date:"j M" }} · <a href="{{ p.posted_url }}" target="_blank" rel="noopener">{{ p.title }}</a></li>{% endfor %}</ul>
+  {% endif %}
+
+  <h2>Set up (once)</h2>
+  <ol>
+    <li><b>Make the Instagram account professional.</b> In the Instagram app: Settings → Account type and tools → Switch to professional account → Business. It's free.</li>
+    <li><b>Create a Meta app.</b> Go to <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a> → Create app → use case <i>Manage messaging &amp; content on Instagram</i> → name it “Island Stay publisher”.</li>
+    <li><b>Set up Instagram login.</b> In the app: Instagram → API setup with Instagram login.
+      <ul>
+        <li>Under “Generate access tokens”, add the Island Stay Instagram account (this makes it a tester, so no app review is needed).</li>
+        <li>Under “Set up Instagram business login” → Business login settings, paste this as the <b>OAuth redirect URI</b>:
+          <div class="sd-row" style="margin:6px 0"><code id="cb" style="background:#E3EEF0;color:#0A3D4C;padding:6px 10px;border-radius:8px;word-break:break-all">{{ callback_url }}</code><button type="button" class="sd-btn" data-copy="cb">Copy</button></div></li>
+        <li>Copy the <b>Instagram app ID</b> and <b>Instagram app secret</b> shown at the top of that page.</li>
+      </ul></li>
+    <li><b>Add the keys to Vercel.</b> Vercel → islandstay → Settings → Environment Variables, for Production:
+      <table>
+        <tr><th>Name</th><th>Value</th><th>Status</th></tr>
+        <tr><td><code>INSTAGRAM_APP_ID</code></td><td>Instagram app ID</td><td>{% if configured %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
+        <tr><td><code>INSTAGRAM_APP_SECRET</code></td><td>Instagram app secret</td><td>{% if configured %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
+        <tr><td><code>CRON_SECRET</code></td><td>Any long random text (keeps the timer link private)</td><td>{% if has_cron_secret %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
+      </table>
+      Then Deployments → ⋯ → Redeploy, come back here and press <b>Connect Instagram</b>.</li>
+    <li><b>Start the timer.</b> Instagram can't schedule API posts itself, so this site checks for due posts. Sign up free at
+      <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a> → Create cronjob:
+      <ul>
+        <li>URL: <div class="sd-row" style="margin:6px 0"><code id="cron" style="background:#E3EEF0;color:#0A3D4C;padding:6px 10px;border-radius:8px;word-break:break-all">{{ cron_url }}?key={% if cron_secret %}{{ cron_secret }}{% else %}YOUR_CRON_SECRET{% endif %}</code><button type="button" class="sd-btn" data-copy="cron">Copy</button></div>
+          {% if not cron_secret %}<small>Replace YOUR_CRON_SECRET with the value you set in Vercel.</small>{% endif %}</li>
+        <li>Schedule: every 10 minutes. Leave the rest as it is.</li>
+      </ul></li>
+  </ol>
+
+  <h2>Using it</h2>
+  <ol>
+    <li>Open a post's design, check it, and press <b>Schedule on Instagram</b>. The design is saved as a JPG and the post is queued for its date.</li>
+    <li><b>Carousels:</b> add 1 to 9 more slides on the design page first. <b>Reels:</b> upload the MP4 (vertical, 3 to 90 seconds); the design becomes the cover.</li>
+    <li>At the post's time it goes out, the status changes to Posted and the Instagram link is saved.</li>
+    <li>Changed the post after queuing? Press <b>Update on Instagram</b> to save the new image and caption.</li>
+  </ol>
+  <h3>Good to know</h3>
+  <ul>
+    <li>Stories are published without stickers: Instagram's API can't add polls, questions or link stickers. For those Stories, add the sticker in the app instead (the sticker note says which).</li>
+    <li>Instagram caps how many posts the API can publish each day, far above the one or two a day this plan uses.</li>
+    <li>If a post fails (for example a video Instagram can't read), it's tried 3 times, then shown here in red with the reason.</li>
+  </ul>
+</div>
+</div>
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.onclick = function () { navigator.clipboard.writeText(document.getElementById(b.dataset.copy).innerText.trim()).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); }); };
+});
+</script>
+{% endblock %}
