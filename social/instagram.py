@@ -91,6 +91,18 @@ def connect(code, redirect_uri):
     )
 
 
+def connect_with_token(token):
+    """Save a token generated in the Meta app dashboard (API setup -> Generate access tokens)."""
+    token = token.strip()
+    me = _call("GET", f"{GRAPH}/me", params={"fields": "user_id,username", "access_token": token})
+    InstagramAccount.objects.all().delete()
+    return InstagramAccount.objects.create(
+        ig_user_id=str(me.get("user_id") or me.get("id")), username=me.get("username", ""), access_token=token,
+        token_refreshed_at=timezone.now() - dt.timedelta(days=1),  # dashboard tokens are long-lived (60 days)
+        token_expires_at=timezone.now() + dt.timedelta(days=55),
+    )
+
+
 def refresh_if_needed(account):
     """Long-lived tokens last 60 days; refresh once they are more than a day old and within 20 days of expiry."""
     if not account.token_expires_at or account.token_expires_at - timezone.now() > dt.timedelta(days=20):

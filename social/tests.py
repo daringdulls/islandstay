@@ -219,3 +219,21 @@ class InstagramPublishTests(TestCase):
         reel = SocialPost.objects.create(title="Reel", headline="Surf", post_type="reel", format="story", publish_at=self.post.publish_at)
         r = self.client.post(reverse("admin:social_instagram_queue", args=[reel.pk]), {"image": SimpleUploadedFile("d.jpg", b"x")})
         self.assertIn("Reel video", r.json()["error"])
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="ig-test-"))
+class InstagramTokenTests(TestCase):
+    def test_paste_token_connects(self):
+        from unittest import mock
+        from . import instagram
+        from .models import InstagramAccount
+        admin = get_user_model().objects.create_superuser("boss5@x.mv", "boss5@x.mv", "pw")
+        self.client.force_login(admin)
+        with mock.patch.object(instagram, "_call", return_value={"user_id": "1784", "username": "islandstaymv"}):
+            r = self.client.post(reverse("admin:social_instagram"), {"token": " IGAAtoken "})
+        self.assertEqual(r.status_code, 302)
+        acc = InstagramAccount.current()
+        self.assertEqual((acc.username, acc.access_token, acc.ig_user_id), ("islandstaymv", "IGAAtoken", "1784"))
+        r = self.client.get(reverse("admin:social_instagram"))
+        self.assertContains(r, "Connected")
+        self.assertNotContains(r, "IGAAtoken")

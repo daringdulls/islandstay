@@ -13,20 +13,24 @@
   <div class="sd-card" style="margin:16px 0">
     {% if account %}
       <p style="margin:0"><b style="color:#1E7A55">Connected</b> to <b>@{{ account.username|default:account.ig_user_id }}</b> since {{ account.connected_at|date:"j M Y" }}.
-      {% if account.token_expires_at %}Access renews automatically (current key valid until {{ account.token_expires_at|date:"j M Y" }}).{% endif %}</p>
+      {% if account.token_expires_at %}The access key renews automatically (current key valid until {{ account.token_expires_at|date:"j M Y" }}).{% endif %}</p>
       {% if account.last_run_at %}<p style="margin:8px 0 0;font-size:13px">Last check: {{ account.last_run_at|timesince }} ago. {{ account.last_run_log|linebreaksbr }}</p>
-      {% else %}<p style="margin:8px 0 0;font-size:13px;color:#B9442C">The publisher hasn't run yet. Set up the timer in step 5.</p>{% endif %}
+      {% else %}<p style="margin:8px 0 0;font-size:13px;color:#B9442C">The publisher hasn't run yet. Set up the timer (step 5 below).</p>{% endif %}
       <form method="post" class="sd-row" style="margin-top:12px">{% csrf_token %}
         <button class="sd-btn primary" name="run" value="1">Publish due posts now</button>
-        <a class="sd-btn" href="{% url 'admin:social_instagram_connect' %}">Reconnect</a>
         <button class="sd-btn" name="disconnect" value="1" onclick="return confirm('Disconnect Instagram? Nothing will publish until you connect again.')">Disconnect</button>
       </form>
-    {% elif configured %}
-      <p style="margin:0">The app keys are set. Connect the Island Stay Instagram account:</p>
-      <a class="sd-btn primary" style="margin-top:12px" href="{% url 'admin:social_instagram_connect' %}">Connect Instagram</a>
     {% else %}
-      <p style="margin:0"><b>Not set up yet.</b> Follow the steps below (about 15 minutes, once).</p>
+      <p style="margin:0"><b>Not connected yet.</b> Follow steps 1 to 4 below, then paste the access key here.</p>
     {% endif %}
+    <details style="margin-top:12px"{% if not account %} open{% endif %}>
+      <summary style="cursor:pointer;font-weight:600;font-size:14px">{% if account %}Replace the access key{% else %}Paste the access key from Meta{% endif %}</summary>
+      <form method="post" class="sd-row" style="margin-top:10px">{% csrf_token %}
+        <input type="password" name="token" required autocomplete="off" placeholder="Paste the access token" style="flex:1;min-width:260px;border:1px solid #7D9399;border-radius:999px;padding:8px 14px;font-size:13.5px">
+        <button class="sd-btn primary" type="submit">Connect</button>
+      </form>
+    </details>
+    {% if configured and not account %}<p style="font-size:13px;margin:12px 0 0">Or sign in instead: <a href="{% url 'admin:social_instagram_connect' %}" style="color:#0B6E8A;font-weight:600">Connect with Instagram login</a></p>{% endif %}
   </div>
 
   {% if queue %}
@@ -48,31 +52,25 @@
 
   <h2>Set up (once)</h2>
   <ol>
-    <li><b>Make the Instagram account professional.</b> In the Instagram app: Settings → Account type and tools → Switch to professional account → Business. It's free.</li>
-    <li><b>Create a Meta app.</b> Go to <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a> → Create app → use case <i>Manage messaging &amp; content on Instagram</i> → name it “Island Stay publisher”.</li>
-    <li><b>Set up Instagram login.</b> In the app: Instagram → API setup with Instagram login.
-      <ul>
-        <li>Under “Generate access tokens”, add the Island Stay Instagram account (this makes it a tester, so no app review is needed).</li>
-        <li>Under “Set up Instagram business login” → Business login settings, paste this as the <b>OAuth redirect URI</b>:
-          <div class="sd-row" style="margin:6px 0"><code id="cb" style="background:#E3EEF0;color:#0A3D4C;padding:6px 10px;border-radius:8px;word-break:break-all">{{ callback_url }}</code><button type="button" class="sd-btn" data-copy="cb">Copy</button></div></li>
-        <li>Copy the <b>Instagram app ID</b> and <b>Instagram app secret</b> shown at the top of that page.</li>
-      </ul></li>
-    <li><b>Add the keys to Vercel.</b> Vercel → islandstay → Settings → Environment Variables, for Production:
-      <table>
-        <tr><th>Name</th><th>Value</th><th>Status</th></tr>
-        <tr><td><code>INSTAGRAM_APP_ID</code></td><td>Instagram app ID</td><td>{% if configured %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
-        <tr><td><code>INSTAGRAM_APP_SECRET</code></td><td>Instagram app secret</td><td>{% if configured %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
-        <tr><td><code>CRON_SECRET</code></td><td>Any long random text (keeps the timer link private)</td><td>{% if has_cron_secret %}<span style="color:#1E7A55">Set</span>{% else %}Missing{% endif %}</td></tr>
-      </table>
-      Then Deployments → ⋯ → Redeploy, come back here and press <b>Connect Instagram</b>.</li>
+    <li><b>Make the Instagram account professional.</b> In the Instagram app: Settings → Account type and tools → Switch to professional account → Business. Skip connecting a Facebook Page.</li>
+    <li><b>Meta app.</b> At <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a>, create an app with the use case <i>Manage messaging &amp; content on Instagram</i> and link it to a business portfolio (free; no Page needed).</li>
+    <li><b>Make your Instagram a tester.</b> In the app: App roles → Roles → Add people → <b>Instagram Tester</b> → type the Island Stay username.
+      Then accept the invite: on instagram.com go to Settings → Apps and websites → <b>Tester invites</b> → Accept.</li>
+    <li><b>Generate the access key.</b> In the app: Use cases → Customize → API setup → <b>2. Generate access tokens</b> → Add account → log in with the Island Stay Instagram → <b>Generate token</b>.
+      Tick the permission to publish content if it asks. Copy the token and paste it in the box at the top of this page. It's checked straight away and renews itself every few weeks, so you won't need to do this again.</li>
     <li><b>Start the timer.</b> Instagram can't schedule API posts itself, so this site checks for due posts. Sign up free at
       <a href="https://cron-job.org" target="_blank" rel="noopener">cron-job.org</a> → Create cronjob:
       <ul>
         <li>URL: <div class="sd-row" style="margin:6px 0"><code id="cron" style="background:#E3EEF0;color:#0A3D4C;padding:6px 10px;border-radius:8px;word-break:break-all">{{ cron_url }}?key={% if cron_secret %}{{ cron_secret }}{% else %}YOUR_CRON_SECRET{% endif %}</code><button type="button" class="sd-btn" data-copy="cron">Copy</button></div>
-          {% if not cron_secret %}<small>Replace YOUR_CRON_SECRET with the value you set in Vercel.</small>{% endif %}</li>
+          {% if not cron_secret %}<small>Replace YOUR_CRON_SECRET with the CRON_SECRET value from Vercel.</small>{% endif %}</li>
         <li>Schedule: every 10 minutes. Leave the rest as it is.</li>
       </ul></li>
   </ol>
+  <details style="font-size:13.5px;margin-top:6px"><summary style="cursor:pointer">Optional: “Connect with Instagram login” instead of pasting a key</summary>
+    <p>Only for apps set up with Instagram login (not Unified login). Redirect URI:</p>
+    <div class="sd-row" style="margin:6px 0"><code id="cb" style="background:#E3EEF0;color:#0A3D4C;padding:6px 10px;border-radius:8px;word-break:break-all">{{ callback_url }}</code><button type="button" class="sd-btn" data-copy="cb">Copy</button></div>
+    <p>Then add <code>INSTAGRAM_APP_ID</code> and <code>INSTAGRAM_APP_SECRET</code> in Vercel ({% if configured %}set{% else %}not set{% endif %}) and redeploy.</p>
+  </details>
 
   <h2>Using it</h2>
   <ol>
