@@ -357,17 +357,17 @@ class SocialPostAdmin(ModelAdmin):
             clashes=sum(t["clash"] for t in tiles if t["in_month"])))
 
     # ------------------------------------------------------------------ Instagram publishing
+    @staticmethod
+    def _site(request):
+        """https://<the host the admin is open on>, e.g. www.islandstaymv.com (the apex only redirects)."""
+        return f"https://{request.get_host()}" if not settings.DEBUG else request.build_absolute_uri("/").rstrip("/")
+
     def _callback_url(self, request):
-        url = reverse("admin:social_instagram_callback")
-        host = settings.CANONICAL_HOST
-        return f"https://{host}{url}" if host else request.build_absolute_uri(url)
+        return self._site(request) + reverse("admin:social_instagram_callback")
 
     def _public_url(self, request, name):
         url = default_storage.url(name)
-        if url.startswith("http"):
-            return url
-        host = settings.CANONICAL_HOST
-        return f"https://{host}{url}" if host else request.build_absolute_uri(url)
+        return url if url.startswith("http") else self._site(request) + url
 
     def instagram_view(self, request):
         if not self.has_view_permission(request):
@@ -389,9 +389,7 @@ class SocialPostAdmin(ModelAdmin):
             return redirect("admin:social_instagram")
         queue = (SocialPost.objects.exclude(ig_state="").exclude(ig_state=SocialPost.IG_PUBLISHED).order_by("publish_at"))
         published = SocialPost.objects.filter(ig_state=SocialPost.IG_PUBLISHED).order_by("-publish_at")[:10]
-        cron_path = reverse("social_cron_instagram")
-        host = settings.CANONICAL_HOST
-        cron_url = f"https://{host}{cron_path}" if host else request.build_absolute_uri(cron_path)
+        cron_url = self._site(request) + reverse("social_cron_instagram")
         return TemplateResponse(request, "admin/social/instagram.html", self._context(
             request, title="Instagram publishing", account=account, configured=ig.configured(),
             callback_url=self._callback_url(request), cron_url=cron_url, has_cron_secret=bool(settings.CRON_SECRET),
