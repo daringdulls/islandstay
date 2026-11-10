@@ -44,11 +44,11 @@
       <details class="nav-more{% if p|slice:':10' == '/transport' or p|slice:':5' == '/food' or p|slice:':6' == '/shops' %} active{% endif %}">
         <summary>More {% icon "chevron-down" %}</summary>
         <div class="nav-more-menu">
-          <a href="{% url 'directory:transport_list' %}">{% icon "ship" %}<span><b>Transport</b><small>Ferries, speedboats and flights</small></span></a>
-          <a href="{% url 'directory:food_list' %}">{% icon "utensils" %}<span><b>Food</b><small>Cafés, restaurants and beach huts</small></span></a>
-          <a href="{% url 'directory:shop_list' %}">{% icon "shopping-cart" %}<span><b>Shops</b><small>Souvenirs and local stores</small></span></a>
-          <a href="{% url 'directory:island_compare' %}">{% icon "columns-3" %}<span><b>Compare islands</b><small>Side by side</small></span></a>
-          <a href="{% url 'directory:atoll_list' %}">{% icon "map" %}<span><b>Atolls</b><small>North to south</small></span></a>
+          <a href="{% url 'directory:transport_list' %}">{% icon "speedboat" %}<span><b>Transport</b><small>Ferries, speedboats and flights</small></span></a>
+          <a href="{% url 'directory:food_list' %}">{% icon "utensils-crossed" %}<span><b>Food</b><small>Cafés, restaurants and beach huts</small></span></a>
+          <a href="{% url 'directory:shop_list' %}">{% icon "shopping-bag" %}<span><b>Shops</b><small>Souvenirs and local stores</small></span></a>
+          <a href="{% url 'directory:island_compare' %}">{% icon "scale" %}<span><b>Compare islands</b><small>Side by side</small></span></a>
+          <a href="{% url 'directory:atoll_list' %}">{% icon "atoll" %}<span><b>Atolls</b><small>North to south</small></span></a>
         </div>
       </details>
       <a href="{% url 'directory:search' %}" class="nav-saved{% if p == '/search/' %} active{% endif %}" aria-label="Search">{% icon "search" %}<span class="nav-saved-label">Search</span></a>

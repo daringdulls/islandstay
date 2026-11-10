@@ -1858,7 +1858,8 @@ a.card:hover .cover img.cowrie { transform: none; }
 .nav-more-menu { position: absolute; top: calc(100% + 8px); right: -40px; width: 300px; background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-pop); padding: 6px; z-index: 60; }
 .nav .nav-more-menu a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border-bottom: 0; }
 .nav .nav-more-menu a:hover { background: var(--shoal); }
-.nav-more-menu a > .i { width: 34px; height: 34px; padding: 8px; border-radius: 10px; background: rgba(11, 110, 138, .1); color: var(--sea); flex: none; }
+.nav-more-menu a > .i { width: 40px; height: 40px; padding: 10px; border-radius: 12px; background: var(--shoal); color: var(--sea); flex: none; stroke-width: 1.75; transition: background .15s, color .15s; }
+.nav .nav-more-menu a:hover > .i { background: var(--sea); color: #fff; }
 .nav-more-menu span { display: flex; flex-direction: column; line-height: 1.25; }
 .nav-more-menu b { font-weight: 600; font-size: .93rem; color: var(--ink); }
 .nav-more-menu small { color: var(--ink-2); font-size: .78rem; }
