@@ -279,3 +279,28 @@ class LaunchPlanTests(TestCase):
         self.assertEqual(SocialPost.objects.count(), 4)
         r = self.client.get(reverse("admin:social_templates"))
         self.assertContains(r, "sp-intro sp-portrait")
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix="ig-test-"))
+class PostNowTests(TestCase):
+    def test_post_now_publishes_immediately(self):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from . import instagram
+        from .models import InstagramAccount
+        InstagramAccount.objects.create(ig_user_id="17841", username="islandstaymv", access_token="EAAtok")
+        admin = get_user_model().objects.create_superuser("boss7@x.mv", "boss7@x.mv", "pw")
+        self.client.force_login(admin)
+        post = SocialPost.objects.create(title="Intro", headline="Stay where the island lives.", template="intro", caption="Hello")
+        answers = {"/media_publish": {"id": "m1"}, "/17841/media": {"id": "c1"}, "/c1": {"status_code": "FINISHED"},
+                   "/m1": {"permalink": "https://www.instagram.com/p/abc/"}}
+
+        def fake(method, url, params=None, data=None, headers=None, timeout=60):
+            return next(v for k, v in answers.items() if k in url)
+        with mock.patch.object(instagram, "_call", side_effect=fake):
+            r = self.client.post(reverse("admin:social_instagram_queue", args=[post.pk]),
+                                 {"now": "1", "image": SimpleUploadedFile("d.jpg", b"\xff\xd8x", content_type="image/jpeg")})
+        self.assertEqual(r.json(), {"ok": True, "posted": "https://www.instagram.com/p/abc/"})
+        post.refresh_from_db()
+        self.assertEqual((post.status, post.ig_state), ("posted", "published"))
+        self.assertIsNotNone(post.publish_at)

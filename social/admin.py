@@ -334,7 +334,7 @@ class SocialPostAdmin(ModelAdmin):
         return TemplateResponse(request, "admin/social/calendar.html", self._context(
             request, title="Social calendar", weeks=weeks, month=first, prev_month=prev_month, next_month=next_month,
             counts=[(label, counts[k], k) for k, label in SocialPost.STATUS_CHOICES],
-            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today + dt.timedelta(days=1),
+            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today,
             unscheduled=SocialPost.objects.filter(publish_at__isnull=True).exclude(status=SocialPost.STATUS_POSTED)[:20],
             overdue=[p for p in posts if p.is_overdue and p.status != SocialPost.STATUS_SCHEDULED]))
 
@@ -363,7 +363,7 @@ class SocialPostAdmin(ModelAdmin):
         month_grid = [t for t in tiles if t["in_month"]]
         return TemplateResponse(request, "admin/social/feed.html", self._context(
             request, title="Instagram feed preview", month=first,
-            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today + dt.timedelta(days=1),
+            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today,
             highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
             reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
             prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,
@@ -451,7 +451,7 @@ class SocialPostAdmin(ModelAdmin):
                 post.status = SocialPost.STATUS_READY
             post.save(update_fields=["ig_state", "ig_error", "status", "updated_at"])
             return JsonResponse({"ok": True})
-        issues = ig.problems(post)
+        issues = [i for i in ig.problems(post) if not (request.POST.get("now") and i.startswith("Set a date"))]
         if issues:
             return JsonResponse({"ok": False, "error": " ".join(issues)}, status=400)
         image = request.FILES.get("image")
@@ -462,7 +462,20 @@ class SocialPostAdmin(ModelAdmin):
         post.ig_image_url = self._public_url(request, name)
         post.ig_state, post.ig_error, post.ig_attempts, post.ig_container_id = SocialPost.IG_QUEUED, "", 0, ""
         post.status = SocialPost.STATUS_SCHEDULED
+        if request.POST.get("now"):
+            post.publish_at = timezone.now()
         post.save()
+        if request.POST.get("now"):
+            account = InstagramAccount.current()
+            if not account:
+                return JsonResponse({"ok": False, "error": "Connect Instagram first."}, status=400)
+            line = ig.publish_post(account, post)
+            post.refresh_from_db()
+            if post.ig_state == SocialPost.IG_PUBLISHED:
+                return JsonResponse({"ok": True, "posted": post.posted_url or True})
+            if post.ig_state == SocialPost.IG_PROCESSING:
+                return JsonResponse({"ok": True, "processing": True})
+            return JsonResponse({"ok": False, "error": post.ig_error or line}, status=400)
         return JsonResponse({"ok": True, "when": timezone.localtime(post.publish_at).strftime("%a %d %b, %H:%M")})
 
     def instagram_asset(self, request, pk):

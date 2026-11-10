@@ -59,6 +59,7 @@
         {% if post.ig_state != "published" and post.ig_state != "processing" %}
         <div class="sd-row" style="margin-top:12px">
           <button class="sd-btn primary" type="button" id="ig-queue"{% if ig_problems or format_override %} disabled{% endif %}>{% if post.ig_state == "queued" %}Update on Instagram{% elif post.ig_state == "failed" %}Try again{% else %}Schedule on Instagram{% endif %}</button>
+          <button class="sd-btn" type="button" id="ig-now"{% if format_override %} disabled{% endif %}>Post now</button>
           {% if post.ig_state == "queued" or post.ig_state == "failed" %}<button class="sd-btn" type="button" id="ig-cancel">Unschedule</button>{% endif %}
         </div>
         {% if format_override %}<small style="color:#B9442C">You're previewing another format. Switch back to the post's own format to schedule it.</small>{% endif %}
@@ -124,24 +125,34 @@ document.getElementById('dl').onclick = async function () {
     var g = c.getContext('2d'); g.fillStyle = '#FFF8EC'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
     return new Promise(function (ok) { c.toBlob(ok, 'image/jpeg', 0.9); });
   }
-  var q = document.getElementById('ig-queue');
-  if (q) q.onclick = async function () {
-    q.disabled = true; say('Saving the design…');
+  async function render() {
+    var node = document.querySelector('#design .sp');
+    await document.fonts.ready;
+    node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
+    var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, backgroundColor: '#FFF8EC', imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
+    await htmlToImage.toPng(node, opts);
+    var url = await htmlToImage.toPng(node, opts);
+    var img = new Image(); img.src = url; await img.decode();
+    return toJpeg(img, 1920);
+  }
+  async function queue(btn, now) {
+    if (now && !confirm('Post this to Instagram right now?')) return;
+    btn.disabled = true; say(now ? 'Saving the design and posting to Instagram… this can take up to a minute.' : 'Saving the design…');
     try {
-      var node = document.querySelector('#design .sp');
-      await document.fonts.ready;
-      node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
-      var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, backgroundColor: '#FFF8EC', imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
-      await htmlToImage.toPng(node, opts);
-      var url = await htmlToImage.toPng(node, opts);
-      var img = new Image(); img.src = url; await img.decode();
-      var blob = await toJpeg(img, 1920), fd = new FormData();
-      fd.append('image', blob, 'design.jpg');
+      var fd = new FormData(); fd.append('image', await render(), 'design.jpg');
+      if (now) fd.append('now', '1');
       var d = await send('{% url "admin:social_instagram_queue" post.pk %}', fd);
       if (!d.ok) throw new Error(d.error);
-      say('Queued for ' + d.when + '. It will publish by itself.'); setTimeout(function () { location.reload(); }, 1200);
-    } catch (e) { say((e && e.message) || 'Could not save the design image (a photo may not have loaded). Reload and try again.', true); q.disabled = false; }
-  };
+      if (d.posted) say('Posted to Instagram.');
+      else if (d.processing) say('Sent. Instagram is still processing it; it will finish on the next check.');
+      else say('Queued for ' + d.when + '. It will publish by itself.');
+      setTimeout(function () { location.reload(); }, 1500);
+    } catch (e) { say((e && e.message) || 'Could not save the design image (a photo may not have loaded). Reload and try again.', true); btn.disabled = false; }
+  }
+  var q = document.getElementById('ig-queue');
+  if (q) q.onclick = function () { queue(q, false); };
+  var qn = document.getElementById('ig-now');
+  if (qn) qn.onclick = function () { queue(qn, true); };
   var c = document.getElementById('ig-cancel');
   if (c) c.onclick = function () {
     var fd = new FormData(); fd.append('action', 'cancel');
