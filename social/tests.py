@@ -50,3 +50,22 @@ class SocialPlanTests(TestCase):
     def test_headline_accent_split(self):
         p = SocialPost(headline="Stay on Dhangethi", accent_word="Dhangethi")
         self.assertEqual(p.headline_parts, ("Stay on ", "Dhangethi", ""))
+
+
+class SocialTemplateTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open(os.devnull, "w"))
+        cls.admin = get_user_model().objects.create_superuser("boss2@x.mv", "boss2@x.mv", "pw")
+
+    def test_every_template_renders_in_every_format(self):
+        self.client.force_login(self.admin)
+        for fmt in SocialPost.FORMAT_SIZES:
+            r = self.client.get(reverse("admin:social_templates"), {"format": fmt})
+            self.assertEqual(r.status_code, 200)
+            for key, _ in SocialPost.TEMPLATE_CHOICES:
+                self.assertContains(r, f"sp-{key} sp-{fmt}")
+
+    def test_body_pairs(self):
+        p = SocialPost(body="Dec – Apr | Dry season\nAll year")
+        self.assertEqual(p.body_pairs, [("Dec – Apr", "Dry season"), ("", "All year")])

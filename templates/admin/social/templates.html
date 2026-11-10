@@ -5,12 +5,12 @@
 {% block content %}
 {% with active="templates" %}{% include "admin/social/_nav.html" %}{% endwith %}
 <h1 style="font-size:22px;font-weight:600;margin:0 0 4px">Design templates</h1>
-<p style="color:rgb(107 114 128);margin:0 0 16px">Seven branded layouts, filled here with real islands and hosts from the directory. Text always sits on a solid colour, never straight on a photo. Pick “Use this template” to start a post.</p>
+<p style="color:rgb(107 114 128);margin:0 0 16px">Fifteen branded layouts, filled here with real islands and hosts from the directory. Text always sits on a solid colour, never straight on a photo. Pick “Use this template” to start a post.</p>
 <div class="sd-tabs">{% for key, label in formats %}<a class="sd-tab{% if key == fmt %} on{% endif %}" href="?format={{ key }}">{{ label }}</a>{% endfor %}</div>
 <div class="sd-gallery">
   {% for s in samples %}
   <div class="sd-tpl">
-    <div class="sd-stage"><div class="sd-frame" data-fit="{% if fmt == 'landscape' %}520{% else %}300{% endif %}"><div class="sd-scale">{% with post=s.post photo=s.photo %}{% include "admin/social/_canvas.html" %}{% endwith %}</div></div></div>
+    <div class="sd-stage"><div class="sd-frame" data-fit="{% if fmt == 'landscape' %}520{% else %}300{% endif %}"><div class="sd-scale">{% with post=s.post photo=s.photo photo_b=s.photo_b %}{% include "admin/social/_canvas.html" %}{% endwith %}</div></div></div>
     <h3>{{ s.label }}</h3><p>{{ s.help }}</p>
     <a class="sd-btn primary" href="{% url 'admin:social_socialpost_add' %}?template={{ s.key }}&format={{ fmt }}&title={{ s.label|urlencode }}">Use this template</a>
   </div>

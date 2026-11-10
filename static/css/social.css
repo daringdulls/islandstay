@@ -1,5 +1,5 @@
 /* Island Stay social design templates. Canvas sizes are real pixels (1080 wide); the preview scales them down. */
-.sp { --lagoon:#0B6E8A; --channel:#0A3D4C; --shallows:#4CC3C7; --gold:#EBA62A; --ivory:#FFF8EC; --sand:#F2E4C9; --mist:#E3EEF0; --ink:#122A31; --muted:#4A6068;
+.sp { --lagoon:#0B6E8A; --channel:#0A3D4C; --shallows:#4CC3C7; --gold:#EBA62A; --ivory:#FFF8EC; --sand:#F2E4C9; --mist:#E3EEF0; --ink:#122A31; --muted:#4A6068; --gold-text:#9A5F05; --brown:#5B3A22; --coral:#E8664A; --line:#DCE6E8; --border:#7D9399;
   position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--ivory); color: var(--ink);
   font-family: "Plus Jakarta Sans", "Noto Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; box-sizing: border-box; text-align: left; }
 .sp *, .sp *::before, .sp *::after { box-sizing: border-box; }
@@ -128,7 +128,7 @@
 .sd-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 28px; align-items: start; }
 @media (max-width: 1100px) { .sd-wrap { grid-template-columns: 1fr; } }
 .sd-stage { background: #E3EEF0; border-radius: 14px; padding: 24px; display: flex; justify-content: center; }
-.dark .sd-stage { background: #0f2a33; }
+.dark .sd-stage { background: #0A3D4C; }
 .sd-scale { transform-origin: top left; }
 .sd-frame { flex-shrink: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 12px 32px rgba(10, 61, 76, .18); }
 .sd-side { display: flex; flex-direction: column; gap: 16px; }
@@ -159,7 +159,7 @@
 .sd-chip { display: block; font-size: 12px; line-height: 1.3; padding: 5px 7px; border-radius: 7px; margin-bottom: 4px; border-left: 3px solid; background: rgb(243 244 246); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dark .sd-chip { background: rgb(31 41 55); }
 .sd-chip small { display: block; opacity: .7; }
-.sd-chip.idea { border-color: #94a3b8; } .sd-chip.draft { border-color: #EBA62A; } .sd-chip.ready { border-color: #0B6E8A; }
+.sd-chip.idea { border-color: #7D9399; } .sd-chip.draft { border-color: #5B3A22; } .sd-chip.ready { border-color: #0B6E8A; }
 .sd-chip.scheduled { border-color: #4CC3C7; } .sd-chip.posted { border-color: #1E7A55; opacity: .75; }
 .sd-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
 .sd-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; background: currentColor; }
@@ -174,7 +174,7 @@
 .sd-prose th { background: rgb(249 250 251); }
 .dark .sd-prose th { background: rgb(31 41 55); }
 .sd-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
-.sd-swatches div { width: 120px; font-size: 12px; }
+.sd-swatches div { width: 140px; font-size: 12px; line-height: 1.4; }
 .sd-swatches i { display: block; height: 44px; border-radius: 10px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,.08); }
 
 /* fixes: let the text panel shrink beside the photo; centre tip lists vertically */
@@ -183,3 +183,161 @@
 .sp-tip .sp-list { margin-bottom: auto; }
 .sp-tip .sp-foot { margin-top: 0; }
 .sp-story.sp-tip .sp-panel { padding-top: 140px; }
+
+/* ------------------------------------------------------------------ new templates (brand v2: Cowrie Gold palette) */
+.sp-ivory { background: var(--ivory); color: var(--channel); }
+.sp-feyli { position: absolute; left: 0; right: 0; top: 0; height: 36px; z-index: 3;
+  background: repeating-linear-gradient(90deg, var(--channel) 0 40px, var(--brown) 40px 52px, var(--sand) 52px 62px, var(--lagoon) 62px 102px, var(--sand) 102px 112px, var(--shallows) 112px 124px, var(--sand) 124px 134px); }
+.sp-feyli-bottom { top: auto; bottom: 0; }
+
+/* Stay card: inset photo on ivory, coral heart, Gold Text price, gold booking pill */
+.sp-stay { padding: 56px 56px 0; }
+.sp-stay .sp-photo { border-radius: 28px; }
+.sp-stay .sp-panel { padding: 48px 16px 56px; flex: 0 0 auto; }
+.sp-heart { position: absolute; right: 28px; top: 28px; width: 84px; height: 84px; border-radius: 50%; background: #fff; color: var(--coral); display: grid; place-items: center; box-shadow: 0 6px 20px rgba(10, 61, 76, .18); }
+.sp-heart svg { width: 44px; height: 44px; fill: var(--coral); }
+.sp-price { margin-top: 26px; font-size: 32px; color: var(--muted); }
+.sp-price b { font-weight: 800; font-size: 52px; color: var(--gold-text); }
+.sp-stay .sp-foot { padding-top: 32px; }
+
+/* Top list: Channel with the feyli stripe, big Shallows numbers */
+.sp.sp-toplist { background: var(--channel); color: var(--ivory); }
+.sp-toplist .sp-panel { flex: 1; padding-top: 120px; }
+.sp-toplist .sp-eyebrow { color: var(--shallows); }
+.sp-toplist h1 { color: var(--ivory); }
+.sp-toplist h1 em { color: var(--shallows); }
+.sp-rank { list-style: none; margin: 56px 0 0; padding: 0; }
+.sp-rank li { display: flex; align-items: baseline; gap: 36px; padding: 22px 0; border-top: 2px solid rgba(255, 248, 236, .18); font-family: "Outfit", sans-serif; font-weight: 600; font-size: 56px; color: var(--ivory); }
+.sp-rank li:last-child { border-bottom: 2px solid rgba(255, 248, 236, .18); }
+.sp-rank b { flex: 0 0 70px; color: var(--shallows); font-size: 56px; }
+.sp-toplist .sp-foot { color: rgba(255, 248, 236, .85); }
+.sp-swipe { display: inline-flex; align-items: center; gap: 12px; }
+.sp-swipe svg { width: 34px; height: 34px; }
+
+/* Getting there: Mist ground, a timeline of Lagoon stops */
+.sp.sp-route { background: var(--mist); }
+.sp-route .sp-panel { flex: 1; padding-top: 96px; }
+.sp-steps { list-style: none; margin: 64px 0 auto; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.sp-steps li { position: relative; display: flex; gap: 36px; padding-bottom: 56px; }
+.sp-steps li:not(:last-child)::before { content: ""; position: absolute; left: 47px; top: 96px; bottom: 0; border-left: 4px dashed var(--lagoon); opacity: .5; }
+.sp-steps li:last-child { padding-bottom: 0; }
+.sp-steps i { flex: 0 0 96px; height: 96px; border-radius: 50%; background: var(--lagoon); color: #fff; display: grid; place-items: center; }
+.sp-steps li:last-child i { background: var(--channel); }
+.sp-steps i svg { width: 46px; height: 46px; }
+.sp-steps div { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; }
+.sp-steps b { font-size: 26px; letter-spacing: .1em; text-transform: uppercase; color: var(--lagoon); }
+.sp-steps span { font-size: 38px; line-height: 1.3; font-weight: 600; color: var(--ink); }
+.sp-route .sp-foot { margin-top: 0; }
+
+/* Dhivehi word: Sandbank, the word large, Thaana spelling in Lagoon */
+.sp.sp-word { background: var(--sand); }
+.sp-word .sp-panel { flex: 1; justify-content: center; padding-bottom: 96px; }
+.sp-word h1 { font-size: 200px; line-height: 1; }
+.sp-thaana { font-family: "Noto Sans Thaana", "Plus Jakarta Sans", sans-serif; font-weight: 600; font-size: 96px; line-height: 1.5; color: var(--lagoon); text-align: left; margin-top: 12px; }
+.sp-word .sp-body { font-size: 40px; color: var(--ink); max-width: 860px; }
+.sp-word .sp-foot { margin-top: 0; padding-top: 72px; }
+
+/* This or that: two photos with names, a Lagoon "or" */
+.sp-pair { position: relative; flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 48px 48px 0; }
+.sp-pair figure { margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.sp-pair .sp-photo { border-radius: 28px; }
+.sp-pair figcaption { padding: 22px 8px 0; display: flex; flex-direction: column; gap: 4px; }
+.sp-pair figcaption b { font-family: "Outfit", sans-serif; font-weight: 600; font-size: 52px; color: var(--channel); }
+.sp-pair figcaption span { font-size: 26px; color: var(--muted); font-weight: 600; }
+.sp-or { position: absolute; z-index: 4; left: 50%; top: 42%; transform: translate(-50%, -50%); width: 128px; height: 128px; border-radius: 50%; background: var(--lagoon); color: var(--ivory); border: 10px solid var(--ivory); display: grid; place-items: center; font-family: "Outfit", sans-serif; font-weight: 600; font-size: 48px; }
+.sp-compare .sp-panel { flex: 0 0 auto; padding-top: 40px; }
+.sp-compare h1 { font-size: 80px; }
+
+/* When to go: ivory with Sandbank rows */
+.sp-season .sp-panel { flex: 1; padding-top: 96px; }
+.sp-seasons { list-style: none; margin: 56px 0 auto; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+.sp-seasons li { display: flex; flex-direction: column; gap: 6px; background: var(--sand); border-radius: 28px; padding: 26px 34px; }
+.sp-seasons b { font-family: "Outfit", sans-serif; font-weight: 600; font-size: 36px; color: var(--lagoon); }
+.sp-seasons span { font-size: 32px; line-height: 1.3; color: var(--ink); }
+.sp-season .sp-foot { margin-top: 0; }
+
+/* Our story: Channel with shoreline waves and the symbol */
+.sp.sp-brand { background: var(--channel); color: var(--ivory); }
+.sp-brand .sp-panel { flex: 1; }
+.sp-symbol { width: 200px; height: 200px; margin-bottom: 48px; }
+.sp-brand .sp-eyebrow { color: var(--shallows); }
+.sp-brand h1 { color: var(--ivory); }
+.sp-brand h1 em { color: var(--shallows); }
+.sp-story-lines { list-style: none; margin: 48px 0 0; padding: 0; display: flex; flex-direction: column; gap: 26px; }
+.sp-story-lines li { display: flex; flex-direction: column; gap: 4px; font-size: 32px; line-height: 1.35; color: rgba(255, 248, 236, .9); }
+.sp-story-lines b { font-size: 24px; letter-spacing: .1em; text-transform: uppercase; color: var(--shallows); }
+.sp-brand .sp-foot { color: rgba(255, 248, 236, .85); margin-bottom: 120px; }
+
+/* List with us: photo, then a Lagoon panel with ticks */
+.sp-hostcall .sp-photo { flex: 0 0 38%; }
+.sp-hostcall .sp-panel { flex: 1; background: var(--channel); color: var(--ivory); }
+.sp-hostcall .sp-eyebrow { color: var(--shallows); }
+.sp-hostcall h1 { color: var(--ivory); }
+.sp-hostcall h1 em { color: var(--shallows); }
+.sp-ticks { list-style: none; margin: 40px 0 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.sp-ticks li { display: flex; align-items: center; gap: 22px; font-size: 34px; font-weight: 600; color: var(--ivory); }
+.sp-ticks svg { flex: 0 0 52px; width: 52px; height: 52px; padding: 10px; border-radius: 50%; background: var(--shallows); color: var(--channel); stroke-width: 3; }
+.sp-hostcall .sp-foot { color: rgba(255, 248, 236, .85); }
+
+/* format tweaks for the new templates */
+.sp-square .sp-rank li { font-size: 44px; padding: 14px 0; } .sp-square .sp-rank b { font-size: 44px; }
+.sp-square.sp-toplist .sp-panel, .sp-square.sp-route .sp-panel, .sp-square.sp-season .sp-panel { padding-top: 76px; }
+.sp-square .sp-steps { margin-top: 40px; } .sp-square .sp-steps li { padding-bottom: 32px; } .sp-square .sp-steps span { font-size: 32px; }
+.sp-square .sp-seasons { margin-top: 36px; gap: 12px; } .sp-square .sp-seasons li { padding: 16px 28px; flex-direction: row; align-items: baseline; gap: 20px; }
+.sp-square .sp-seasons b { flex: 0 0 210px; font-size: 30px; } .sp-square .sp-seasons span { font-size: 28px; }
+.sp-square.sp-word h1 { font-size: 170px; }
+.sp-square .sp-symbol { width: 130px; height: 130px; margin-bottom: 24px; }
+.sp-square .sp-story-lines { gap: 14px; margin-top: 28px; } .sp-square .sp-story-lines li { font-size: 27px; }
+.sp-square.sp-brand .sp-foot { margin-bottom: 70px; padding-top: 28px; }
+.sp-square.sp-stay { padding: 44px 44px 0; } .sp-square.sp-stay .sp-panel { padding: 32px 12px 40px; }
+.sp-square.sp-stay .sp-body { display: none; }
+.sp-square .sp-price { margin-top: 14px; }
+.sp-square .sp-pair figcaption b { font-size: 44px; }
+.sp-square.sp-compare h1 { font-size: 68px; }
+.sp-square .sp-ticks { margin-top: 26px; gap: 12px; } .sp-square .sp-ticks li { font-size: 30px; }
+.sp-story.sp-toplist .sp-panel { padding-top: 200px; }
+.sp-story .sp-rank li { font-size: 64px; padding: 32px 0; }
+.sp-story.sp-route .sp-panel, .sp-story.sp-season .sp-panel { padding-top: 180px; }
+.sp-story .sp-steps li { padding-bottom: 96px; } .sp-story .sp-steps span { font-size: 44px; }
+.sp-story .sp-seasons { gap: 28px; } .sp-story .sp-seasons li { padding: 36px 40px; }
+.sp-story.sp-word h1 { font-size: 240px; }
+.sp-story.sp-brand .sp-symbol { width: 260px; height: 260px; }
+.sp-story.sp-brand .sp-story-lines li { font-size: 38px; }
+.sp-story.sp-brand .sp-foot { margin-bottom: 200px; }
+.sp-story.sp-stay { padding: 80px 64px 0; }
+.sp-story .sp-pair { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; padding: 64px 64px 0; gap: 28px; }
+.sp-story .sp-pair figure { flex-direction: row; gap: 0; position: relative; }
+.sp-story .sp-pair figcaption { position: absolute; left: 24px; bottom: 24px; background: var(--ivory); border-radius: 22px; padding: 16px 26px; }
+.sp-story .sp-or { top: 50%; }
+.sp-story.sp-compare .sp-panel { padding-top: 56px; }
+.sp-story .sp-ticks li { font-size: 40px; }
+
+/* landscape */
+.sp-landscape.sp-toplist .sp-panel, .sp-landscape.sp-route .sp-panel, .sp-landscape.sp-season .sp-panel, .sp-landscape.sp-word .sp-panel, .sp-landscape.sp-brand .sp-panel { padding: 64px 64px 40px; }
+.sp-landscape .sp-rank { margin-top: 20px; columns: 2; column-gap: 48px; } .sp-landscape .sp-rank li { font-size: 30px; padding: 10px 0; break-inside: avoid; } .sp-landscape .sp-rank b { font-size: 30px; flex-basis: 40px; }
+.sp-landscape .sp-feyli { height: 22px; }
+.sp-landscape .sp-steps { flex-direction: row; margin-top: 36px; gap: 24px; } .sp-landscape .sp-steps li { flex: 1; flex-direction: column; gap: 14px; padding: 0; }
+.sp-landscape .sp-steps li:not(:last-child)::before { left: 72px; right: -24px; top: 30px; bottom: auto; border-left: 0; border-top: 3px dashed var(--lagoon); }
+.sp-landscape .sp-steps i { flex: 0 0 60px; width: 60px; height: 60px; } .sp-landscape .sp-steps i svg { width: 30px; height: 30px; }
+.sp-landscape .sp-steps b { font-size: 16px; } .sp-landscape .sp-steps span { font-size: 22px; }
+.sp-landscape .sp-seasons { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .sp-landscape .sp-seasons li { padding: 14px 20px; border-radius: 18px; }
+.sp-landscape .sp-seasons b { font-size: 22px; } .sp-landscape .sp-seasons span { font-size: 18px; }
+.sp-landscape.sp-word h1 { font-size: 110px; } .sp-landscape .sp-thaana { font-size: 54px; margin-top: 0; } .sp-landscape.sp-word .sp-body { font-size: 24px; max-width: 760px; }
+.sp-landscape.sp-word .sp-foot { padding-top: 24px; }
+.sp-landscape .sp-symbol { position: absolute; right: 64px; top: 64px; width: 140px; height: 140px; }
+.sp-landscape .sp-story-lines { margin-top: 20px; gap: 10px; } .sp-landscape .sp-story-lines li { font-size: 20px; max-width: 900px; } .sp-landscape .sp-story-lines b { font-size: 15px; }
+.sp-landscape.sp-brand .sp-foot { margin-bottom: 70px; }
+.sp-landscape.sp-brand h1 { max-width: 880px; }
+.sp-landscape.sp-stay { padding: 36px 0 36px 36px; } .sp-landscape.sp-stay .sp-panel { padding: 24px 48px; }
+.sp-landscape .sp-heart { width: 60px; height: 60px; } .sp-landscape .sp-heart svg { width: 30px; height: 30px; }
+.sp-landscape .sp-price { font-size: 20px; margin-top: 14px; } .sp-landscape .sp-price b { font-size: 34px; }
+.sp-landscape .sp-pair { flex: 0 0 56%; padding: 32px 0 32px 32px; gap: 14px; }
+.sp-landscape .sp-pair figcaption { padding-top: 10px; } .sp-landscape .sp-pair figcaption b { font-size: 30px; } .sp-landscape .sp-pair figcaption span { font-size: 16px; }
+.sp-landscape .sp-or { width: 80px; height: 80px; font-size: 30px; border-width: 6px; left: calc(50% + 16px); }
+.sp-landscape.sp-compare h1 { font-size: 56px; }
+.sp-landscape.sp-hostcall .sp-photo { flex: 0 0 40%; }
+.sp-landscape .sp-ticks { margin-top: 18px; gap: 8px; } .sp-landscape .sp-ticks li { font-size: 22px; gap: 14px; } .sp-landscape .sp-ticks svg { flex-basis: 34px; width: 34px; height: 34px; padding: 7px; }
+.sp-landscape.sp-stay .sp-panel, .sp-landscape.sp-compare .sp-panel { flex: 1; min-width: 0; justify-content: center; }
+.sp-landscape .sp-pair { grid-template-rows: 100%; padding-bottom: 32px; }
+.sp-landscape .sp-pair .sp-photo { flex: 1 1 auto; }
+.sp-landscape.sp-compare .sp-panel { padding-left: 56px; }

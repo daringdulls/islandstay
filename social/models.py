@@ -26,6 +26,14 @@ class SocialPost(models.Model):
         ("fact", "Did you know"),
         ("quote", "Guest or host quote"),
         ("announce", "Announcement"),
+        ("stay", "Stay card"),
+        ("toplist", "Top list / carousel cover"),
+        ("route", "Getting there"),
+        ("word", "Dhivehi word"),
+        ("compare", "This or that"),
+        ("season", "When to go"),
+        ("brand", "Our story"),
+        ("hostcall", "List with us"),
     ]
     TEMPLATE_HELP = {
         "island": "Photo with the island name, atoll and three quick facts on a solid panel.",
@@ -35,6 +43,14 @@ class SocialPost(models.Model):
         "fact": "One big number or fact on Lagoon, for Maldives history and island trivia.",
         "quote": "A guest review or a host's own words, large, with who said it.",
         "announce": "News from Island Stay: new islands, new hosts, features.",
+        "stay": "One guest house or room: photo, island, the 'from' price in Gold Text and a gold Send request button.",
+        "toplist": "A numbered top five on Channel with the feyli stripe. One item per line. Works as a carousel cover.",
+        "route": "How to reach an island, step by step from Malé airport. One step per line: 'Mode | detail'.",
+        "word": "A Dhivehi word with its meaning on Sandbank. Headline is the word, footer line is the Thaana spelling.",
+        "compare": "Two islands side by side for a 'which would you pick?' post. Pick the island and the second island.",
+        "season": "What happens when: one line per season as 'Months | what happens'. Whale sharks, mantas, surf, dry season.",
+        "brand": "The brand story on Channel: the atoll, the kandu and the cowrie, with the symbol.",
+        "hostcall": "On Channel. Invite guest houses, dive centres and boat operators to list. One benefit per line.",
     }
     PILLAR_CHOICES = [
         ("islands", "Islands"), ("hosts", "Local hosts"), ("experiences", "Experiences"),
@@ -59,6 +75,8 @@ class SocialPost(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.SET_NULL, null=True, blank=True, related_name="social_posts",
                                 help_text="For host spotlights")
     activity = models.ForeignKey(ActivityType, on_delete=models.SET_NULL, null=True, blank=True, related_name="social_posts")
+    island_b = models.ForeignKey(Island, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+                                 verbose_name="Second island", help_text="For 'This or that' posts")
 
     eyebrow = models.CharField(max_length=60, blank=True, help_text="Small label above the headline, e.g. 'Island spotlight · South Ari'")
     headline = models.CharField(max_length=120, help_text="Short. Sentence case.")
@@ -115,6 +133,19 @@ class SocialPost(models.Model):
             if url:
                 return url
         return ""
+
+    @property
+    def photo_b(self):
+        return getattr(self.island_b, "photo_url", "") if self.island_b else ""
+
+    @property
+    def body_pairs(self):
+        """Lines written as 'label | text', for routes and seasons."""
+        out = []
+        for line in self.body_lines:
+            label, sep, text = line.partition("|")
+            out.append((label.strip(), text.strip()) if sep else ("", label.strip()))
+        return out
 
     @property
     def headline_parts(self):

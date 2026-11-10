@@ -56,6 +56,53 @@ def sample_post(template, fmt="portrait"):
         data = dict(title="Quote", pillar="hosts", template="quote", eyebrow="From a guest", headline="Guest review",
                     body="We messaged the host on Monday, and by Friday we were eating breakfast on the jetty with his family.",
                     attribution="A guest on Dhangethi")
+    stay = Listing.objects.filter(status=Listing.STATUS_APPROVED, kind__in=Listing.STAY_KINDS).order_by("-is_verified", "price_from").first()
+    if template == "stay" and stay:
+        data = dict(title=f"Stay: {stay.name}", pillar="hosts", template="stay", listing=stay, island=stay.island,
+                    eyebrow=f"Stay · {stay.island.name}, {stay.island.atoll.name}", headline=stay.name,
+                    accent_word="", body=stay.short_description, attribution="Send a request")
+    elif template == "toplist":
+        names = list(Island.objects.filter(is_published=True).order_by("-is_featured", "name").values_list("name", flat=True)[:5])
+        data = dict(title="Top five", pillar="islands", template="toplist", island=island, eyebrow="Save this list",
+                    headline="Five islands for your first trip", accent_word="first",
+                    body="\n".join(names or ["Maafushi", "Dhangethi", "Thoddoo", "Fulidhoo", "Ukulhas"]),
+                    attribution="Swipe for each island")
+    elif template == "route" and island:
+        route = island.routes.filter(is_active=True).order_by("order").first()
+        steps = ["Arrive | Velana International Airport (MLE)"]
+        if route:
+            steps.append(f"{route.get_mode_display()} | {route.duration}" + (f" · {route.schedule}" if route.schedule else ""))
+        elif island.transfer_time:
+            steps.append(f"Transfer | {island.transfer_time}")
+        steps.append(f"Jetty | Your host meets you on {island.name}")
+        data = dict(title=f"Getting to {island.name}", pillar="practical", template="route", island=island,
+                    eyebrow="Getting there", headline=f"Malé to {island.name}", accent_word=island.name,
+                    body="\n".join(steps), attribution="Transfer times in the island guide")
+    elif template == "word":
+        data = dict(title="Dhivehi word: kandu", pillar="culture", template="word", eyebrow="Dhivehi word of the week",
+                    headline="Kandu", accent_word="", body="A channel through the reef: the way boats come into an atoll, and the gap in our logo.",
+                    attribution="ކަނޑު")
+    elif template == "compare":
+        pair = list(Island.objects.filter(is_published=True).order_by("-is_featured", "name")[:2])
+        if len(pair) == 2:
+            data = dict(title=f"{pair[0].name} or {pair[1].name}", pillar="islands", template="compare", island=pair[0],
+                        island_b=pair[1], eyebrow="This or that", headline="Which island would you pick?", accent_word="island",
+                        attribution="Tell us in the comments")
+    elif template == "season":
+        data = dict(title="When to go", pillar="practical", template="season", eyebrow="When to go",
+                    headline="The Maldives, month by month", accent_word="month",
+                    body="Dec – Apr | Dry season: calm seas, clear water\nMay – Nov | Wet season: surf, quieter islands, lower prices\nJun – Nov | Manta rays gather at Hanifaru Bay\nAll year | Whale sharks in South Ari",
+                    attribution="Plan with the island guides")
+    elif template == "brand":
+        data = dict(title="Our story", pillar="culture", template="brand", eyebrow="Why the cowrie",
+                    headline="An atoll, a channel and a cowrie", accent_word="cowrie",
+                    body="The ring is an atoll: atholhu, the one Dhivehi word the world borrowed.\nThe gap is the kandu, the channel boats sail through.\nThe cowrie was once money across Asia and Africa. Now it points out to you.",
+                    attribution="Local to you.")
+    elif template == "hostcall":
+        data = dict(title="List with us", pillar="news", template="hostcall", island=island, eyebrow="For island hosts",
+                    headline="Run a guest house? List it free", accent_word="free",
+                    body="Guests message you directly\nNo booking fees for you or your guests\nYour island, your photos, your prices",
+                    attribution="islandstaymv.com/list-your-business")
     if template == "announce" or data is None:
         data = dict(title="Announcement", pillar="news", template=template, eyebrow="New on Island Stay",
                     headline="Message a local, then book", accent_word="local", island=island,
@@ -75,7 +122,7 @@ class SocialPostAdmin(ModelAdmin):
     list_display = ("post", "when", "template_badge", "format", "platform_names", "status_badge", "design_link")
     list_filter = (("status", ChoicesDropdownFilter), ("template", ChoicesDropdownFilter), ("pillar", ChoicesDropdownFilter), "format")
     search_fields = ("title", "headline", "caption", "island__name", "listing__name")
-    autocomplete_fields = ("island", "listing", "activity")
+    autocomplete_fields = ("island", "listing", "activity", "island_b")
     date_hierarchy = "publish_at"
     actions = ["mark_ready", "mark_scheduled", "mark_posted"]
     actions_list = ["open_calendar", "open_templates", "open_playbook"]
@@ -84,7 +131,7 @@ class SocialPostAdmin(ModelAdmin):
     fieldsets = (
         ("Plan", {"classes": ["tab"], "fields": ("title", ("status", "publish_at"), ("pillar", "platforms"), "posted_url", "notes")}),
         ("Design", {"classes": ["tab"], "fields": (("template", "format"), "eyebrow", ("headline", "accent_word"), "body",
-                                                    "attribution", ("island", "listing", "activity"), "image", "image_url", "photo_credit")}),
+                                                    "attribution", ("island", "listing", "activity"), "island_b", "image", "image_url", "photo_credit")}),
         ("Caption", {"classes": ["tab"], "fields": ("caption", "hashtags", "link")}),
     )
 
@@ -173,14 +220,14 @@ class SocialPostAdmin(ModelAdmin):
     def design_view(self, request, pk):
         if not self.has_view_permission(request):
             raise PermissionDenied
-        post = get_object_or_404(SocialPost.objects.select_related("island", "island__atoll", "listing", "activity"), pk=pk)
+        post = get_object_or_404(SocialPost.objects.select_related("island", "island__atoll", "listing", "activity", "island_b", "island_b__atoll"), pk=pk)
         fmt = request.GET.get("format")
         if fmt in SocialPost.FORMAT_SIZES:
             post.format = fmt
         siblings = list(SocialPost.objects.filter(publish_at__isnull=False).order_by("publish_at", "id").values_list("pk", flat=True))
         idx = siblings.index(post.pk) if post.pk in siblings else -1
         return TemplateResponse(request, "admin/social/design.html", self._context(
-            request, title=post.title, post=post, photo=proxied(post.photo), formats=SocialPost.FORMAT_CHOICES,
+            request, title=post.title, post=post, photo=proxied(post.photo), photo_b=proxied(post.photo_b), formats=SocialPost.FORMAT_CHOICES,
             prev_id=siblings[idx - 1] if idx > 0 else None,
             next_id=siblings[idx + 1] if 0 <= idx < len(siblings) - 1 else None,
         ))
@@ -192,7 +239,7 @@ class SocialPostAdmin(ModelAdmin):
         samples = []
         for key, label in SocialPost.TEMPLATE_CHOICES:
             post = sample_post(key, fmt)
-            samples.append({"key": key, "label": label, "help": SocialPost.TEMPLATE_HELP[key], "post": post, "photo": proxied(post.photo)})
+            samples.append({"key": key, "label": label, "help": SocialPost.TEMPLATE_HELP[key], "post": post, "photo": proxied(post.photo), "photo_b": proxied(post.photo_b)})
         return TemplateResponse(request, "admin/social/templates.html", self._context(
             request, title="Design templates", samples=samples, fmt=fmt, formats=SocialPost.FORMAT_CHOICES,
             size=SocialPost.FORMAT_SIZES[fmt]))
