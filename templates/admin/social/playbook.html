@@ -1,4 +1,5 @@
 {% extends 'admin/base.html' %}
+{% load static %}
 {% block title %}Social media playbook{% endblock %}
 {% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
 {% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}{% endblock %}
@@ -45,7 +46,8 @@
   <li>Instagram crops the grid to 3:4. Keep the headline away from the very top and bottom of Reel covers; the feed preview shows the crop.</li>
   <li>Use the feed preview before scheduling: drag tiles to swap their dates, and fix any tile outlined in red (same template next to itself).</li>
   <li>Pin three posts to the top of the profile: Our story, the latest top five carousel and the newest Reel.</li>
-  <li>Story highlights: Islands, Stays, Getting there, Tips, Dhivehi, Hosts. Add each story to its highlight after 24 hours.</li>
+  <li>Story highlights: Start here, Islands, Stays, Getting there, Experiences, Tips, Dhivehi, Hosts. Add each story to its highlight after 24 hours.
+    Covers: <a href="{% static 'img/social/instagram-highlight-covers.zip' %}" download>download the highlight covers</a> (use one set, dark or light, for all of them).</li>
 </ul>
 <h3>Reels</h3>
 <ul>
