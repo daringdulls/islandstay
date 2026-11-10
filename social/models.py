@@ -19,6 +19,7 @@ class SocialPost(models.Model):
     ]
     FORMAT_SIZES = {"square": (1080, 1080), "portrait": (1080, 1350), "story": (1080, 1920), "landscape": (1200, 630)}
     TEMPLATE_CHOICES = [
+        ("intro", "Introduction"),
         ("island", "Island spotlight"),
         ("experience", "Experience"),
         ("host", "Host spotlight"),
@@ -36,6 +37,7 @@ class SocialPost(models.Model):
         ("hostcall", "List with us"),
     ]
     TEMPLATE_HELP = {
+        "intro": "The first post: who Island Stay is, the symbol, the tagline and the three steps (find, message, stay).",
         "island": "Photo with the island name, atoll and three quick facts on a solid panel.",
         "experience": "Photo of the activity with an icon, a short line and how many islands offer it.",
         "host": "Introduce a local host: photo, name, island and the verified cowrie when it applies.",

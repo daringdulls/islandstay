@@ -457,3 +457,53 @@ def generate_month(year, month):
         data.setdefault("post_type", "feed")
         created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
     return created
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# Launch: the first row of the grid. Instagram shows the newest post first, so after these three the top row
+# reads: Our story · How it works · Introduction.
+
+INTRO_CAPTION = (
+    "Hello from the islands. Island Stay is a local travel guide for the Maldives: every inhabited island, "
+    "the guest houses, dive centres, cafés and boat operators that live there, and the people who run them.\n\n"
+    "Find your island, message a local host directly, and agree your stay with them. No booking fees, "
+    "and your money goes straight to the island.\n\n"
+    "Follow along for island spotlights, practical tips, getting-there guides and a Dhivehi word every week. 🌴")
+
+HOWTO = ("How Island Stay works", "works",
+         "Find an island in the guides\nMessage the local host directly\nAgree the details, then stay\nNo booking fees for you or your host",
+         "How it works: pick an island from the guides (each one has local rules, facilities and how to get there), "
+         "message the host directly through Island Stay, and agree the dates and price with them. No booking fees on "
+         "either side. Save this for when you plan your trip.")
+
+
+def intro_post(fmt="portrait"):
+    return dict(title="Introduction: hello from the islands", pillar="news", template="intro", format=fmt,
+                eyebrow="Hello from the Maldives", headline="Stay where the island lives.", accent_word="island",
+                body="Find your island\nMessage a local\nStay direct", attribution="islandstaymv.com",
+                caption=INTRO_CAPTION, hashtags=_tags("Maldives Travel", "Visit Maldives", "Guest House"))
+
+
+def howto_post():
+    headline, accent, body, caption = HOWTO
+    return dict(title="How Island Stay works", pillar="news", template="tip", format="portrait", eyebrow="How it works",
+                headline=headline, accent_word=accent, body=body, attribution="Save this for your trip",
+                caption=caption, hashtags=_tags("Maldives Travel", "Travel Tips"))
+
+
+def launch_plan(start):
+    """The three introduction posts (and a Story) on three days from `start` (a date). Returns the posts."""
+    plan = [
+        (_at(start, 18), intro_post()),
+        (_at(start, 20), as_story(intro_post(fmt="story"),
+                                  "Share the introduction post to your Story, or post this design. Add a link sticker to "
+                                  "islandstaymv.com and a 'New post' sticker. Save it to a highlight called 'Start here'.")),
+        (_at(start + dt.timedelta(1), 18), howto_post()),
+        (_at(start + dt.timedelta(2), 18), brand_post()),
+    ]
+    created = []
+    for when, data in plan:
+        data.setdefault("platforms", "instagram,facebook")
+        data.setdefault("post_type", "feed")
+        created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
+    return created

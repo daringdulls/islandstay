@@ -22,7 +22,7 @@ from directory.models import Island
 
 from . import instagram as ig
 from .models import InstagramAccount, SocialAsset, SocialPost
-from .planner import generate_month, generate_plan
+from .planner import generate_month, generate_plan, launch_plan
 
 STATUS_COLORS = {"idea": "info", "draft": "warning", "ready": "primary", "scheduled": "info", "posted": "success"}
 PROXY_HOSTS = ("upload.wikimedia.org", ".blob.vercel-storage.com")
@@ -42,7 +42,10 @@ def sample_post(template, fmt="portrait"):
 
     island = Island.objects.filter(is_published=True).order_by("-is_featured", "name").first()
     data = None
-    if template == "island" and island:
+    if template == "intro":
+        from .planner import intro_post
+        data = intro_post(fmt)
+    elif template == "island" and island:
         data = island_post(island)
     elif template == "experience":
         act = ActivityType.objects.exclude(image_url="").first() or ActivityType.objects.first()
@@ -277,6 +280,18 @@ class SocialPostAdmin(ModelAdmin):
             first = dt.date(year, month, 1)
         except ValueError:
             first = today.replace(day=1)
+        if request.method == "POST" and self.has_add_permission(request) and request.POST.get("launch"):
+            try:
+                start = dt.date.fromisoformat(request.POST["launch"])
+            except ValueError:
+                start = today + dt.timedelta(days=1)
+            if SocialPost.objects.filter(template="intro").exclude(status=SocialPost.STATUS_POSTED).exists():
+                messages.warning(request, "The introduction posts are already planned. Delete them first to plan them again.")
+            else:
+                posts = launch_plan(start)
+                messages.success(request, f"Planned the introduction: {len(posts) - 1} feed posts from {start:%a %d %b} and a Story. "
+                                          "These make the first row of your grid.")
+            return redirect(reverse("admin:social_calendar") + f"?month={start:%Y-%m}")
         if request.method == "POST" and self.has_add_permission(request) and request.POST.get("plan_month"):
             try:
                 y, m = (int(x) for x in request.POST["plan_month"].split("-"))
@@ -319,6 +334,7 @@ class SocialPostAdmin(ModelAdmin):
         return TemplateResponse(request, "admin/social/calendar.html", self._context(
             request, title="Social calendar", weeks=weeks, month=first, prev_month=prev_month, next_month=next_month,
             counts=[(label, counts[k], k) for k, label in SocialPost.STATUS_CHOICES],
+            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today + dt.timedelta(days=1),
             unscheduled=SocialPost.objects.filter(publish_at__isnull=True).exclude(status=SocialPost.STATUS_POSTED)[:20],
             overdue=[p for p in posts if p.is_overdue and p.status != SocialPost.STATUS_SCHEDULED]))
 
@@ -347,6 +363,7 @@ class SocialPostAdmin(ModelAdmin):
         month_grid = [t for t in tiles if t["in_month"]]
         return TemplateResponse(request, "admin/social/feed.html", self._context(
             request, title="Instagram feed preview", month=first,
+            launch_planned=SocialPost.objects.filter(template="intro").exists(), tomorrow=today + dt.timedelta(days=1),
             highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
             reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
             prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,

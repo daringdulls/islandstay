@@ -232,8 +232,10 @@
 /* Dhivehi word: Sandbank, the word large, Thaana spelling in Lagoon */
 .sp.sp-word { background: var(--sand); }
 .sp-word .sp-panel { flex: 1; justify-content: center; padding-bottom: 96px; }
-.sp-word h1 { font-size: 200px; line-height: 1; }
-.sp-thaana { font-family: "Noto Sans Thaana", "Plus Jakarta Sans", sans-serif; font-weight: 600; font-size: 96px; line-height: 1.5; color: var(--lagoon); text-align: left; margin-top: 12px; }
+.sp-word h1 { font-size: 150px; line-height: 1; }
+.sp-thaana { font-family: var(--thaana-font, "Noto Sans Thaana"), "Noto Sans Thaana", "Plus Jakarta Sans", sans-serif; font-weight: 700; font-size: 230px; line-height: 1.55;
+  color: var(--lagoon); text-align: right; direction: rtl; margin: -40px 0 0; padding: 0 0 10px; border-bottom: 4px solid rgba(11, 110, 138, .25); }
+.sp-word h1 { margin-top: 36px; }
 .sp-word .sp-body { font-size: 40px; color: var(--ink); max-width: 860px; }
 .sp-word .sp-foot { margin-top: 0; padding-top: 72px; }
 
@@ -285,7 +287,7 @@
 .sp-square .sp-steps { margin-top: 40px; } .sp-square .sp-steps li { padding-bottom: 32px; } .sp-square .sp-steps span { font-size: 32px; }
 .sp-square .sp-seasons { margin-top: 36px; gap: 12px; } .sp-square .sp-seasons li { padding: 16px 28px; flex-direction: row; align-items: baseline; gap: 20px; }
 .sp-square .sp-seasons b { flex: 0 0 210px; font-size: 30px; } .sp-square .sp-seasons span { font-size: 28px; }
-.sp-square.sp-word h1 { font-size: 170px; }
+.sp-square.sp-word h1 { font-size: 112px; } .sp-square .sp-thaana { font-size: 170px; margin-top: -30px; }
 .sp-square .sp-symbol { width: 130px; height: 130px; margin-bottom: 24px; }
 .sp-square .sp-story-lines { gap: 14px; margin-top: 28px; } .sp-square .sp-story-lines li { font-size: 27px; }
 .sp-square.sp-brand .sp-foot { margin-bottom: 70px; padding-top: 28px; }
@@ -300,7 +302,7 @@
 .sp-story.sp-route .sp-panel, .sp-story.sp-season .sp-panel { padding-top: 180px; }
 .sp-story .sp-steps li { padding-bottom: 96px; } .sp-story .sp-steps span { font-size: 44px; }
 .sp-story .sp-seasons { gap: 28px; } .sp-story .sp-seasons li { padding: 36px 40px; }
-.sp-story.sp-word h1 { font-size: 240px; }
+.sp-story.sp-word h1 { font-size: 170px; } .sp-story .sp-thaana { font-size: 300px; }
 .sp-story.sp-brand .sp-symbol { width: 260px; height: 260px; }
 .sp-story.sp-brand .sp-story-lines li { font-size: 38px; }
 .sp-story.sp-brand .sp-foot { margin-bottom: 200px; }
@@ -322,7 +324,7 @@
 .sp-landscape .sp-steps b { font-size: 16px; } .sp-landscape .sp-steps span { font-size: 22px; }
 .sp-landscape .sp-seasons { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .sp-landscape .sp-seasons li { padding: 14px 20px; border-radius: 18px; }
 .sp-landscape .sp-seasons b { font-size: 22px; } .sp-landscape .sp-seasons span { font-size: 18px; }
-.sp-landscape.sp-word h1 { font-size: 110px; } .sp-landscape .sp-thaana { font-size: 54px; margin-top: 0; } .sp-landscape.sp-word .sp-body { font-size: 24px; max-width: 760px; }
+.sp-landscape.sp-word h1 { font-size: 80px; margin-top: 12px; } .sp-landscape .sp-thaana { font-size: 120px; margin-top: -20px; border-bottom-width: 3px; } .sp-landscape.sp-word .sp-body { font-size: 24px; max-width: 760px; }
 .sp-landscape.sp-word .sp-foot { padding-top: 24px; }
 .sp-landscape .sp-symbol { position: absolute; right: 64px; top: 64px; width: 140px; height: 140px; }
 .sp-landscape .sp-story-lines { margin-top: 20px; gap: 10px; } .sp-landscape .sp-story-lines li { font-size: 20px; max-width: 900px; } .sp-landscape .sp-story-lines b { font-size: 15px; }
@@ -390,3 +392,37 @@
 .ig-add { width: 64px; height: 80px; border-radius: 8px; border: 2px dashed #7D9399; display: grid; place-items: center; font-size: 26px; color: #4A6068; cursor: pointer; }
 .ig-bar { height: 6px; border-radius: 999px; background: #E3EEF0; overflow: hidden; margin-top: 8px; }
 .ig-bar i { display: block; height: 100%; width: 0; background: #0B6E8A; transition: width .2s; }
+
+/* Introduction: Channel with shoreline waves, the symbol, tagline and three steps */
+.sp.sp-intro { background: var(--channel); color: var(--ivory); }
+.sp-intro .sp-panel { flex: 1; padding-top: 110px; }
+.sp-intro .sp-eyebrow { color: var(--shallows); }
+.sp-intro-mark { width: 250px; height: 250px; margin: 10px 0 56px; }
+.sp-intro h1 { color: var(--ivory); font-size: 104px; max-width: 900px; }
+.sp-intro h1 em { color: var(--shallows); }
+.sp-intro-steps { list-style: none; margin: 64px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.sp-intro-steps li { display: flex; flex-direction: column; gap: 14px; padding: 28px 26px; border-radius: 28px; background: rgba(255, 248, 236, .08); border: 2px solid rgba(76, 195, 199, .35); }
+.sp-intro-steps i { width: 64px; height: 64px; border-radius: 50%; background: var(--shallows); color: var(--channel); display: grid; place-items: center; }
+.sp-intro-steps i svg { width: 32px; height: 32px; }
+.sp-intro-steps b { font-size: 22px; letter-spacing: .1em; text-transform: uppercase; color: var(--shallows); }
+.sp-intro-steps b::before { content: "Step "; }
+.sp-intro-steps span { font-family: "Outfit", sans-serif; font-weight: 600; font-size: 36px; line-height: 1.15; color: var(--ivory); }
+.sp-intro .sp-foot { color: rgba(255, 248, 236, .85); margin-bottom: 110px; }
+.sp-square.sp-intro .sp-panel { padding-top: 64px; }
+.sp-square .sp-intro-mark { width: 150px; height: 150px; margin: 0 0 28px; }
+.sp-square.sp-intro h1 { font-size: 84px; }
+.sp-square .sp-intro-steps { margin-top: 36px; } .sp-square .sp-intro-steps li { padding: 20px; gap: 8px; } .sp-square .sp-intro-steps span { font-size: 30px; }
+.sp-square.sp-intro .sp-foot { margin-bottom: 60px; padding-top: 28px; }
+.sp-story.sp-intro .sp-panel { padding-top: 220px; }
+.sp-story .sp-intro-mark { width: 320px; height: 320px; }
+.sp-story.sp-intro h1 { font-size: 124px; }
+.sp-story .sp-intro-steps { grid-template-columns: 1fr; } .sp-story .sp-intro-steps li { flex-direction: row; align-items: center; gap: 24px; } .sp-story .sp-intro-steps b { display: none; }
+.sp-story .sp-intro-steps span { font-size: 44px; }
+.sp-story.sp-intro .sp-foot { margin-bottom: 220px; }
+.sp-landscape.sp-intro .sp-panel { padding: 56px 64px 32px 360px; justify-content: center; }
+.sp-landscape .sp-intro-mark { position: absolute; left: 64px; top: 50%; width: 240px; height: 240px; margin: -120px 0 0; }
+.sp-landscape.sp-intro h1 { font-size: 64px; }
+.sp-landscape .sp-intro-steps { margin-top: 24px; gap: 12px; } .sp-landscape .sp-intro-steps li { padding: 12px 14px; gap: 6px; border-radius: 18px; }
+.sp-landscape .sp-intro-steps i { width: 38px; height: 38px; } .sp-landscape .sp-intro-steps i svg { width: 20px; height: 20px; }
+.sp-landscape .sp-intro-steps b { font-size: 13px; } .sp-landscape .sp-intro-steps span { font-size: 20px; }
+.sp-landscape.sp-intro .sp-foot { margin-bottom: 60px; padding-top: 20px; }

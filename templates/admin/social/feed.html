@@ -67,6 +67,12 @@
   </div>
 
   <aside class="sd-side">
+    {% if not launch_planned %}<form method="post" action="{% url 'admin:social_calendar' %}" class="sd-card" style="border-color:#4CC3C7">{% csrf_token %}
+      <h3>Start with an introduction</h3>
+      <p style="font-size:13px;margin:0 0 10px">Three posts that make the first row of the grid: Introduction, How it works and Our story, plus a Story sharing the introduction.</p>
+      <div class="sd-row"><input type="date" name="launch" value="{{ tomorrow|date:'Y-m-d' }}" class="sd-btn" style="padding:6px 12px">
+      <button class="sd-btn primary" type="submit">Plan the introduction</button></div>
+    </form>{% endif %}
     <div class="sd-card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <a class="sd-btn" href="?month={{ prev_month|date:'Y-m' }}">&larr;</a>

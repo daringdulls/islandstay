@@ -1,6 +1,16 @@
 {% load static social_design %}{% with p=post w=post.size.0 h=post.size.1 parts=post.headline_parts %}
 <div class="sp sp-{{ p.template }} sp-{{ p.format }}{% if not photo %} sp-nophoto{% endif %}" style="width:{{ w }}px;height:{{ h }}px" data-w="{{ w }}" data-h="{{ h }}">
-  {% if p.template == "island" or p.template == "experience" %}
+  {% if p.template == "intro" %}
+    <div class="sp-waves"></div>
+    <div class="sp-panel">
+      {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
+      <img class="sp-intro-mark" src="{% static 'img/brand/islandstay-symbol-colour-dark.svg' %}" alt="">
+      <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
+      {% if p.body %}<ol class="sp-intro-steps">{% for line in p.body_lines|slice:":3" %}<li><i>{% cycle "map-pin" "message-circle" "house" as ic silent %}{% inline_icon ic %}</i><b>{{ forloop.counter }}</b><span>{{ line }}</span></li>{% endfor %}</ol>{% endif %}
+      <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}" alt="Island Stay">{% if p.attribution %}<span>{{ p.attribution }}</span>{% endif %}</div>
+    </div>
+
+  {% elif p.template == "island" or p.template == "experience" %}
     <div class="sp-photo">{% if photo %}<img src="{{ photo }}" alt="">{% else %}<div class="sp-rings"></div>{% endif %}
       {% if p.template == "experience" and p.activity %}<span class="sp-icon">{% inline_icon p.activity.icon %}</span>{% endif %}
     </div>
@@ -91,8 +101,8 @@
     <div class="sp-feyli sp-feyli-bottom"></div>
     <div class="sp-panel">
       {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
-      <h1>{{ p.headline }}</h1>
       {% if p.attribution %}<div class="sp-thaana" dir="rtl" lang="dv">{{ p.attribution }}</div>{% endif %}
+      <h1>{{ p.headline }}</h1>
       {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}
       <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-light.svg' %}" alt="Island Stay"></div>
     </div>

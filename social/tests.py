@@ -263,3 +263,19 @@ class MetaTokenTests(TestCase):
             instagram.create_containers(acc, post)
         self.assertTrue(calls[-1].startswith("https://graph.facebook.com/v21.0/17841454009172679/media"))
         self.assertEqual(acc.username, "islandstaymv")
+
+
+class LaunchPlanTests(TestCase):
+    def test_launch_plans_intro_row_once(self):
+        admin = get_user_model().objects.create_superuser("boss6@x.mv", "boss6@x.mv", "pw")
+        self.client.force_login(admin)
+        r = self.client.post(reverse("admin:social_calendar"), {"launch": "2026-12-01"})
+        self.assertEqual(r.status_code, 302)
+        posts = list(SocialPost.objects.order_by("publish_at"))
+        self.assertEqual([p.template for p in posts], ["intro", "intro", "tip", "brand"])
+        self.assertEqual([p.post_type for p in posts], ["feed", "story", "feed", "feed"])
+        self.assertLessEqual(posts[0].caption.count("🌴"), 1)
+        self.client.post(reverse("admin:social_calendar"), {"launch": "2026-12-05"})
+        self.assertEqual(SocialPost.objects.count(), 4)
+        r = self.client.get(reverse("admin:social_templates"))
+        self.assertContains(r, "sp-intro sp-portrait")

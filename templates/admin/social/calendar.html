@@ -23,6 +23,12 @@
     <button class="sd-btn" type="submit">Draft plan</button>
   </form>
 </div>
+{% if not launch_planned %}<div style="max-width:560px;margin-bottom:14px"><form method="post" action="{% url 'admin:social_calendar' %}" class="sd-card" style="border-color:#4CC3C7">{% csrf_token %}
+      <h3>Start with an introduction</h3>
+      <p style="font-size:13px;margin:0 0 10px">Three posts that make the first row of the grid: Introduction, How it works and Our story, plus a Story sharing the introduction.</p>
+      <div class="sd-row"><input type="date" name="launch" value="{{ tomorrow|date:'Y-m-d' }}" class="sd-btn" style="padding:6px 12px">
+      <button class="sd-btn primary" type="submit">Plan the introduction</button></div>
+    </form></div>{% endif %}
 <div class="sd-legend" style="margin-bottom:10px">
   {% for label, n, key in counts %}<span style="color:{% if key == 'idea' %}#7D9399{% elif key == 'draft' %}#5B3A22{% elif key == 'ready' %}#0B6E8A{% elif key == 'scheduled' %}#4CC3C7{% else %}#1E7A55{% endif %}"><b style="color:initial">{{ n }}</b> <span style="color:initial">{{ label }}</span></span>{% endfor %}
 </div>
