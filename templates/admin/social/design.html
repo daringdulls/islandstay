@@ -73,6 +73,7 @@
         {% if post.post_type == "reel" %}
           <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Reel video</div>
           {% if video_parts %}<p style="font-size:13px;margin:0 0 6px">{{ video_parts.0.name|default:"Video" }} · {% widthratio video_size 1048576 1 %} MB uploaded. This design is the cover.</p>{% endif %}
+          {% if post.template == "national" and post.format == "story" and not video_parts %}<div class="sd-row" style="margin-bottom:8px"><button class="sd-btn primary" type="button" id="fv-auto">Make &amp; attach the flag video</button></div>{% endif %}
           <label class="sd-btn" style="cursor:pointer">{% if video_parts %}Replace video{% else %}Upload MP4{% endif %}<input type="file" accept="video/mp4,video/quicktime" hidden id="video-in"></label>
           <div class="ig-bar" hidden><i></i></div>
           <small style="display:block;color:rgb(107 114 128);margin-top:6px">Vertical 9:16, 3 to 90 seconds, under 300 MB.</small>
@@ -244,7 +245,7 @@ document.getElementById('dl').onclick = async function () {
   var msg = document.getElementById('fv-msg'), dl = document.getElementById('fv-download'), reel = document.getElementById('fv-reel');
   var result = null;
   function say(t, bad) { msg.textContent = t; msg.style.color = bad ? '#B9442C' : '#1E7A55'; }
-  make.onclick = async function () {
+  async function doMake() {
     make.disabled = true; bar.hidden = false; actions.hidden = true; say('Making the video…');
     try {
       result = await IslandFlag.record(document.querySelector('#design .sp'), 8, function (f) { bar.firstElementChild.style.width = Math.round(f * 100) + '%'; });
@@ -255,12 +256,13 @@ document.getElementById('dl').onclick = async function () {
       say(result.ext === 'mp4' ? 'Video ready (' + (result.blob.size / 1048576).toFixed(1) + ' MB).' :
           'Video ready, but this browser saved it as WebM, which Instagram does not accept. Use Chrome (version 126 or newer) or Safari to make an MP4.', result.ext !== 'mp4');
       if (reel) reel.disabled = result.ext !== 'mp4';
-    } catch (e) { say((e && e.message) || 'Could not record the video.', true); }
+    } catch (e) { result = null; say((e && e.message) || 'Could not make the video.', true); }
     make.disabled = false; make.textContent = 'Make it again';
-  };
-  if (reel) reel.onclick = async function () {
+    return result && result.ext === 'mp4';
+  }
+  async function doAttach() {
     if (!result) return;
-    reel.disabled = true;
+    if (reel) reel.disabled = true;
     var csrf = document.querySelector('#ig [name=csrfmiddlewaretoken]').value;
     async function post(url, fd) { var r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd }); return r.json(); }
     try {
@@ -277,7 +279,16 @@ document.getElementById('dl').onclick = async function () {
         say('Uploading… ' + Math.round((i + 1) / n * 100) + '%');
       }
       say('Done. Opening the Reel…'); location.href = d.url;
-    } catch (e) { say((e && e.message) || 'Upload failed.', true); reel.disabled = false; }
+    } catch (e) { say((e && e.message) || 'Upload failed.', true); if (reel) reel.disabled = false; }
+  }
+  make.onclick = doMake;
+  if (reel) reel.onclick = doAttach;
+  var auto = document.getElementById('fv-auto');
+  if (auto) auto.onclick = async function () {
+    auto.disabled = true; auto.textContent = 'Making the video…';
+    document.getElementById('flagvid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (await doMake()) { auto.textContent = 'Attaching…'; await doAttach(); }
+    else { auto.disabled = false; auto.textContent = 'Make & attach the flag video'; }
   };
 })();
 </script>
