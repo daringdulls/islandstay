@@ -4,10 +4,7 @@
     <div class="sp-feyli sp-feyli-bottom"></div>
     <div class="sp-panel">
       {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
-      <div class="sp-flag" role="img" aria-label="Flag of the Maldives">
-        <svg viewBox="0 0 720 480" preserveAspectRatio="none"><rect width="720" height="480" fill="#D21034"/><rect x="180" y="120" width="360" height="240" fill="#007E3A"/><circle cx="410" cy="240" r="80" fill="#fff"/><circle cx="440" cy="240" r="80" fill="#007E3A"/></svg>
-        <i></i>
-      </div>
+      <div class="sp-flag" role="img" aria-label="Flag of the Maldives"><canvas data-flag width="900" height="713"></canvas></div>
       {% if p.attribution %}<div class="sp-national-dv" dir="rtl" lang="dv">{{ p.attribution }}</div>{% endif %}
       <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
       {% if p.body %}<p class="sp-body">{{ p.body }}</p>{% endif %}

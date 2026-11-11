@@ -415,3 +415,18 @@ class LiveEditorTests(TestCase):
         r = self.client.get(reverse("admin:social_socialpost_change", args=[post.pk]))
         self.assertContains(r, 'id="le-stage"')
         self.assertContains(r, 'name="layout"')
+
+
+class NationalDayTemplateTests(TestCase):
+    def test_flag_canvas_and_video_card(self):
+        admin = get_user_model().objects.create_superuser("boss13@x.mv", "boss13@x.mv", "pw")
+        self.client.force_login(admin)
+        post = SocialPost.objects.create(title="Republic Day", template="national", format="story", headline="Happy Republic Day",
+                                         attribution="ޖުމްހޫރީ ދުވަސް")
+        r = self.client.get(reverse("admin:social_socialpost_design", args=[post.pk]))
+        self.assertContains(r, "canvas data-flag")
+        self.assertContains(r, "Waving flag video")
+        self.assertContains(r, "mp4-muxer-5.2.1.js")
+        self.assertContains(r, "flag_wave.js")
+        r = self.client.get(reverse("admin:social_socialpost_design", args=[post.pk]) + "?format=portrait")
+        self.assertContains(r, "Switch preview to Story format")

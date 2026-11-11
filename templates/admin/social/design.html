@@ -5,6 +5,7 @@
 {% block extrahead %}{{ block.super }}{% include "admin/social/_head.html" %}
 <script>window.__amd = window.define; window.define = undefined;</script>
 <script src="{% static 'vendor/html-to-image-1.11.11.js' %}"></script>
+<script src="{% static 'vendor/mp4-muxer-5.2.1.js' %}"></script>
 <script>window.define = window.__amd;</script>{% endblock %}
 {% block content %}
 {% include "admin/social/_nav.html" %}
@@ -28,6 +29,23 @@
       </div>
       <p id="dl-msg" style="font-size:12.5px;margin:10px 0 0;color:rgb(107 114 128)"></p>
     </div>
+    {% if post.template == "national" %}<div class="sd-card" id="flagvid">
+      <h3>Waving flag video</h3>
+      {% if post.format != "story" %}
+        <p style="font-size:13px;margin:0 0 10px">Videos are made in the tall Story / Reel format (1080 × 1920).</p>
+        <a class="sd-btn primary" href="?format=story">Switch preview to Story format</a>
+      {% else %}
+        <p style="font-size:13px;margin:0 0 10px">Makes an 8-second looping MP4 of this design with the flag waving (about 20 seconds). Keep this tab open meanwhile.</p>
+        <div class="sd-row"><button class="sd-btn primary" type="button" id="fv-make">Make video</button></div>
+        <div class="ig-bar" hidden id="fv-bar"><i></i></div>
+        <video id="fv-video" hidden playsinline muted loop controls style="width:100%;margin-top:10px;border-radius:10px"></video>
+        <div class="sd-row" id="fv-actions" hidden style="margin-top:10px">
+          <a class="sd-btn" id="fv-download" download>Download video</a>
+          {% if ig_account %}<button class="sd-btn primary" type="button" id="fv-reel">Use as the Reel video</button>{% endif %}
+        </div>
+        <p id="fv-msg" style="font-size:12.5px;margin:8px 0 0"></p>
+      {% endif %}
+    </div>{% endif %}
     <div class="sd-card" id="ig">{% csrf_token %}
       <h3>Instagram</h3>
       {% if not ig_account %}
@@ -106,6 +124,7 @@ document.getElementById('copy').onclick = function () {
 document.getElementById('dl').onclick = async function () {
   var btn = this, msg = document.getElementById('dl-msg'), node = document.querySelector('#design .sp');
   btn.disabled = true; btn.textContent = 'Preparing…'; msg.textContent = '';
+  if (window.IslandFlag) IslandFlag.pause();
   try {
     await document.fonts.ready;
     node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
@@ -116,6 +135,7 @@ document.getElementById('dl').onclick = async function () {
     a.download = '{{ post.title|slugify }}-{{ post.format }}.png'; a.href = url; a.click();
     msg.textContent = 'Saved to your downloads.';
   } catch (e) { msg.textContent = 'Could not create the image: ' + (e && e.message || e) + '. Try again, or take a screenshot of the preview.'; }
+  if (window.IslandFlag) IslandFlag.resume();
   btn.disabled = false; btn.textContent = 'Download PNG';
 };
 
@@ -136,6 +156,10 @@ document.getElementById('dl').onclick = async function () {
   }
   async function render() {
     var node = document.querySelector('#design .sp');
+    if (window.IslandFlag) IslandFlag.pause();
+    try { return await renderStill(node); } finally { if (window.IslandFlag) IslandFlag.resume(); }
+  }
+  async function renderStill(node) {
     await document.fonts.ready;
     node.querySelectorAll('img').forEach(function (im) { if (im.complete && !im.naturalWidth) im.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII='; });
     var opts = { width: +node.dataset.w, height: +node.dataset.h, pixelRatio: 1, style: { transform: 'none' }, imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP89x8AAuEB74Y0o2cAAAAASUVORK5CYII=' };
@@ -210,6 +234,49 @@ document.getElementById('dl').onclick = async function () {
       bar.firstElementChild.style.width = Math.round((i + 1) / n * 100) + '%'; say('Uploading video… ' + Math.round((i + 1) / n * 100) + '%');
     }
     say('Video uploaded.'); setTimeout(function () { location.reload(); }, 800);
+  };
+})();
+
+(function () {
+  var make = document.getElementById('fv-make'); if (!make) return;
+  var bar = document.getElementById('fv-bar'), video = document.getElementById('fv-video'), actions = document.getElementById('fv-actions');
+  var msg = document.getElementById('fv-msg'), dl = document.getElementById('fv-download'), reel = document.getElementById('fv-reel');
+  var result = null;
+  function say(t, bad) { msg.textContent = t; msg.style.color = bad ? '#B9442C' : '#1E7A55'; }
+  make.onclick = async function () {
+    make.disabled = true; bar.hidden = false; actions.hidden = true; say('Making the video…');
+    try {
+      result = await IslandFlag.record(document.querySelector('#design .sp'), 8, function (f) { bar.firstElementChild.style.width = Math.round(f * 100) + '%'; });
+      var url = URL.createObjectURL(result.blob);
+      video.src = url; video.hidden = false; video.play();
+      dl.href = url; dl.download = '{{ post.title|slugify }}-flag.' + result.ext;
+      actions.hidden = false;
+      say(result.ext === 'mp4' ? 'Video ready (' + (result.blob.size / 1048576).toFixed(1) + ' MB).' :
+          'Video ready, but this browser saved it as WebM, which Instagram does not accept. Use Chrome (version 126 or newer) or Safari to make an MP4.', result.ext !== 'mp4');
+      if (reel) reel.disabled = result.ext !== 'mp4';
+    } catch (e) { say((e && e.message) || 'Could not record the video.', true); }
+    make.disabled = false; make.textContent = 'Make it again';
+  };
+  if (reel) reel.onclick = async function () {
+    if (!result) return;
+    reel.disabled = true;
+    var csrf = document.querySelector('#ig [name=csrfmiddlewaretoken]').value;
+    async function post(url, fd) { var r = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd }); return r.json(); }
+    try {
+      say('Setting this post up as a Reel…');
+      var fd = new FormData(); fd.append('action', 'set_type'); fd.append('post_type', 'reel');
+      var d = await post('{% url "admin:social_instagram_queue" post.pk %}', fd);
+      if (!d.ok) throw new Error(d.error);
+      var target = d.url.replace(/design\/?$/, 'instagram/asset/');
+      var part = 3.5 * 1048576, n = Math.ceil(result.blob.size / part);
+      for (var i = 0; i < n; i++) {
+        var f = new FormData(); f.append('kind', 'video'); f.append('part', i); f.append('name', 'flag-video.mp4');
+        f.append('file', result.blob.slice(i * part, Math.min(result.blob.size, (i + 1) * part)), 'part');
+        var u = await post(target, f); if (!u.ok) throw new Error(u.error);
+        say('Uploading… ' + Math.round((i + 1) / n * 100) + '%');
+      }
+      say('Done. Opening the Reel…'); location.href = d.url;
+    } catch (e) { say((e && e.message) || 'Upload failed.', true); reel.disabled = false; }
   };
 })();
 </script>

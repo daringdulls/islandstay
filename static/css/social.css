@@ -465,28 +465,24 @@
 .sp-national .sp-rings-corner { inset: auto; width: 900px; height: 900px; right: -380px; bottom: -380px; top: auto; opacity: .7; background-size: contain; background-color: transparent; }
 .sp-national .sp-panel { flex: 1; align-items: center; text-align: center; padding-top: 96px; }
 .sp-national .sp-eyebrow { color: var(--lagoon); }
-.sp-flag { position: relative; width: 720px; height: 480px; margin: 18px 0 54px; border-radius: 18px; overflow: hidden;
-  box-shadow: 0 30px 60px rgba(10, 61, 76, .22), 0 6px 16px rgba(10, 61, 76, .12); transform: rotate(-2deg); }
-.sp-flag svg { display: block; width: 100%; height: 100%; }
-.sp-flag i { position: absolute; inset: 0;  /* soft fabric folds */
-  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.16) 18%, rgba(0,0,0,.10) 34%, rgba(255,255,255,.12) 52%,
-    rgba(0,0,0,.12) 70%, rgba(255,255,255,.10) 86%, rgba(0,0,0,.06) 100%); }
+.sp-flag { width: 760px; margin: 0 0 30px; }
+.sp-flag canvas { display: block; width: 100%; height: auto; filter: drop-shadow(0 26px 30px rgba(10, 61, 76, .22)); }
 .sp-national-dv { font-family: var(--thaana-font, "Noto Sans Thaana"), "Noto Sans Thaana", sans-serif; font-weight: 700; font-size: 104px; line-height: 1.55;
   color: var(--channel); direction: rtl; margin: 0 0 -6px; }
 .sp-national h1 { font-size: 108px; text-wrap: balance; }
 .sp-national .sp-body { color: var(--ink); max-width: 860px; font-size: 38px; }
 .sp-national .sp-foot { width: 100%; margin-bottom: 28px; }
 .sp-square.sp-national .sp-panel { padding-top: 56px; }
-.sp-square .sp-flag { width: 540px; height: 360px; margin: 6px 0 30px; }
+.sp-square .sp-flag { width: 560px; margin: 0 0 14px; }
 .sp-square .sp-national-dv { font-size: 80px; }
 .sp-square.sp-national h1 { font-size: 88px; }
 .sp-square.sp-national .sp-body { font-size: 32px; margin-top: 14px; }
 .sp-story.sp-national .sp-panel { padding-top: 200px; }
-.sp-story .sp-flag { width: 860px; height: 573px; margin: 36px 0 90px; }
+.sp-story .sp-flag { width: 900px; margin: 20px 0 50px; }
 .sp-story .sp-national-dv { font-size: 128px; }
 .sp-story.sp-national h1 { font-size: 132px; }
 .sp-landscape.sp-national .sp-panel { align-items: flex-start; text-align: left; padding: 60px 64px 40px 600px; justify-content: center; }
-.sp-landscape .sp-flag { position: absolute; left: 60px; top: 50%; width: 480px; height: 320px; margin: -160px 0 0; }
+.sp-landscape .sp-flag { position: absolute; left: 40px; top: 50%; width: 520px; margin: 0; transform: translateY(-50%); }
 .sp-landscape .sp-national-dv { font-size: 64px; }
 .sp-landscape.sp-national h1 { font-size: 72px; }
 .sp-landscape.sp-national .sp-body { font-size: 24px; }
