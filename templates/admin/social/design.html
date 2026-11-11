@@ -77,6 +77,7 @@
           <div class="ig-bar" hidden><i></i></div>
           <small style="display:block;color:rgb(107 114 128);margin-top:6px">Vertical 9:16, 3 to 90 seconds, under 300 MB.</small>
         {% endif %}
+        {% if post.template == "national" and post.post_type != "reel" %}<p style="font-size:12.5px;margin:8px 0 0;padding:8px 10px;border-radius:8px;background:#F2E4C9;color:#5B3A22">This posts a still image. For the waving flag on Instagram, use <b>Make video</b> above, then <b>Use as the Reel video</b>.</p>{% endif %}
         {% if post.post_type == "story" and post.script %}<p style="font-size:12.5px;margin:8px 0 0;color:#5B3A22">Stickers can't be added through the API. If this Story needs one, post it from the Instagram app instead.</p>{% endif %}
         {% if ig_problems and post.ig_state != "published" %}<ul style="font-size:13px;color:#B9442C;margin:10px 0 0;padding-left:18px;list-style:disc">{% for p in ig_problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
         {% if post.ig_state == "published" %}
