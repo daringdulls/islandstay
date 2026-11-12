@@ -25,7 +25,7 @@ def sponsored(context, where, island=None):
 
     request = context.get("request")
     today = timezone.localdate()
-    qs = Placement.objects.filter(where=where, is_active=True, starts__lte=today, ends__gte=today).select_related("sponsor")
+    qs = Placement.objects.filter(where=where, is_active=True, is_sample=False, starts__lte=today, ends__gte=today).select_related("sponsor")
     if where == Placement.WHERE_ISLAND:
         qs = qs.filter(Q(islands=island) | Q(islands__isnull=True)) if island is not None else qs.filter(islands__isnull=True)
     live = list(qs.distinct())
@@ -41,6 +41,6 @@ def sponsored(context, where, island=None):
 def before_you_go(context, where, island=None, limit=4):
     from partners.models import AffiliateOffer
 
-    offers = list(AffiliateOffer.objects.filter(is_active=True, where__in=["all", where])[:limit])
+    offers = list(AffiliateOffer.objects.filter(is_active=True, is_sample=False, where__in=["all", where])[:limit])
     request = context.get("request")
     return {"offers": [(o, _track(o.get_click_url(), request, island)) for o in offers], "island": island}

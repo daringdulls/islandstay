@@ -1,0 +1,41 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+<div class="pp-wrap">
+  <div class="pp-form">{{ block.super }}</div>
+  <aside class="pp-side">
+    <div class="pp-head"><b>Live preview</b><a href="{% url 'admin:partners_preview' %}">All previews</a></div>
+    <iframe id="pp-frame" title="Live preview" src="about:blank"></iframe>
+    <p class="pp-hint">{% if adminform.model_admin.preview_kind == "placement" %}Shown exactly like this on the site, always with the 'Sponsored' label. Updates as you type.{% else %}How this link looks in the 'Before you go' box. Updates as you type.{% endif %}</p>
+  </aside>
+</div>
+<style>
+.pp-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.pp-form { min-width: 0; overflow-x: auto; }
+@media (min-width: 1280px) { .pp-wrap { grid-template-columns: minmax(0, 1fr) 400px; } }
+.pp-side { position: sticky; top: 16px; border: 1px solid #DCE6E8; border-radius: 14px; background: #fff; overflow: hidden; }
+.dark .pp-side { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.pp-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid #DCE6E8; }
+.pp-head a { font-size: 12.5px; color: #0B6E8A; font-weight: 600; }
+#pp-frame { display: block; width: 100%; height: 320px; border: 0; background: #FFF8EC; }
+.pp-hint { font-size: 12px; color: rgb(107 114 128); margin: 0; padding: 10px 14px 12px; }
+</style>
+<script>
+(function () {
+  var kind = '{{ adminform.model_admin.preview_kind }}';
+  var form = document.querySelector('form[id$="_form"]'), frame = document.getElementById('pp-frame');
+  if (!form || !frame) return;
+  var fields = kind === 'placement' ? ['headline', 'text', 'button', 'link', 'where', 'image_url', 'sponsor'] : ['name', 'title', 'blurb', 'button', 'category', 'url'];
+  var base = '{% url "admin:partners_preview_frame" %}', timer = null, last = '';
+  function update() {
+    var q = new URLSearchParams({ kind: kind, pk: '{{ original.pk|default:"" }}' });
+    fields.forEach(function (f) { var el = form.querySelector('[name="' + f + '"]'); if (el) q.set(f, el.value || ''); });
+    var src = base + '?' + q.toString();
+    if (src !== last) { last = src; frame.src = src; }
+  }
+  frame.addEventListener('load', function () { try { frame.style.height = (frame.contentDocument.documentElement.scrollHeight + 4) + 'px'; } catch (e) {} });
+  form.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(update, 350); });
+  form.addEventListener('change', function () { clearTimeout(timer); timer = setTimeout(update, 100); });
+  update();
+})();
+</script>
+{% endblock %}

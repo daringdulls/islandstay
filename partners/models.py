@@ -11,6 +11,7 @@ from directory.models import Island
 
 class Sponsor(models.Model):
     name = models.CharField(max_length=120)
+    is_sample = models.BooleanField("Sample", default=False)
     logo = models.ImageField(upload_to="sponsors/", blank=True, help_text="Square or wide logo, PNG or SVG-like on a light background")
     website = models.URLField(blank=True)
     contact_name = models.CharField(max_length=100, blank=True)
@@ -42,6 +43,7 @@ class Placement(models.Model):
     headline = models.CharField(max_length=80, help_text="e.g. 'Stay connected from the moment you land'")
     text = models.CharField(max_length=160, blank=True, help_text="One short line")
     image = models.ImageField(upload_to="sponsors/", blank=True, help_text="Optional wide photo (1200 × 630)")
+    image_url = models.URLField("Or photo link", max_length=500, blank=True)
     link = models.URLField(max_length=500, help_text="Where the button goes (the sponsor's page, with their tracking code if they have one)")
     button = models.CharField(max_length=30, default="Learn more")
     starts = models.DateField(default=timezone.localdate)
@@ -49,6 +51,7 @@ class Placement(models.Model):
     is_active = models.BooleanField(default=True)
     price = models.DecimalField("Price agreed", max_digits=10, decimal_places=2, null=True, blank=True, help_text="For your records")
     currency = models.CharField(max_length=3, default="USD", choices=[("USD", "USD"), ("MVR", "MVR")])
+    is_sample = models.BooleanField("Sample", default=False, help_text="Samples only appear in the admin preview, never on the site")
     views = models.PositiveIntegerField(default=0, editable=False)
     clicks = models.PositiveIntegerField(default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -68,6 +71,15 @@ class Placement(models.Model):
     @property
     def ctr(self):
         return (self.clicks / self.views) if self.views else 0
+
+    @property
+    def image_src(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        return self.image_url
 
     @property
     def ctr_label(self):
@@ -99,6 +111,7 @@ class AffiliateOffer(models.Model):
     order = models.PositiveSmallIntegerField(default=0)
     network = models.CharField("Programme / network", max_length=80, blank=True, help_text="Where to see earnings, e.g. the partner dashboard")
     commission = models.CharField("Commission", max_length=80, blank=True, help_text="For your records, e.g. '10% of each policy'")
+    is_sample = models.BooleanField("Sample", default=False, help_text="Samples only appear in the admin preview, never on the site")
     clicks = models.PositiveIntegerField(default=0, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

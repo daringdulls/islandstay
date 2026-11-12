@@ -1,6 +1,6 @@
 {% load ui %}{% if p %}
 <div class="panel sp-card{% if p.where == 'islands' %} sp-wide{% endif %}">
-  {% if p.image %}<img class="sp-img" src="{{ p.image.url }}" alt="" loading="lazy">{% endif %}
+  {% if p.image_src %}<img class="sp-img" src="{{ p.image_src }}" alt="" loading="lazy">{% endif %}
   <div class="sp-body">
     <div class="sp-label">Sponsored{% if p.sponsor.logo %}<img src="{{ p.sponsor.logo.url }}" alt="{{ p.sponsor.name }}" loading="lazy">{% else %}<span>{{ p.sponsor.name }}</span>{% endif %}</div>
     <h3>{{ p.headline }}</h3>

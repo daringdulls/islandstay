@@ -1,0 +1,99 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block content %}
+<div class="pv">
+  <div class="pv-top">
+    <div>
+      <h1>Preview</h1>
+      <p>How sponsored placements, the 'Before you go' box and the Advertise page look on the site. Samples (marked <span class="pv-badge sample">Sample</span>) are only shown here, never to visitors.</p>
+    </div>
+    <form method="post" class="pv-actions">{% csrf_token %}
+      {% if n_samples %}<button name="samples" value="remove" class="pv-btn" onclick="return confirm('Remove all samples?')">Remove samples ({{ n_samples }})</button>
+      {% else %}<button name="samples" value="add" class="pv-btn primary">Add samples</button>{% endif %}
+      <a class="pv-btn" href="{% url 'admin:partners_placement_add' %}">+ Sponsored placement</a>
+      <a class="pv-btn" href="{% url 'admin:partners_affiliateoffer_add' %}">+ Affiliate link</a>
+    </form>
+  </div>
+  <nav class="pv-nav"><a href="#sponsored">Sponsored placements</a><a href="#affiliate">Before you go (affiliate links)</a><a href="#advertise">Advertise with us page</a></nav>
+
+  <h2 id="sponsored">Sponsored placements</h2>
+  {% for g in groups %}
+  <section class="pv-group">
+    <h3>{{ g.label }}</h3>
+    {% if g.items %}
+    <div class="pv-grid{% if g.wide %} wide{% endif %}">
+      {% for p in g.items %}
+      <div class="pv-item">
+        <div class="pv-meta">
+          <b>{{ p.sponsor.name }}</b>
+          {% if p.is_sample %}<span class="pv-badge sample">Sample</span>{% elif not p.is_active %}<span class="pv-badge off">Paused</span>{% elif p.ends < today %}<span class="pv-badge off">Ended</span>{% elif p.starts > today %}<span class="pv-badge sched">Scheduled</span>{% else %}<span class="pv-badge live">Live</span>{% endif %}
+          <span class="pv-dates">{{ p.starts|date:"j M" }} – {{ p.ends|date:"j M Y" }}{% if p.islands.exists %} · {{ p.islands.count }} island{{ p.islands.count|pluralize }}{% endif %}</span>
+          <a href="{% url 'admin:partners_placement_change' p.pk %}">Edit</a>
+        </div>
+        <iframe class="pv-frame" loading="lazy" src="{% url 'admin:partners_preview_frame' %}?placement={{ p.pk }}" title="Preview of {{ p.headline }}"></iframe>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<p class="pv-empty">Nothing here yet. <a href="{% url 'admin:partners_placement_add' %}?where={{ g.key }}">Add a placement</a>.</p>{% endif %}
+  </section>
+  {% endfor %}
+
+  <h2 id="affiliate">Before you go (affiliate links)</h2>
+  <div class="pv-aff">
+    <div class="pv-item">
+      <div class="pv-meta"><b>As shown on island pages, guides and the transport page</b><span class="pv-dates">First 4 active links, real ones before samples</span></div>
+      <iframe class="pv-frame" loading="lazy" src="{% url 'admin:partners_preview_frame' %}?offers=all" title="Before you go box"></iframe>
+    </div>
+    <table class="pv-table">
+      <tr><th>Offer</th><th>Category</th><th>Shown on</th><th>Clicks</th><th></th></tr>
+      {% for o in offers %}<tr><td>{{ o.title }}<br><small>{{ o.name }}</small></td><td>{{ o.get_category_display }}</td><td>{{ o.get_where_display }}</td><td>{{ o.clicks }}</td>
+        <td>{% if o.is_sample %}<span class="pv-badge sample">Sample</span>{% elif o.is_active %}<span class="pv-badge live">Active</span>{% else %}<span class="pv-badge off">Off</span>{% endif %} <a href="{% url 'admin:partners_affiliateoffer_change' o.pk %}">Edit</a></td></tr>
+      {% empty %}<tr><td colspan="5">No affiliate links yet.</td></tr>{% endfor %}
+    </table>
+  </div>
+
+  <h2 id="advertise">Advertise with us page</h2>
+  <p class="pv-sub">The public page at <a href="{% url 'partners:advertise' %}" target="_blank" rel="noopener">islandstaymv.com/advertise/</a>, linked in the site footer.</p>
+  <div class="pv-adv">
+    <div><div class="pv-meta"><b>Computer</b></div><div class="pv-screen desk"><iframe src="{% url 'partners:advertise' %}" title="Advertise page on a computer" loading="lazy"></iframe></div></div>
+    <div><div class="pv-meta"><b>Phone</b></div><div class="pv-screen phone"><iframe src="{% url 'partners:advertise' %}" title="Advertise page on a phone" loading="lazy"></iframe></div></div>
+  </div>
+</div>
+<style>
+.pv { max-width: 1200px; } .pv h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; } .pv h2 { font-size: 18px; font-weight: 600; margin: 28px 0 12px; scroll-margin-top: 80px; }
+.pv h3 { font-size: 14px; font-weight: 600; margin: 0 0 10px; color: #0A3D4C; } .dark .pv h3 { color: #FFF8EC; }
+.pv-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; } .pv-top p { margin: 0; color: rgb(107 114 128); max-width: 640px; }
+.pv-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pv-btn { display: inline-flex; padding: 8px 14px; border-radius: 999px; border: 1px solid #7D9399; font-weight: 600; font-size: 13px; color: #0A3D4C; background: #fff; }
+.pv-btn.primary { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
+.pv-nav { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0 0; font-size: 13px; font-weight: 600; } .pv-nav a { color: #0B6E8A; }
+.pv-group { margin-bottom: 22px; }
+.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; } .pv-grid.wide { grid-template-columns: 1fr; }
+.pv-item { border: 1px solid #DCE6E8; border-radius: 14px; overflow: hidden; background: #fff; } .dark .pv-item { border-color: rgb(55 65 81); background: rgb(17 24 39); }
+.pv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #DCE6E8; }
+.pv-meta a { margin-left: auto; color: #0B6E8A; font-weight: 600; } .pv-dates { color: rgb(107 114 128); }
+.pv-frame { display: block; width: 100%; height: 300px; border: 0; background: #FFF8EC; }
+.pv-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; }
+.pv-badge.live { background: #D5EDE2; color: #1E7A55; } .pv-badge.sample { background: #F2E4C9; color: #5B3A22; } .pv-badge.off { background: #F6D5CD; color: #B9442C; } .pv-badge.sched { background: #E3EEF0; color: #0A3D4C; }
+.pv-empty { font-size: 13px; color: rgb(107 114 128); } .pv-empty a { color: #0B6E8A; font-weight: 600; }
+.pv-aff { display: grid; grid-template-columns: 400px 1fr; gap: 16px; align-items: start; } @media (max-width: 1000px) { .pv-aff { grid-template-columns: 1fr; } }
+.pv-table { width: 100%; border-collapse: collapse; font-size: 13px; } .pv-table th, .pv-table td { text-align: left; padding: 8px; border-bottom: 1px solid #DCE6E8; vertical-align: top; }
+.pv-table small { color: rgb(107 114 128); } .pv-table a { color: #0B6E8A; font-weight: 600; margin-left: 6px; }
+.pv-sub { font-size: 13px; color: rgb(107 114 128); margin: -6px 0 12px; } .pv-sub a { color: #0B6E8A; font-weight: 600; }
+.pv-adv { display: grid; grid-template-columns: 1fr 260px; gap: 20px; align-items: start; } @media (max-width: 1000px) { .pv-adv { grid-template-columns: 1fr; } }
+.pv-screen { position: relative; overflow: hidden; border: 1px solid #DCE6E8; border-radius: 14px; background: #fff; }
+.pv-screen iframe { border: 0; transform-origin: 0 0; position: absolute; left: 0; top: 0; }
+.pv-screen.desk { height: 640px; } .pv-screen.desk iframe { width: 1280px; height: 1280px; }
+.pv-screen.phone { width: 260px; height: 540px; border-radius: 26px; border-width: 6px; border-color: #0A3D4C; } .pv-screen.phone iframe { width: 390px; height: 810px; transform: scale(.6533); }
+</style>
+<script>
+(function () {
+  function fitDesk() { document.querySelectorAll('.pv-screen.desk').forEach(function (s) { var f = s.querySelector('iframe'); f.style.transform = 'scale(' + (s.clientWidth / 1280) + ')'; }); }
+  addEventListener('resize', fitDesk); fitDesk();
+  document.querySelectorAll('.pv-frame').forEach(function (f) {
+    f.addEventListener('load', function () { try { f.style.height = (f.contentDocument.documentElement.scrollHeight + 4) + 'px'; } catch (e) {} });
+  });
+})();
+</script>
+{% endblock %}

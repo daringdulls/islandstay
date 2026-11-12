@@ -338,6 +338,7 @@ UNFOLD = {
             {
                 "title": "Partners & income",
                 "items": [
+                    {"title": "Preview", "icon": "visibility", "link": reverse_lazy("admin:partners_preview")},
                     {"title": "Sponsored placements", "icon": "campaign", "link": reverse_lazy("admin:partners_placement_changelist")},
                     {"title": "Affiliate links", "icon": "link", "link": reverse_lazy("admin:partners_affiliateoffer_changelist")},
                     {"title": "Sponsors", "icon": "handshake", "link": reverse_lazy("admin:partners_sponsor_changelist")},

@@ -6,6 +6,7 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from .models import AdEnquiry, AffiliateOffer, Click, Placement
 
@@ -32,7 +33,7 @@ def _log(request, **kw):
 
 @never_cache
 def go_sponsor(request, pk):
-    p = get_object_or_404(Placement, pk=pk)
+    p = get_object_or_404(Placement, pk=pk, is_sample=False)
     target = _safe(p.link)
     if _log(request, placement=p):
         Placement.objects.filter(pk=p.pk).update(clicks=F("clicks") + 1)
@@ -43,7 +44,7 @@ def go_sponsor(request, pk):
 
 @never_cache
 def go_affiliate(request, slug):
-    o = get_object_or_404(AffiliateOffer, slug=slug, is_active=True)
+    o = get_object_or_404(AffiliateOffer, slug=slug, is_active=True, is_sample=False)
     target = _safe(o.url)
     if _log(request, offer=o):
         AffiliateOffer.objects.filter(pk=o.pk).update(clicks=F("clicks") + 1)
@@ -61,6 +62,7 @@ class AdEnquiryForm(forms.ModelForm):
         widgets = {"message": forms.Textarea(attrs={"rows": 4, "placeholder": "What would you like to promote, and when?"})}
 
 
+@xframe_options_sameorigin  # shown in the admin preview
 def advertise(request):
     from directory.models import Atoll, Guide, Island, Listing
 
