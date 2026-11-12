@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui partners %}
 {% block title %}{{ guide.title }}{% endblock %}
 {% block extra_head %}{% ld_breadcrumbs "Travel guides" "/guides/" guide.title "" %}{% endblock %}
 {% block meta_description %}{{ guide.summary }}{% endblock %}
@@ -45,6 +45,8 @@
     <div class="panel gd-cta"><h3>Ready to plan?</h3><p class="small muted">Message guest houses and local operators directly. No booking fees.</p>
       <a class="btn btn-block" href="{% url 'directory:stay_list' %}">Find a place to stay</a>
       <a class="btn btn-ghost btn-block" href="{% url 'directory:island_list' %}" style="margin-top:8px">Browse islands</a></div>
+    {% before_you_go "guides" %}
+    {% sponsored "guide" %}
   </aside>
     {% else %}<div></div>{% endif %}
   </div>

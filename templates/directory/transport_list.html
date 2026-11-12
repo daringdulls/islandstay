@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui %}
+{% load ui partners %}
 {% block title %}{% if island %}Getting to {{ island.name }}: ferry and speedboat{% else %}Maldives ferries, speedboats and flights{% endif %}{% endblock %}
 {% block extra_head %}{% ld_breadcrumbs "Transport" "" %}{% endblock %}
 {% block meta_description %}How to reach the local islands of the Maldives from Velana Airport and Malé: public ferries, shared and private speedboats, domestic flights and seaplanes, with journey times and transfer operators.{% endblock %}
@@ -119,6 +119,8 @@
           <li>{% icon "waves" %}<span><b>May to October</b> seas can be rough. Leave time before your flight home.</span></li>
         </ul>
       </div>
+      {% before_you_go "transport" island %}
+      {% sponsored "transport" %}
       <div class="tr-card tr-card-cta">
         <h3>Run a speedboat or transfer service?</h3>
         <p>List it free, add your routes once, and appear on every island you serve.</p>

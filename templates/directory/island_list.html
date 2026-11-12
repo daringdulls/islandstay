@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui humanize %}
+{% load ui humanize partners %}
 {% block title %}{% if atoll_obj %}Local islands in {{ atoll_obj.name }}, Maldives{% else %}Local islands of the Maldives: island guides{% endif %}{% endblock %}
 {% block extra_head %}{% if atoll_obj %}{% ld_breadcrumbs "Islands" "/islands/" atoll_obj.name "" %}{% else %}{% ld_breadcrumbs "Islands" "" %}{% endif %}{% endblock %}
 {% block meta_description %}Guides to the inhabited local islands of the Maldives: what each island is known for, bikini beaches, facilities, local rules and how to get there from Malé.{% endblock %}
@@ -76,6 +76,7 @@
           </select></form>
       </div>
     </div>
+    {% sponsored "islands" %}
     {% if page.object_list %}
       <div class="grid">{% for island in page.object_list %}{% include "partials/island_card.html" %}{% endfor %}</div>
       {% include "partials/pagination.html" %}

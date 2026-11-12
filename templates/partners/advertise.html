@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Advertise with Island Stay{% endblock %}
+{% block meta_description %}Reach travellers planning trips to the Maldives' local islands: sponsored island guides, travel guide placements and affiliate partnerships with Island Stay.{% endblock %}
+{% block content %}
+<section class="adv-hero">
+  <div class="container">
+    <div class="eyebrow">Partners</div>
+    <h1>Reach travellers while they plan their <em>island</em> stay</h1>
+    <p class="lead">Island Stay is a guide to the Maldives' inhabited local islands. Travellers use it to choose an island, read local rules,
+      work out ferries and speedboats, and message hosts. Partner placements put your brand in front of them at exactly that moment.</p>
+    <div class="adv-stats">
+      <div><b>{{ stats.islands }}</b><span>island guides</span></div>
+      <div><b>{{ stats.atolls }}</b><span>atolls covered</span></div>
+      {% if stats.guides >= 10 %}<div><b>{{ stats.guides }}</b><span>travel guides</span></div>{% endif %}
+      {% if stats.listings >= 50 %}<div><b>{{ stats.listings }}</b><span>local businesses</span></div>{% endif %}
+      {% if stats.visits %}<div><b>{{ stats.visits|floatformat:0 }}</b><span>visits in 30 days</span></div>{% endif %}
+    </div>
+  </div>
+</section>
+<section class="section">
+  <div class="container adv-grid">
+    <div>
+      <h2>Ways to partner</h2>
+      <div class="adv-options">
+        <div class="panel"><h3>{% icon "map-pin" %} Sponsor island guides</h3><p class="small muted">A clearly labelled card on the island pages you choose, for example every island in an atoll, or the busiest guest house islands. Ideal for island councils, dive and excursion brands, resorts offering day trips, and ferry or seaplane operators.</p></div>
+        <div class="panel"><h3>{% icon "book-open" %} Sponsor travel guides</h3><p class="small muted">Appear beside the guides travellers read before they book: getting around, money and SIM cards, local rules, diving and marine life.</p></div>
+        <div class="panel"><h3>{% icon "signal" %} Affiliate partnerships</h3><p class="small muted">Travel insurance, eSIMs, flights, airport transfers and tours in our 'Before you go' box, paid on results.</p></div>
+        <div class="panel"><h3>{% icon "camera" %} Social media</h3><p class="small muted">A post or Story on @islandstaymv, made with our own design templates and clearly marked as a partnership.</p></div>
+      </div>
+      <h2 style="margin-top:32px">How we work</h2>
+      <ul class="list-check">
+        <li>Every placement is labelled 'Sponsored', and links are marked as sponsored for search engines.</li>
+        <li>You get a report of views and clicks for your campaign.</li>
+        <li>We only accept partners that are useful to travellers and respect local islands and their rules.</li>
+        <li>Sponsorship never affects which hosts we list or verify.</li>
+      </ul>
+    </div>
+    <div class="panel adv-form">
+      <h2 style="font-size:1.35rem">Ask for our rate card</h2>
+      <p class="small muted">Tell us what you'd like to promote and we'll reply within two working days.</p>
+      <form method="post" novalidate>{% csrf_token %}{% include "partials/form_fields.html" with full_fields="interest message" %}<button class="btn btn-block" style="margin-top:16px">Send</button></form>
+    </div>
+  </div>
+</section>
+{% endblock %}

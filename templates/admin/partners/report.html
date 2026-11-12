@@ -1,0 +1,38 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block content %}
+<div class="pr">
+  <div class="pr-head">
+    <div><div class="pr-eyebrow">Island Stay · partner report</div>
+      <h1>{{ p.sponsor.name }}: {{ p.headline }}</h1>
+      <p>{{ p.get_where_display }} · {{ p.starts|date:"j M Y" }} to {{ p.ends|date:"j M Y" }}{% if p.islands.exists %} · {{ p.islands.all|join:", " }}{% endif %}</p></div>
+    <button class="pr-print" onclick="window.print()">Print / save as PDF</button>
+  </div>
+  <div class="pr-kpis">
+    <div><b>{{ p.views }}</b><span>Views</span></div>
+    <div><b>{{ p.clicks }}</b><span>Clicks</span></div>
+    <div><b>{{ p.ctr_label }}</b><span>Click rate (clicks ÷ views)</span></div>
+  </div>
+  <div class="pr-cols">
+    <div><h2>Clicks per day</h2>
+      <table>{% for d in days %}<tr><td>{{ d.day|date:"D j M" }}</td><td class="n">{{ d.n }}</td></tr>{% empty %}<tr><td>No clicks yet.</td></tr>{% endfor %}</table></div>
+    <div><h2>Top pages</h2>
+      <table>{% for r in pages %}<tr><td>{{ r.page }}</td><td class="n">{{ r.n }}</td></tr>{% empty %}<tr><td>–</td></tr>{% endfor %}</table>
+      <h2>Top islands</h2>
+      <table>{% for r in islands %}<tr><td>{{ r.island }}</td><td class="n">{{ r.n }}</td></tr>{% empty %}<tr><td>–</td></tr>{% endfor %}</table></div>
+  </div>
+  <p class="pr-note">Views are counted each time the card is shown to a person (search engines and link previews are excluded). Clicks are counted when someone opens your link from the card. Report made {{ today|date:"j M Y" }}.</p>
+</div>
+<style>
+.pr { max-width: 900px; } .pr h1 { font-size: 22px; font-weight: 600; margin: 4px 0; color: #0A3D4C; } .pr h2 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; }
+.pr-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; } .pr-eyebrow { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #0B6E8A; font-weight: 600; }
+.pr-print { padding: 8px 16px; border-radius: 999px; border: 1px solid #7D9399; font-weight: 600; }
+.pr-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+.pr-kpis div { border: 1px solid #DCE6E8; border-radius: 14px; padding: 16px; } .pr-kpis b { display: block; font-size: 28px; color: #0A3D4C; } .pr-kpis span { font-size: 13px; color: #4A6068; }
+.pr-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; } .pr table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.pr td { border-bottom: 1px solid #DCE6E8; padding: 6px 4px; } .pr td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.pr-note { font-size: 12.5px; color: #4A6068; margin-top: 20px; }
+@media print { #nav-sidebar, header, .pr-print, aside, nav { display: none !important; } }
+</style>
+{% endblock %}

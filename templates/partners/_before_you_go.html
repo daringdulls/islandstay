@@ -1,0 +1,14 @@
+{% load ui %}{% if offers %}
+<div class="panel byg">
+  <h3>{% icon "check" %} Before you go</h3>
+  <ul class="byg-list">
+    {% for o, href in offers %}<li>
+      <a href="{{ href }}" target="_blank" rel="sponsored noopener">
+        <i>{% icon o.icon %}</i>
+        <span><b>{{ o.title }}</b>{% if o.blurb %}<small>{{ o.blurb }}</small>{% endif %}<em>{{ o.name }} · {{ o.button }} {% icon "arrow-up-right" %}</em></span>
+      </a>
+    </li>{% endfor %}
+  </ul>
+  <p class="byg-note">We may earn a commission when you buy through these links, at no extra cost to you. It helps keep Island Stay free for hosts.</p>
+</div>
+{% endif %}

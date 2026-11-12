@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load ui humanize %}
+{% load ui humanize partners %}
 {% block title %}{{ island.name }}, {{ island.atoll.name }}: local island guide{% endblock %}
 {% block meta_description %}{{ island.tagline }}. {{ island.overview|truncatechars:140 }}{% endblock %}
 {% block og_title %}{{ island.name }}, {{ island.atoll.name }}: local island guide{% endblock %}
@@ -157,7 +157,9 @@
         </ul>
         {% if island.transfer_labels %}<div class="pills" style="margin-top:14px">{% for t in island.transfer_labels %}<span class="pill info">{{ t }}</span>{% endfor %}</div>{% endif %}
       </div>
+      {% before_you_go "islands" island %}
       {% if guides %}<div class="panel"><h3>{% icon "book-open" %} Travel guides</h3><ul class="contact-list">{% for g in guides %}<li>{% icon "arrow-right" %}<span><a href="{{ g.get_absolute_url }}">{{ g.title }}</a><br><span class="small muted">{{ g.reading_minutes }} min read</span></span></li>{% endfor %}</ul></div>{% endif %}
+      {% sponsored "island" island %}
       {% if island.best_time_to_visit %}<div class="panel"><h3>{% icon "sun" %} Best time to visit</h3><p style="margin:0">{{ island.best_time_to_visit }}</p></div>{% endif %}
       <div class="panel">
         <h3>Have a business on {{ island.name }}?</h3>

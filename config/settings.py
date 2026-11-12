@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "directory",
     "social",
     "analytics",
+    "partners",
 ]
 
 MIDDLEWARE = [
@@ -332,6 +333,15 @@ UNFOLD = {
                     {"title": "All posts", "icon": "photo_library", "link": reverse_lazy("admin:social_socialpost_changelist")},
                     {"title": "Design templates", "icon": "palette", "link": reverse_lazy("admin:social_templates")},
                     {"title": "Playbook", "icon": "menu_book", "link": reverse_lazy("admin:social_playbook")},
+                ],
+            },
+            {
+                "title": "Partners & income",
+                "items": [
+                    {"title": "Sponsored placements", "icon": "campaign", "link": reverse_lazy("admin:partners_placement_changelist")},
+                    {"title": "Affiliate links", "icon": "link", "link": reverse_lazy("admin:partners_affiliateoffer_changelist")},
+                    {"title": "Sponsors", "icon": "handshake", "link": reverse_lazy("admin:partners_sponsor_changelist")},
+                    {"title": "Advertising enquiries", "icon": "mail", "link": reverse_lazy("admin:partners_adenquiry_changelist")},
                 ],
             },
             {
