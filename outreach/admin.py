@@ -16,7 +16,7 @@ from unfold.decorators import action, display
 from directory.admin import BaseAdmin
 
 from .messages import fill, island_views
-from .models import HostLead, OutreachMessage, OutreachPlan
+from .models import HostLead, LeadMessage, OutreachMessage, OutreachPlan
 
 STATUS_COLORS = {"to_contact": "info", "engaged": "info", "messaged": "warning", "followup1": "warning", "followup2": "warning",
                  "replied": "primary", "interested": "primary", "listed": "success", "verified": "success",
@@ -99,7 +99,7 @@ class HostLeadAdmin(BaseAdmin):
     actions_list = ["open_dashboard"]
     list_per_page = 50
     fieldsets = (
-        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"))}),
+        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"), "liked")}),
         ("How to reach them", {"fields": (("instagram", "facebook"), ("tiktok", "whatsapp"), ("channel", "found_via"))}),
         ("Progress", {"fields": ("status", ("first_contact", "last_contact", "next_follow_up"), ("date_listed", "listing"), "referred_by", "notes")}),
     )
@@ -122,6 +122,7 @@ class HostLeadAdmin(BaseAdmin):
             "whatsapp": ("chat", "+960 7xx xxxx"),
             "found_via": ("travel_explore", "e.g. #maafushi, location tag, Facebook group"),
             "referred_by": ("handshake", "Business that recommended them"),
+            "liked": ("favorite", "Finishes 'We love …', e.g. your sunset photos from the jetty"),
         }
         if db_field.name in icons:
             icon, placeholder = icons[db_field.name]
@@ -258,11 +259,14 @@ class HostLeadAdmin(BaseAdmin):
         if lead:
             views = island_views(lead.island)
             text = lambda m: fill(m.text, lead, views)  # noqa: E731
+            import re
+            custom = {c.message_id: c.text for c in lead.custom_messages.all()}
             msgs = []
             for m in OutreachMessage.objects.all():
-                t = text(m)
-                msgs.append({"m": m, "text": t, "text_dv": fill(m.text_dv, lead, views) if m.text_dv else "",
-                             "wa": f"https://wa.me/{lead.whatsapp_number}?text={urllib.parse.quote(t)}" if lead.whatsapp_number else ""})
+                t = custom.get(m.pk) or text(m)
+                msgs.append({"m": m, "text": t, "custom": m.pk in custom,
+                             "missing": sorted(set(re.findall(r"<[^<>]{1,40}>", t))),
+                             "text_dv": fill(m.text_dv, lead, views) if m.text_dv else ""})
             extra.update(lead_msgs=msgs, lead_views=views, lead=lead)
         extra["island_options"] = self._island_options()
         return super().change_view(request, object_id, form_url, extra)
@@ -271,8 +275,24 @@ class HostLeadAdmin(BaseAdmin):
         view = self.admin_site.admin_view
         return [
             path("<int:pk>/sent/", view(self.sent_view), name="outreach_lead_sent"),
+            path("<int:pk>/message/", view(self.custom_message_view), name="outreach_lead_message"),
             path("dashboard/", view(self.dashboard_view), name="outreach_dashboard"),
         ] + super().get_urls()
+
+    def custom_message_view(self, request, pk):
+        """Save a message rewritten for this lead (action=save), or go back to the template (action=reset)."""
+        if request.method != "POST" or not self.has_change_permission(request):
+            raise PermissionDenied
+        lead = get_object_or_404(HostLead, pk=pk)
+        m = get_object_or_404(OutreachMessage, pk=request.POST.get("message"))
+        if request.POST.get("action") == "reset":
+            LeadMessage.objects.filter(lead=lead, message=m).delete()
+            return JsonResponse({"ok": True, "text": fill(m.text, lead, island_views(lead.island)), "custom": False})
+        text = (request.POST.get("text") or "").strip()
+        if not text:
+            return JsonResponse({"ok": False, "error": "The message is empty."}, status=400)
+        LeadMessage.objects.update_or_create(lead=lead, message=m, defaults={"text": text[:5000]})
+        return JsonResponse({"ok": True, "text": text, "custom": True})
 
     def sent_view(self, request, pk):
         """Pressed 'Sent' under a message on the lead page: update the status and dates."""

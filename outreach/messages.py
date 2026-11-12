@@ -5,7 +5,7 @@ from django.utils import timezone
 
 DEFAULT_MESSAGES = [
     ("First DM", "Day 1, after warming up", "messaged",
-     "Hello <business> team! We love your photos of <something specific> on <island>. We're Island Stay (@islandstaymv), a free guide to the "
+     "Hello <name>! We love <something specific> on <island>. We're Island Stay (@islandstaymv), a free guide to the "
      "Maldives' local islands: travellers use it to find places to stay and things to do, then message the business directly. Listing is free, "
      "with no commission. Would you like <business> on our <island> page? We can set it up for you: just send us a few photos.\n\nIsland Stay team"),
     ("Follow-up 1", "3 days after the first DM", "followup1",
@@ -56,7 +56,10 @@ def island_views(island, days=30):
 
 def fill(text, lead, views=None, site="https://www.islandstaymv.com"):
     island = lead.island
-    out = text.replace("<business>", lead.business or "<business>")
+    out = text.replace("<name>", (lead.contact_name.split()[0] if lead.contact_name.strip() else f"{lead.business} team"))
+    out = out.replace("<business>", lead.business or "<business>")
+    if lead.liked.strip():
+        out = out.replace("<something specific>", lead.liked.strip())
     if island:
         out = out.replace("<island>", island.name)
     if views is not None:

@@ -37,14 +37,17 @@
     </div>
     <p class="lc-hint">Filled in for this business and sent from the Island Stay account. Copy, paste it into their messages, then press <b>Sent</b>: the status and follow-up date update.</p>
     {% for x in lead_msgs %}
-    <details class="lc-msg"{% if forloop.first and lead.status == "to_contact" or forloop.first and lead.status == "engaged" %} open{% elif x.m.sets_status == "followup1" and lead.status == "messaged" %} open{% elif x.m.sets_status == "followup2" and lead.status == "followup1" %} open{% endif %}>
-      <summary><b>{{ x.m.use }}</b><span>{{ x.m.when }}</span></summary>
-      <div class="lc-text">{{ x.text }}</div>
+    <details class="lc-msg" data-msg="{{ x.m.pk }}"{% if forloop.first and lead.status == "to_contact" or forloop.first and lead.status == "engaged" %} open{% elif x.m.sets_status == "followup1" and lead.status == "messaged" %} open{% elif x.m.sets_status == "followup2" and lead.status == "followup1" %} open{% endif %}>
+      <summary><b>{{ x.m.use }}{% if x.custom %} <em class="lc-badge">Customised</em>{% endif %}</b><span>{{ x.m.when }}</span></summary>
+      <textarea class="lc-edit" rows="7" aria-label="{{ x.m.use }} for {{ lead.business }}">{{ x.text }}</textarea>
+      <p class="lc-missing"{% if not x.missing %} hidden{% endif %}>Still to fill in: <span>{{ x.missing|join:", " }}</span></p>
       {% if x.text_dv %}<div class="lc-text" dir="rtl" lang="dv">{{ x.text_dv }}</div>{% endif %}
       <div class="lc-btns">
-        <button type="button" data-copy="{{ x.text }}">Copy</button>
+        <button type="button" data-act="copy">Copy</button>
         {% if x.text_dv %}<button type="button" data-copy="{{ x.text_dv }}">Copy Dhivehi</button>{% endif %}
-        {% if x.wa %}<a href="{{ x.wa }}" target="_blank" rel="noopener">Open in WhatsApp</a>{% endif %}
+        {% if lead.whatsapp_number %}<a data-act="wa" href="#" target="_blank" rel="noopener">Open in WhatsApp</a>{% endif %}
+        <button type="button" data-act="save" hidden>Save for this lead</button>
+        <button type="button" data-act="reset"{% if not x.custom %} hidden{% endif %}>Reset to template</button>
         <button type="button" class="primary" data-sent="{{ x.m.pk }}">Sent{% if x.m.sets_status %}: mark {{ x.m.get_sets_status_display|lower }}{% endif %}</button>
       </div>
     </details>
@@ -88,8 +91,13 @@
 .lc-msg { border: 1px solid #DCE6E8; border-radius: 12px; margin-bottom: 8px; }
 .lc-msg summary { cursor: pointer; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
 .lc-msg summary span { font-size: 12px; color: rgb(107 114 128); }
-.lc-text { white-space: pre-wrap; font-size: 13px; line-height: 1.5; padding: 10px 12px; margin: 0 12px; background: #F2E4C9; color: #122A31; border-radius: 10px; }
-.lc-text + .lc-text { margin-top: 8px; font-family: "Noto Sans Thaana", sans-serif; }
+.lc-text { white-space: pre-wrap; margin-top: 8px; font-size: 13px; line-height: 1.5; padding: 10px 12px; margin: 0 12px; background: #F2E4C9; color: #122A31; border-radius: 10px; }
+.lc-text { margin-top: 8px !important; font-family: "Noto Sans Thaana", sans-serif; }
+.lc-edit { display: block; width: calc(100% - 24px); margin: 0 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #F2E4C9; background: #F2E4C9;
+  color: #122A31; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; min-height: 150px; }
+.lc-edit:focus { outline: 3px solid #0B6E8A; outline-offset: 1px; background: #fff; border-color: #7D9399; }
+.lc-badge { font-style: normal; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; background: #0B6E8A; color: #fff; margin-left: 4px; vertical-align: 1px; }
+.lc-missing { margin: 6px 12px 0; font-size: 12px; color: #B9442C; font-weight: 600; }
 .lc-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 12px; }
 .lc-btns button, .lc-btns a { padding: 6px 12px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12.5px; font-weight: 600; color: #0A3D4C; background: #fff; }
 .lc-btns .primary { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
@@ -143,6 +151,52 @@
   input.addEventListener('paste', function () { setTimeout(run, 0); });
   input.addEventListener('change', run);
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+})();
+(function () {
+  var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+  var url = '{% url "admin:outreach_lead_message" original.pk|default:0 %}', wa = '{{ lead.whatsapp_number }}';
+  document.querySelectorAll('.lc-msg').forEach(function (box) {
+    var ta = box.querySelector('.lc-edit'); if (!ta) return;
+    var saved = ta.value, save = box.querySelector('[data-act=save]'), reset = box.querySelector('[data-act=reset]');
+    var miss = box.querySelector('.lc-missing'), link = box.querySelector('[data-act=wa]');
+    function refresh() {
+      var left = (ta.value.match(/<[^<>]{1,40}>/g) || []).filter(function (v, i, a) { return a.indexOf(v) === i; });
+      miss.hidden = !left.length; miss.querySelector('span').textContent = left.join(', ');
+      save.hidden = ta.value === saved;
+      if (link) link.href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(ta.value);
+      ta.style.height = 'auto'; ta.style.height = Math.max(150, ta.scrollHeight + 2) + 'px';
+    }
+    function post(fd, done) {
+      fd.append('message', box.dataset.msg);
+      fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf.value }, body: fd }).then(function (r) { return r.json(); }).then(done);
+    }
+    ta.addEventListener('input', refresh);
+    box.addEventListener('toggle', refresh);
+    box.querySelector('[data-act=copy]').addEventListener('click', function (e) {
+      var b = e.currentTarget; navigator.clipboard.writeText(ta.value).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1400); });
+    });
+    save.addEventListener('click', function () {
+      var fd = new FormData(); fd.append('action', 'save'); fd.append('text', ta.value);
+      post(fd, function (d) {
+        if (!d.ok) return;
+        saved = ta.value; reset.hidden = false;
+        var s = box.querySelector('summary b');
+        if (!s.querySelector('.lc-badge')) s.insertAdjacentHTML('beforeend', ' <em class="lc-badge">Customised</em>');
+        refresh();
+      });
+    });
+    reset.addEventListener('click', function () {
+      if (!confirm('Go back to the template text for this message?')) return;
+      var fd = new FormData(); fd.append('action', 'reset');
+      post(fd, function (d) {
+        if (!d.ok) return;
+        ta.value = saved = d.text; reset.hidden = true;
+        var badge = box.querySelector('.lc-badge'); if (badge) badge.remove();
+        refresh();
+      });
+    });
+    refresh();
+  });
 })();
 document.querySelectorAll('[data-sent]').forEach(function (b) {
   b.addEventListener('click', function () {
