@@ -3,17 +3,32 @@ import datetime as dt
 
 from django.utils import timezone
 
+FIRST_DM = (
+    "Hello <name>,\n\n"
+    "We're Island Stay (islandstaymv.com), a guide to the Maldives' local islands. Travellers use it to find places to stay and "
+    "things to do, and contact businesses directly.\n\n"
+    "We would like to invite <business> to be listed on our <island> page. Listing is free, with no commission: guest requests "
+    "come straight to you.\n\n"
+    "If you're interested, reply to this message and our team will set up your page for you, or you can add it yourself at "
+    "islandstaymv.com/list-your-business.\n\n"
+    "Kind regards,\nIsland Stay team")
+FOLLOW_UP_1 = (
+    "Hello <name>,\n\n"
+    "We're following up on our invitation to list <business> on Island Stay. <X> travellers viewed <island> on our site in the last 30 days.\n\n"
+    "Listing is free and only takes a few minutes: send us a few photos and your prices, and we'll prepare the page for you to review. "
+    "You can also add it yourself at islandstaymv.com/list-your-business.\n\n"
+    "Kind regards,\nIsland Stay team")
+FOLLOW_UP_2 = (
+    "Hello <name>,\n\n"
+    "A final note from Island Stay: the first 50 businesses to list receive a featured place on their island page for three months, "
+    "and a few places remain.\n\n"
+    "If now isn't the right time, we completely understand. We wish you a great season.\n\n"
+    "Kind regards,\nIsland Stay team")
+
 DEFAULT_MESSAGES = [
-    ("First DM", "Day 1, after warming up", "messaged",
-     "Hello <name>! We love <something specific> on <island>. We're Island Stay (@islandstaymv), a free guide to the "
-     "Maldives' local islands: travellers use it to find places to stay and things to do, then message the business directly. Listing is free, "
-     "with no commission. Would you like <business> on our <island> page? We can set it up for you: just send us a few photos.\n\nIsland Stay team"),
-    ("Follow-up 1", "3 days after the first DM", "followup1",
-     "Hello again from Island Stay! <X> travellers looked at <island> on our site in the last 30 days, and there's space for <business>. "
-     "Send us 5 photos and your prices and we'll build your page for you, or add it yourself here: islandstaymv.com/list-your-business\n\nIsland Stay team"),
-    ("Follow-up 2 (last)", "7 days after follow-up 1", "followup2",
-     "One last note from Island Stay: the first 50 businesses get a featured spot on their island page for 3 months, and a few places are left. "
-     "If now isn't a good time, no problem at all. Have a good season!\n\nIsland Stay team"),
+    ("First DM", "Day 1", "messaged", FIRST_DM),
+    ("Follow-up 1", "3 days after the first DM", "followup1", FOLLOW_UP_1),
+    ("Follow-up 2 (last)", "7 days after follow-up 1", "followup2", FOLLOW_UP_2),
     ("Reply: 'How much?'", "When they ask about cost", "",
      "It's free: no sign-up fee and no commission. Guests send you a request through Island Stay and you agree everything with them directly, "
      "by WhatsApp or email."),
@@ -58,11 +73,13 @@ def fill(text, lead, views=None, site="https://www.islandstaymv.com"):
     island = lead.island
     out = text.replace("<name>", (lead.contact_name.split()[0] if lead.contact_name.strip() else f"{lead.business} team"))
     out = out.replace("<business>", lead.business or "<business>")
-    if lead.liked.strip():
-        out = out.replace("<something specific>", lead.liked.strip())
     if island:
         out = out.replace("<island>", island.name)
     if views is not None:
+        if views < 20:
+            # Small numbers don't impress: drop the sentence that mentions them.
+            import re
+            out = re.sub(r" ?[^.!?\n]*<X>[^.!?\n]*[.!?]", "", out)
         out = out.replace("<X>", str(views))
     if lead.listing_id:
         out = out.replace("<link>", site + lead.listing.get_absolute_url())

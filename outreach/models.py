@@ -14,8 +14,8 @@ class OutreachMessage(models.Model):
     use = models.CharField(max_length=60, help_text="e.g. 'First DM'")
     when = models.CharField(max_length=80, blank=True, help_text="e.g. '3 days after the first DM'")
     text = models.TextField("Message", help_text="Placeholders: <name> (contact's first name, or '<business> team'), <business>, <island>, "
-                                                 "<something specific> (from 'What you liked on their page'), <X> (travellers who looked at "
-                                                 "the island in the last 30 days), <link> (their page). Anything else in <brackets> you fill in yourself.")
+                                                 "<X> (travellers who viewed the island in the last 30 days; the sentence is left out below 20), "
+                                                 "<link> (their page). Anything else in <brackets> you fill in yourself.")
     text_dv = models.TextField("Dhivehi version", blank=True, help_text="Written by a native speaker")
     sets_status = models.CharField("After sending, mark the lead as", max_length=12, choices=STATUS_AFTER, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
@@ -46,8 +46,6 @@ class HostLead(models.Model):
     kind = models.CharField("Type", max_length=12, choices=KIND_CHOICES, default="guesthouse")
     island = models.ForeignKey(Island, on_delete=models.SET_NULL, null=True, blank=True, related_name="host_leads")
     contact_name = models.CharField(max_length=80, blank=True)
-    liked = models.CharField("What you liked on their page", max_length=140, blank=True,
-                             help_text="Finishes 'We love …' in the first message, e.g. 'your sunset photos from the jetty'")
     instagram = models.CharField(max_length=80, blank=True, help_text="Handle, e.g. @coralview.maafushi")
     facebook = models.URLField(max_length=300, blank=True, help_text="Page link")
     tiktok = models.CharField(max_length=80, blank=True, help_text="Handle")

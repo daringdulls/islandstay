@@ -43,7 +43,7 @@ class OutreachTests(TestCase):
         lead = HostLead.objects.create(business="Coral View", island=self.island, whatsapp="+960 777 1234")
         r = self.client.get(f"/admin/outreach/hostlead/{lead.pk}/change/")
         self.assertContains(r, "Messages for Coral View")
-        self.assertContains(r, "Hello Coral View team!")
+        self.assertContains(r, "Hello Coral View team,")
         self.assertContains(r, "Open in WhatsApp")
         self.assertContains(r, "wa = '9607771234'")
         first = OutreachMessage.objects.get(use="First DM")
@@ -86,21 +86,26 @@ class LeadFormTests(TestCase):
 
 
 class CustomMessageTests(TestCase):
-    def test_fill_name_and_liked_and_custom_message(self):
+    def test_professional_invitation_and_custom_message(self):
         from .models import LeadMessage
         atoll = Atoll.objects.create(name="Baa", slug="baa")
         island = Island.objects.create(name="Fehendhoo", slug="fehendhoo", atoll=atoll)
         admin = get_user_model().objects.create_superuser("b3@x.mv", "b3@x.mv", "pw")
         self.client.force_login(admin)
         lead = HostLead.objects.create(business="Tropical Tree", island=island)
-        first = OutreachMessage.objects.order_by("order").first()
-        self.assertIn("Hello Tropical Tree team!", fill(first.text, lead))
-        lead.contact_name, lead.liked = "Ahmed Rasheed", "your sunset photos from the jetty"
-        lead.save()
+        first = OutreachMessage.objects.get(use="First DM")
         text = fill(first.text, lead)
-        self.assertIn("Hello Ahmed!", text)
-        self.assertIn("We love your sunset photos from the jetty on Fehendhoo", text)
-        self.assertNotIn("<something specific>", text)
+        self.assertTrue(text.startswith("Hello Tropical Tree team,"))
+        self.assertIn("We would like to invite Tropical Tree to be listed on our Fehendhoo page.", text)
+        self.assertNotIn("<", text)
+        lead.contact_name = "Ahmed Rasheed"
+        lead.save()
+        self.assertTrue(fill(first.text, lead).startswith("Hello Ahmed,"))
+        follow = OutreachMessage.objects.get(use="Follow-up 1").text
+        small = fill(follow, lead, views=3)
+        self.assertNotIn("travellers viewed", small)   # small numbers are left out
+        self.assertIn("on Island Stay.\n\nListing is free", small)
+        self.assertIn("120 travellers viewed Fehendhoo", fill(follow, lead, views=120))
         r = self.client.post(f"/admin/outreach/hostlead/{lead.pk}/message/", {"message": first.pk, "action": "save", "text": "Hi Ahmed, a note just for you."})
         self.assertTrue(r.json()["custom"])
         r = self.client.get(f"/admin/outreach/hostlead/{lead.pk}/change/")
@@ -109,5 +114,5 @@ class CustomMessageTests(TestCase):
         other = HostLead.objects.create(business="Other Place", island=island)
         self.assertNotContains(self.client.get(f"/admin/outreach/hostlead/{other.pk}/change/"), "a note just for you")
         r = self.client.post(f"/admin/outreach/hostlead/{lead.pk}/message/", {"message": first.pk, "action": "reset"})
-        self.assertIn("Hello Ahmed!", r.json()["text"])
+        self.assertTrue(r.json()["text"].startswith("Hello Ahmed,"))
         self.assertFalse(LeadMessage.objects.exists())

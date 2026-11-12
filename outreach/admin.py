@@ -99,7 +99,7 @@ class HostLeadAdmin(BaseAdmin):
     actions_list = ["open_dashboard"]
     list_per_page = 50
     fieldsets = (
-        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"), "liked")}),
+        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"))}),
         ("How to reach them", {"fields": (("instagram", "facebook"), ("tiktok", "whatsapp"), ("channel", "found_via"))}),
         ("Progress", {"fields": ("status", ("first_contact", "last_contact", "next_follow_up"), ("date_listed", "listing"), "referred_by", "notes")}),
     )
@@ -122,7 +122,6 @@ class HostLeadAdmin(BaseAdmin):
             "whatsapp": ("chat", "+960 7xx xxxx"),
             "found_via": ("travel_explore", "e.g. #maafushi, location tag, Facebook group"),
             "referred_by": ("handshake", "Business that recommended them"),
-            "liked": ("favorite", "Finishes 'We love …', e.g. your sunset photos from the jetty"),
         }
         if db_field.name in icons:
             icon, placeholder = icons[db_field.name]
