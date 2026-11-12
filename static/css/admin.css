@@ -592,3 +592,6 @@ textarea.ge-body { min-height: 520px !important; font-family: ui-monospace, SFMo
 .lh-clear { margin-left: auto; font-weight: 600; color: #0B6E8A; text-decoration: underline; }
 .lh-empty { margin: 0; font-size: 13.5px; color: #4A6068; }
 .lh-empty a { color: #0B6E8A; font-weight: 600; }
+/* outreach: message templates list */
+.om-text { white-space: pre-wrap; max-width: 560px; font-size: 13px; line-height: 1.45; }
+.om-copy { margin-top: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12px; font-weight: 600; color: #0A3D4C; background: #fff; }

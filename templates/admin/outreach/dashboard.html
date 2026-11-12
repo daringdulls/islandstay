@@ -1,0 +1,75 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+{% block content %}
+<div class="od">
+  <div class="od-top">
+    <div><h1>Host outreach</h1>
+      <p>Getting businesses to list through Instagram, Facebook and TikTok. All messages go out from the Island Stay accounts.</p></div>
+    <div class="od-actions">
+      <a class="od-btn primary" href="{% url 'admin:outreach_hostlead_add' %}">+ Add a lead</a>
+      <a class="od-btn" href="{% url 'admin:outreach_hostlead_changelist' %}">All leads</a>
+      <a class="od-btn" href="{% url 'admin:outreach_outreachmessage_changelist' %}">Messages</a>
+    </div>
+  </div>
+
+  <div class="od-kpis">
+    {% for label, n, note in funnel %}<div><span>{{ label }}</span><b>{{ n }}</b><small>{{ note }}</small></div>{% endfor %}
+    <div class="od-today"><span>Messaged today</span><b>{{ messaged_today }}</b><small>aim for 15 a day</small></div>
+  </div>
+
+  <div class="od-cols">
+    <section>
+      <h2>Follow-ups due</h2>
+      {% if due %}<table class="od-table">
+        <tr><th>Business</th><th>Island</th><th>Status</th><th>Due</th></tr>
+        {% for l in due %}<tr><td><a href="{% url 'admin:outreach_hostlead_change' l.pk %}">{{ l.business }}</a></td><td>{{ l.island.name|default:"–" }}</td><td>{{ l.get_status_display }}</td>
+          <td class="{% if l.next_follow_up < today %}late{% endif %}">{{ l.next_follow_up|date:"j M" }}</td></tr>{% endfor %}
+      </table>
+      <p class="od-more"><a href="{% url 'admin:outreach_hostlead_changelist' %}?due=yes">See all follow-ups due</a></p>
+      {% else %}<p class="od-empty">Nothing due. Nice work.</p>{% endif %}
+
+      <h2>By channel</h2>
+      <table class="od-table"><tr><th>Channel</th><th>Messaged</th><th>Replied</th><th>Reply rate</th></tr>
+        {% for c in channels %}<tr><td>{{ c.name }}</td><td>{{ c.n }}</td><td>{{ c.replied }}</td><td>{{ c.rate }}</td></tr>{% empty %}<tr><td colspan="4">No messages sent yet.</td></tr>{% endfor %}</table>
+
+      <h2>By island</h2>
+      <table class="od-table"><tr><th>Island</th><th>Leads</th><th>Listed</th></tr>
+        {% for i in islands %}<tr><td>{{ i.island__name }}</td><td>{{ i.leads }}</td><td>{{ i.listed }}</td></tr>{% empty %}<tr><td colspan="3">No leads yet.</td></tr>{% endfor %}</table>
+    </section>
+    <section>
+      <h2>12-week plan</h2>
+      <form method="post" class="od-start">{% csrf_token %}<label>Started on <input type="date" name="start_date" value="{{ plan.start_date|date:'Y-m-d' }}"></label><button class="od-btn">Save</button></form>
+      <table class="od-table">
+        <tr><th>Week</th><th>Starts</th><th>Listed: target</th><th>Listed: actual</th><th>Messaged: target</th><th>Messaged: actual</th></tr>
+        {% for w in weeks %}<tr class="{% if w.current %}now{% elif w.future %}future{% endif %}">
+          <td>{{ w.n }}</td><td>{{ w.start|date:"j M" }}</td><td>{{ w.target_l }}</td>
+          <td>{% if w.future %}–{% else %}<b class="{% if w.gap < 0 %}behind{% else %}ahead{% endif %}">{{ w.actual_l }}</b>{% endif %}</td>
+          <td>{{ w.target_m }}</td><td>{% if w.future %}–{% else %}{{ w.actual_m }}{% endif %}</td></tr>{% endfor %}
+      </table>
+      <p class="od-note">Goal: 100 businesses listed in 12 weeks. Targets are cumulative; the current week is highlighted. Red means behind target.</p>
+    </section>
+  </div>
+</div>
+<style>
+.od { max-width: 1200px; } .od h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; } .od h2 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; }
+.od-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; } .od-top p { margin: 0; color: rgb(107 114 128); }
+.od-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+.od-btn { display: inline-flex; white-space: nowrap; padding: 8px 14px; border-radius: 999px; border: 1px solid #7D9399; font-weight: 600; font-size: 13px; color: #0A3D4C; background: #fff; }
+.od-btn.primary { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
+.od-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0 4px; }
+.od-kpis div { border: 1px solid #DCE6E8; border-radius: 14px; padding: 14px 16px; background: #fff; display: flex; flex-direction: column; }
+.dark .od-kpis div { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.od-kpis span { font-size: 12.5px; color: rgb(107 114 128); font-weight: 600; } .od-kpis b { font-size: 28px; color: #0A3D4C; } .dark .od-kpis b { color: #FFF8EC; }
+.od-kpis small { font-size: 12px; color: rgb(107 114 128); } .od-kpis .od-today { background: #F2E4C9; border-color: #F2E4C9; } .od-today b { color: #5B3A22; }
+.od-cols { display: grid; grid-template-columns: 1fr 1.3fr; gap: 28px; } @media (max-width: 1000px) { .od-cols { grid-template-columns: 1fr; } }
+.od-table { width: 100%; border-collapse: collapse; font-size: 13px; } .od-table th, .od-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #DCE6E8; }
+.od-table a { color: #0B6E8A; font-weight: 600; } .od-table td.late { color: #B9442C; font-weight: 700; }
+.od-table tr.now td { background: #E3EEF0; font-weight: 600; } .dark .od-table tr.now td { background: rgb(31 41 55); } .od-table tr.future td { color: rgb(156 163 175); }
+.od-table b.behind { color: #B9442C; } .od-table b.ahead { color: #1E7A55; }
+.od-start { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 8px; } .od-start input { border: 1px solid #7D9399; border-radius: 8px; padding: 4px 8px; margin-left: 6px; }
+.od-note, .od-more, .od-empty { font-size: 12.5px; color: rgb(107 114 128); } .od-more a { color: #0B6E8A; font-weight: 600; }
+.om-text { white-space: pre-wrap; max-width: 560px; font-size: 13px; line-height: 1.45; }
+.om-copy { margin-top: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12px; font-weight: 600; }
+</style>
+{% endblock %}

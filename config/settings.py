@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "social",
     "analytics",
     "partners",
+    "outreach",
 ]
 
 MIDDLEWARE = [
@@ -333,6 +334,14 @@ UNFOLD = {
                     {"title": "All posts", "icon": "photo_library", "link": reverse_lazy("admin:social_socialpost_changelist")},
                     {"title": "Design templates", "icon": "palette", "link": reverse_lazy("admin:social_templates")},
                     {"title": "Playbook", "icon": "menu_book", "link": reverse_lazy("admin:social_playbook")},
+                ],
+            },
+            {
+                "title": "Host outreach",
+                "items": [
+                    {"title": "Outreach dashboard", "icon": "monitoring", "link": reverse_lazy("admin:outreach_dashboard")},
+                    {"title": "Leads", "icon": "contacts", "link": reverse_lazy("admin:outreach_hostlead_changelist")},
+                    {"title": "Messages", "icon": "chat", "link": reverse_lazy("admin:outreach_outreachmessage_changelist")},
                 ],
             },
             {

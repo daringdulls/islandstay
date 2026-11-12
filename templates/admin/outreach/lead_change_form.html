@@ -1,0 +1,67 @@
+{% extends "admin/change_form.html" %}
+{% block content %}
+<div class="lc-wrap">
+  <div class="lc-form">{{ block.super }}</div>
+  {% if lead %}
+  <aside class="lc-side">
+    <div class="lc-head">
+      <b>Messages for {{ lead.business }}</b>
+      <span>Status: <b id="lc-status">{{ lead.get_status_display }}</b>{% if lead.next_follow_up %} · next follow-up <b id="lc-next">{{ lead.next_follow_up|date:"j M" }}</b>{% else %}<b id="lc-next"></b>{% endif %}</span>
+      {% if lead.island %}<span class="lc-views">{{ lead_views }} traveller visit{{ lead_views|pluralize }} to {{ lead.island.name }} pages in the last 30 days</span>{% endif %}
+      <div class="lc-open">
+        {% if lead.instagram_url %}<a href="{{ lead.instagram_url }}" target="_blank" rel="noopener">Open Instagram</a>{% endif %}
+        {% if lead.facebook %}<a href="{{ lead.facebook }}" target="_blank" rel="noopener">Open Facebook</a>{% endif %}
+        {% if lead.tiktok_url %}<a href="{{ lead.tiktok_url }}" target="_blank" rel="noopener">Open TikTok</a>{% endif %}
+      </div>
+    </div>
+    <p class="lc-hint">Filled in for this business and sent from the Island Stay account. Copy, paste it into their messages, then press <b>Sent</b>: the status and follow-up date update.</p>
+    {% for x in lead_msgs %}
+    <details class="lc-msg"{% if forloop.first and lead.status == "to_contact" or forloop.first and lead.status == "engaged" %} open{% elif x.m.sets_status == "followup1" and lead.status == "messaged" %} open{% elif x.m.sets_status == "followup2" and lead.status == "followup1" %} open{% endif %}>
+      <summary><b>{{ x.m.use }}</b><span>{{ x.m.when }}</span></summary>
+      <div class="lc-text">{{ x.text }}</div>
+      {% if x.text_dv %}<div class="lc-text" dir="rtl" lang="dv">{{ x.text_dv }}</div>{% endif %}
+      <div class="lc-btns">
+        <button type="button" data-copy="{{ x.text }}">Copy</button>
+        {% if x.text_dv %}<button type="button" data-copy="{{ x.text_dv }}">Copy Dhivehi</button>{% endif %}
+        {% if x.wa %}<a href="{{ x.wa }}" target="_blank" rel="noopener">Open in WhatsApp</a>{% endif %}
+        <button type="button" class="primary" data-sent="{{ x.m.pk }}">Sent{% if x.m.sets_status %}: mark {{ x.m.get_sets_status_display|lower }}{% endif %}</button>
+      </div>
+    </details>
+    {% empty %}<p class="lc-hint">No message templates yet: add them under Host outreach → Messages.</p>{% endfor %}
+  </aside>
+  {% endif %}
+</div>
+<style>
+.lc-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (min-width: 1280px) { .lc-wrap { grid-template-columns: minmax(0, 1fr) 420px; } }
+.lc-form { min-width: 0; }
+.lc-side { position: sticky; top: 16px; border: 1px solid #DCE6E8; border-radius: 14px; background: #fff; padding: 14px; max-height: calc(100vh - 32px); overflow: auto; }
+.dark .lc-side { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.lc-head { display: flex; flex-direction: column; gap: 4px; font-size: 13px; padding-bottom: 10px; border-bottom: 1px solid #DCE6E8; }
+.lc-head > b { font-size: 15px; } .lc-views { color: #1E7A55; font-weight: 600; }
+.lc-open { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; } .lc-open a { color: #0B6E8A; font-weight: 600; }
+.lc-hint { font-size: 12.5px; color: rgb(107 114 128); margin: 10px 0; }
+.lc-msg { border: 1px solid #DCE6E8; border-radius: 12px; margin-bottom: 8px; }
+.lc-msg summary { cursor: pointer; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 13.5px; }
+.lc-msg summary span { font-size: 12px; color: rgb(107 114 128); }
+.lc-text { white-space: pre-wrap; font-size: 13px; line-height: 1.5; padding: 10px 12px; margin: 0 12px; background: #F2E4C9; color: #122A31; border-radius: 10px; }
+.lc-text + .lc-text { margin-top: 8px; font-family: "Noto Sans Thaana", sans-serif; }
+.lc-btns { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 12px; }
+.lc-btns button, .lc-btns a { padding: 6px 12px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12.5px; font-weight: 600; color: #0A3D4C; background: #fff; }
+.lc-btns .primary { background: #0B6E8A; border-color: #0B6E8A; color: #fff; }
+</style>
+<script>
+document.querySelectorAll('[data-sent]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var fd = new FormData(); fd.append('message', b.dataset.sent);
+    fetch('{% url "admin:outreach_lead_sent" original.pk|default:0 %}', { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }, body: fd })
+      .then(function (r) { return r.json(); }).then(function (d) {
+        if (!d.ok) return;
+        document.getElementById('lc-status').textContent = d.status;
+        document.getElementById('lc-next').textContent = d.next ? d.next : '';
+        b.textContent = 'Saved'; setTimeout(function () { location.reload(); }, 700);
+      });
+  });
+});
+</script>
+{% endblock %}
