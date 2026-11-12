@@ -59,3 +59,26 @@ class OutreachTests(TestCase):
         self.assertContains(r, "Coral View")
         r = self.client.post("/admin/outreach/hostlead/dashboard/", {"start_date": "2026-11-23"})
         self.assertEqual(r.status_code, 302)
+
+
+class LeadFormTests(TestCase):
+    def test_pasted_links_become_handles(self):
+        from .admin import _handle
+        self.assertEqual(_handle("https://www.instagram.com/coral.view/?hl=en", "instagram.com/"), "@coral.view")
+        self.assertEqual(_handle("coral.view", "instagram.com/"), "@coral.view")
+        self.assertEqual(_handle("https://www.tiktok.com/@reefboys", "tiktok.com/"), "@reefboys")
+        self.assertEqual(_handle("", "instagram.com/"), "")
+
+    def test_add_page_and_local_number(self):
+        admin = get_user_model().objects.create_superuser("b2@x.mv", "b2@x.mv", "pw")
+        self.client.force_login(admin)
+        r = self.client.get("/admin/outreach/hostlead/add/")
+        self.assertContains(r, "Quick fill")
+        self.assertContains(r, "qf-islands")
+        r = self.client.post("/admin/outreach/hostlead/add/", {"business": "Reef Boys", "kind": "excursion", "channel": "instagram",
+                                                                "status": "messaged", "instagram": "https://instagram.com/reefboys/",
+                                                                "whatsapp": "7771234"})
+        self.assertEqual(r.status_code, 302)
+        lead = HostLead.objects.get(business="Reef Boys")
+        self.assertEqual((lead.instagram, lead.whatsapp, lead.first_contact), ("@reefboys", "+960 777 1234", timezone.localdate()))
+        self.assertIsNotNone(lead.next_follow_up)

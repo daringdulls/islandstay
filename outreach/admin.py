@@ -1,6 +1,7 @@
 import datetime as dt
 import urllib.parse
 
+from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count, Q
 from django.http import JsonResponse
@@ -54,8 +55,38 @@ class OutreachMessageAdmin(BaseAdmin):
                            obj.text, obj.text)
 
 
+def _handle(value, domain):
+    """'https://www.instagram.com/coral.view/?hl=en' or 'coral.view' -> '@coral.view'."""
+    v = (value or "").strip()
+    if not v:
+        return ""
+    if domain in v:
+        v = v.split(domain, 1)[1].strip("/").split("/")[0].split("?")[0]
+    return "@" + v.lstrip("@")
+
+
+class LeadForm(forms.ModelForm):
+    class Meta:
+        model = HostLead
+        fields = "__all__"
+
+    def clean_instagram(self):
+        return _handle(self.cleaned_data.get("instagram"), "instagram.com/")
+
+    def clean_tiktok(self):
+        return _handle(self.cleaned_data.get("tiktok"), "tiktok.com/")
+
+    def clean_whatsapp(self):
+        v = (self.cleaned_data.get("whatsapp") or "").strip()
+        digits = "".join(ch for ch in v if ch.isdigit())
+        if digits and len(digits) == 7:  # a local Maldivian number: add the country code
+            return f"+960 {digits[:3]} {digits[3:]}"
+        return v
+
+
 @admin.register(HostLead)
 class HostLeadAdmin(BaseAdmin):
+    form = LeadForm
     change_form_template = "admin/outreach/lead_change_form.html"
     list_display = ("business_col", "kind", "channel", "status_label", "last_contact", "follow_up_col", "links_col")
     list_display_links = ("business_col",)
@@ -68,10 +99,55 @@ class HostLeadAdmin(BaseAdmin):
     actions_list = ["open_dashboard"]
     list_per_page = 50
     fieldsets = (
-        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"), ("instagram", "tiktok"), ("facebook", "whatsapp"), "found_via")}),
-        ("Outreach", {"fields": (("channel", "status"), ("first_contact", "last_contact", "next_follow_up"), ("date_listed", "listing"),
-                                 "referred_by", "notes", ("created_at", "updated_at"))}),
+        ("Business", {"fields": (("business", "kind"), ("island", "contact_name"))}),
+        ("How to reach them", {"fields": (("instagram", "facebook"), ("tiktok", "whatsapp"), ("channel", "found_via"))}),
+        ("Progress", {"fields": ("status", ("first_contact", "last_contact", "next_follow_up"), ("date_listed", "listing"), "referred_by", "notes")}),
     )
+
+    def get_fieldsets(self, request, obj=None):
+        if obj is None:  # a new lead: keep the form short, Progress folded away
+            return (self.fieldsets[0], self.fieldsets[1],
+                    ("Progress", {"classes": ["collapse"], "fields": self.fieldsets[2][1]["fields"]}))
+        return self.fieldsets
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        from unfold.widgets import UnfoldAdminRadioSelectWidget, UnfoldAdminTextInputWidget
+
+        icons = {
+            "business": ("storefront", "e.g. Coral View Guest House"),
+            "contact_name": ("person", "Owner or manager, if you know it"),
+            "instagram": ("photo_camera", "@handle, or paste their profile link"),
+            "tiktok": ("music_note", "@handle, or paste their profile link"),
+            "facebook": ("thumb_up", "facebook.com/their-page"),
+            "whatsapp": ("chat", "+960 7xx xxxx"),
+            "found_via": ("travel_explore", "e.g. #maafushi, location tag, Facebook group"),
+            "referred_by": ("handshake", "Business that recommended them"),
+        }
+        if db_field.name in icons:
+            icon, placeholder = icons[db_field.name]
+            kwargs["widget"] = UnfoldAdminTextInputWidget(attrs={"prefix_icon": icon, "placeholder": placeholder})
+        if db_field.name == "status":
+            kwargs["widget"] = UnfoldAdminRadioSelectWidget(attrs={"class": "lead-status"})
+        field = super().formfield_for_dbfield(db_field, request, **kwargs)
+        if field is not None and db_field.name in icons:
+            field.help_text = ""
+        if field is not None and db_field.name == "tiktok":
+            field.label = "TikTok"
+        if db_field.name == "notes" and field is not None:
+            field.widget.attrs.update({"rows": 3, "placeholder": "Anything useful: what they offer, who you spoke to, what they asked"})
+        if db_field.name == "status" and field is not None:
+            field.help_text = ""
+            field.choices = [c for c in field.choices if c[0] != ""]
+        return field
+
+    def save_model(self, request, obj, form, change):
+        # Choosing a 'sent' status fills in today's dates, so the follow-up date works without typing dates.
+        today = timezone.localdate()
+        if obj.status in ("messaged", "followup1", "followup2") and "status" in form.changed_data:
+            obj.first_contact = obj.first_contact or today
+            if "last_contact" not in form.changed_data:
+                obj.last_contact = today
+        super().save_model(request, obj, form, change)
     list_tabs = [
         ("All", {}, None),
         ("To contact", {"status__exact": "to_contact"}, Q(status__in=["to_contact", "engaged"])),
@@ -165,6 +241,17 @@ class HostLeadAdmin(BaseAdmin):
         return redirect("admin:outreach_dashboard")
 
     # ---------------------------------------------------------------- lead page: ready-made messages
+    def _island_options(self):
+        import re
+        from directory.models import Island
+        return [{"id": i.pk, "label": f"{i.name}, {i.atoll.name}", "key": re.sub(r"[^a-z]", "", i.name.lower())}
+                for i in Island.objects.filter(is_published=True).select_related("atoll")]
+
+    def add_view(self, request, form_url="", extra_context=None):
+        extra = extra_context or {}
+        extra["island_options"] = self._island_options()
+        return super().add_view(request, form_url, extra)
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         lead = HostLead.objects.select_related("island", "listing").filter(pk=object_id).first()
         extra = extra_context or {}
@@ -177,6 +264,7 @@ class HostLeadAdmin(BaseAdmin):
                 msgs.append({"m": m, "text": t, "text_dv": fill(m.text_dv, lead, views) if m.text_dv else "",
                              "wa": f"https://wa.me/{lead.whatsapp_number}?text={urllib.parse.quote(t)}" if lead.whatsapp_number else ""})
             extra.update(lead_msgs=msgs, lead_views=views, lead=lead)
+        extra["island_options"] = self._island_options()
         return super().change_view(request, object_id, form_url, extra)
 
     def get_urls(self):
