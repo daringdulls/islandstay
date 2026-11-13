@@ -6,6 +6,7 @@
 <script>window.__amd = window.define; window.define = undefined;</script>
 <script src="{% static 'vendor/html-to-image-1.11.11.js' %}"></script>
 <script src="{% static 'vendor/mp4-muxer-5.2.1.js' %}"></script>
+<script src="{% static 'js/reel_video.js' %}"></script>
 <script>window.define = window.__amd;</script>{% endblock %}
 {% block content %}
 {% include "admin/social/_nav.html" %}
@@ -74,6 +75,16 @@
           <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Reel video</div>
           {% if video_parts %}<p style="font-size:13px;margin:0 0 6px">{{ video_parts.0.name|default:"Video" }} · {% widthratio video_size 1048576 1 %} MB uploaded. This design is the cover.</p>{% endif %}
           {% if post.template == "national" and post.format == "story" and not video_parts %}<div class="sd-row" style="margin-bottom:8px"><button class="sd-btn primary" type="button" id="fv-auto">Make &amp; attach the flag video</button></div>{% endif %}
+          {% if post.template != "national" %}{% if post.format == "story" %}
+            <div class="rv-make">
+              <button class="sd-btn primary" type="button" id="rv-make">{% if video_parts %}Make a new video from this design{% else %}Make the video from this design{% endif %}</button>
+              <small style="display:block;color:rgb(107 114 128);margin-top:6px">An 8-second MP4: the photo slowly zooms while the text and logo stay still. Takes about 20 seconds; keep this tab open.</small>
+              <div class="ig-bar" hidden id="rv-bar"><i></i></div>
+              <video id="rv-video" hidden playsinline muted loop autoplay style="width:160px;margin-top:10px;border-radius:10px;display:block"></video>
+              <p id="rv-msg" style="font-size:12.5px;margin:6px 0 0"></p>
+            </div>
+            <div style="font-size:12px;color:rgb(107 114 128);margin:10px 0 6px">Or use your own clip:</div>
+          {% else %}<p style="font-size:12.5px;margin:0 0 8px">To make the video from this design, <a href="?format=story" style="color:#0B6E8A;font-weight:600">switch to Story / Reel format</a>.</p>{% endif %}{% endif %}
           <label class="sd-btn" style="cursor:pointer">{% if video_parts %}Replace video{% else %}Upload MP4{% endif %}<input type="file" accept="video/mp4,video/quicktime" hidden id="video-in"></label>
           <div class="ig-bar" hidden><i></i></div>
           <small style="display:block;color:rgb(107 114 128);margin-top:6px">Vertical 9:16, 3 to 90 seconds, under 300 MB.</small>
@@ -236,6 +247,31 @@ document.getElementById('dl').onclick = async function () {
       bar.firstElementChild.style.width = Math.round((i + 1) / n * 100) + '%'; say('Uploading video… ' + Math.round((i + 1) / n * 100) + '%');
     }
     say('Video uploaded.'); setTimeout(function () { location.reload(); }, 800);
+  };
+})();
+
+(function () {
+  var btn = document.getElementById('rv-make'); if (!btn) return;
+  var bar = document.getElementById('rv-bar'), msg = document.getElementById('rv-msg'), video = document.getElementById('rv-video');
+  function say(t, bad) { msg.textContent = t; msg.style.color = bad ? '#B9442C' : '#1E7A55'; }
+  if (!IslandReel.supported()) { say('This browser cannot make MP4 video. Open this page in Chrome or Edge, or upload your own MP4.', true); }
+  btn.onclick = async function () {
+    btn.disabled = true; bar.hidden = false; say('Making the video…');
+    var csrf = document.querySelector('#ig [name=csrfmiddlewaretoken]').value;
+    try {
+      var res = await IslandReel.record(document.querySelector('#design .sp'), 8, function (f) { bar.firstElementChild.style.width = Math.round(f * 100) + '%'; });
+      video.src = URL.createObjectURL(res.blob); video.hidden = false;
+      var part = 3.5 * 1048576, n = Math.ceil(res.blob.size / part);
+      for (var i = 0; i < n; i++) {
+        var fd = new FormData(); fd.append('kind', 'video'); fd.append('part', i); fd.append('name', '{{ post.title|slugify|default:"reel" }}.mp4');
+        fd.append('file', res.blob.slice(i * part, Math.min(res.blob.size, (i + 1) * part)), 'part');
+        var r = await fetch('{% url "admin:social_instagram_asset" post.pk %}', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd });
+        var d = await r.json(); if (!d.ok) throw new Error(d.error);
+        say('Attaching… ' + Math.round((i + 1) / n * 100) + '%');
+      }
+      say('Video attached (' + (res.blob.size / 1048576).toFixed(1) + ' MB). You can schedule it now.');
+      setTimeout(function () { location.reload(); }, 1200);
+    } catch (e) { say((e && e.message) || 'Could not make the video.', true); btn.disabled = false; }
   };
 })();
 
