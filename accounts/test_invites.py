@@ -83,3 +83,28 @@ class OwnerEmailFieldTests(TestCase):
                                                                            "contact_email": "first@x.mv"})
         listing.refresh_from_db()
         self.assertEqual((listing.owner, listing.is_claimed), (self.admin, False))
+
+
+class ListingSlugTests(TestCase):
+    def setUp(self):
+        atoll = Atoll.objects.create(name="Gnaviyani", slug="gnaviyani")
+        self.island = Island.objects.create(name="Fuvahmulah", slug="fuvahmulah", atoll=atoll)
+        self.admin = get_user_model().objects.create_superuser("boss@x.mv", "boss@x.mv", "pw")
+        self.client.force_login(self.admin)
+
+    def post(self, name, slug=""):
+        self.client.post("/admin/directory/listing/add/", {
+            "name": name, "slug": slug, "kind": "guesthouse", "island": self.island.pk, "short_description": "Rooms",
+            "description": "Rooms by the reef.", "status": "approved", "contact_name": "Aisha", "currency": "USD", "price_unit": "night",
+            "owner_email": "o@x.mv", "rooms-TOTAL_FORMS": "0", "rooms-INITIAL_FORMS": "0", "routes-TOTAL_FORMS": "0", "routes-INITIAL_FORMS": "0"})
+        return Listing.objects.filter(name=name).latest("pk").slug
+
+    def test_slug_comes_from_name_without_repeating_island(self):
+        self.assertEqual(self.post("Cozy Nest"), "cozy-nest-fuvahmulah")
+        self.assertEqual(self.post("Cozy Nest Fuvahmulah"), "cozy-nest-fuvahmulah-2")
+        self.assertEqual(self.post("Tiger Dive", slug="Tiger Dive FM"), "tiger-dive-fm")
+
+    def test_add_page_has_address_prefix_and_steps(self):
+        page = self.client.get("/admin/directory/listing/add/").content.decode()
+        self.assertIn("islandstaymv.com/listing/", page)  # live address preview (JS)
+        self.assertIn("nl-steps", page)

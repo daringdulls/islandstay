@@ -1,4 +1,49 @@
+{% if add %}
+<div class="nl-steps">
+  <div><b>1</b><span><strong>Basics</strong>Name, type and island. The page address fills in by itself.</span></div>
+  <div><b>2</b><span><strong>Fill from the web</strong>Optional: Quick lookup suggests the description and contact details.</span></div>
+  <div><b>3</b><span><strong>Save and continue editing</strong>Then add the cover photo, gallery, rooms and owner.</span></div>
+</div>
+{% endif %}
 {% include "admin/_ai_assist.html" with kind="listing" %}
 <script>window.aiAssistContext = (function(){var k=document.querySelector('[name=kind]'),i=document.querySelector('[name=island]');var parts=[];if(k&&k.value)parts.push(k.options[k.selectedIndex].text);if(i&&i.selectedIndex>0)parts.push('on '+i.options[i.selectedIndex].text);return parts.join(' ');});</script>
 
 {% include "admin/_photo_manager.html" %}
+
+<script>
+/* Page address (slug) follows the name and island until it's typed by hand. Existing listings keep theirs. */
+(function () {
+  function ready(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  ready(function () {
+    var name = document.querySelector('form [name=name]'), slug = document.querySelector('form [name=slug]'), island = document.querySelector('form [name=island]');
+    if (!name || !slug) return;
+    var auto = !slug.value;  // only new listings (or an empty address) follow the name
+    function slugify(t) {
+      return t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' and ')
+              .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    }
+    function islandName() {
+      if (!island || island.selectedIndex < 0) return '';
+      var o = island.options[island.selectedIndex]; return o && o.value ? o.text.split(',')[0].trim() : '';
+    }
+    var preview = document.createElement('div');
+    preview.className = 'nl-url';
+    (slug.closest('.relative') || slug).insertAdjacentElement('afterend', preview);
+    function show() {
+      preview.innerHTML = 'islandstaymv.com/listing/<b></b>';
+      preview.querySelector('b').textContent = slug.value || '…';
+    }
+    function update() {
+      if (!auto) return show();
+      var n = name.value.trim(), i = islandName(), text = n;
+      if (n && i && slugify(n).indexOf(slugify(i)) < 0) text = n + ' ' + i;
+      slug.value = slugify(text);
+      show();
+    }
+    name.addEventListener('input', update);
+    if (island) { island.addEventListener('change', update); if (window.django && django.jQuery) django.jQuery(island).on('change', update); }
+    slug.addEventListener('input', function () { auto = !slug.value; show(); });
+    update();
+  });
+})();
+</script>

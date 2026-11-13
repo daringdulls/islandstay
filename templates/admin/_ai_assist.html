@@ -48,8 +48,9 @@
   var timer, buttons = [go, document.getElementById('ai-quick')];
   buttons.forEach(function (btn) { btn.addEventListener('click', function () { run(btn.dataset.mode); }); });
   function run(mode) {
-    syncName(); var name = nameInput.value.trim();
-    if (name.length < 2) { status.hidden = false; status.className = 'ai-status err'; status.textContent = 'Type a name first.'; return; }
+    syncName(); var formName = field('name'); var name = nameInput.value.trim() || (formName ? formName.value.trim() : '');
+    if (!nameInput.value.trim() && name) nameInput.value = name;
+    if (name.length < 2) { status.hidden = false; status.className = 'ai-status err'; status.textContent = 'Type the business name first (in this box or in Name below).'; return; }
     var t0 = Date.now(); buttons.forEach(function (b) { b.disabled = true; }); status.hidden = false; status.className = 'ai-status';
     var msg = mode === 'quick' ? 'Looking it up… ' : 'Searching the web and reading sources… ';
     status.textContent = msg;

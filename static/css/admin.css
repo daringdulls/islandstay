@@ -595,3 +595,14 @@ textarea.ge-body { min-height: 520px !important; font-family: ui-monospace, SFMo
 /* outreach: message templates list */
 .om-text { white-space: pre-wrap; max-width: 560px; font-size: 13px; line-height: 1.45; }
 .om-copy { margin-top: 6px; padding: 3px 10px; border-radius: 999px; border: 1px solid #7D9399; font-size: 12px; font-weight: 600; color: #0A3D4C; background: #fff; }
+
+/* new listing: three steps */
+.nl-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 16px; }
+@media (max-width: 900px) { .nl-steps { grid-template-columns: 1fr; } }
+.nl-steps > div { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid #DCE6E8; }
+.dark .nl-steps > div { background: rgb(17 24 39); border-color: rgb(55 65 81); }
+.nl-steps b { flex: 0 0 28px; height: 28px; border-radius: 50%; background: #0B6E8A; color: #fff; display: grid; place-items: center; font-size: 13px; }
+.nl-steps span { font-size: 12.5px; color: #4A6068; line-height: 1.45; } .dark .nl-steps span { color: rgb(156 163 175); }
+.nl-steps strong { display: block; font-size: 13.5px; color: #0A3D4C; margin-bottom: 2px; } .dark .nl-steps strong { color: #FFF8EC; }
+.nl-url { margin-top: 6px; font-size: 12.5px; color: #4A6068; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.nl-url b { color: #0B6E8A; font-weight: 600; } .dark .nl-url, .dark .nl-url b { color: rgb(156 163 175); }

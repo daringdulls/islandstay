@@ -403,9 +403,14 @@ class Listing(models.Model):
     def __str__(self):
         return f"{self.name} ({self.island.name})"
 
+    def default_slug_text(self):
+        """'Cozy Nest Fuvahmulah' stays as it is; 'Cozy Nest' becomes 'Cozy Nest Fuvahmulah' (no island named twice)."""
+        island = self.island.name if self.island_id else ""
+        return self.name if (not island or slugify(island) in slugify(self.name)) else f"{self.name} {island}"
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = unique_slug(self, f"{self.name} {self.island.name}")
+            self.slug = unique_slug(self, self.default_slug_text())
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):

@@ -292,13 +292,29 @@ class ListingAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from unfold.widgets import UnfoldAdminEmailInputWidget
+        from unfold.widgets import UnfoldAdminEmailInputWidget, UnfoldAdminTextInputWidget
         self.fields["owner_email"].widget = UnfoldAdminEmailInputWidget(attrs={"placeholder": "e.g. owner@tropicaltree.mv", "autocomplete": "off"})
+        if "slug" in self.fields:
+            self.fields["slug"].validators = []  # clean_slug turns anything typed into a valid address
+            self.fields["slug"].label = "Page address"
+            self.fields["slug"].help_text = ("Fills in from the name and island. Keep it short; changing it later breaks links people "
+                                             "have already shared.")
+            self.fields["slug"].widget = UnfoldAdminTextInputWidget(attrs={"prefix_icon": "link", "placeholder": "fills in from the name"})
+        if "name" in self.fields:
+            self.fields["name"].widget.attrs.setdefault("placeholder", "e.g. Maarehi Thoddoo")
         if "contact_email" in self.fields:
             self.fields["contact_email"].required = False
         owner = self.instance.owner if self.instance.pk and self.instance.owner_id else None
         if owner and not owner.is_staff:
             self.fields["owner_email"].initial = owner.email
+
+    def clean_slug(self):
+        from django.utils.text import slugify
+        from .models import unique_slug
+        value = slugify(self.cleaned_data.get("slug") or "")[:60]
+        if value and Listing.objects.filter(slug=value).exclude(pk=self.instance.pk).exists():
+            value = unique_slug(self.instance, value)  # taken: add -2, -3 ...
+        return value
 
     def clean(self):
         data = super().clean()
@@ -391,6 +407,12 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
     @display(description="Requests", ordering="_n")
     def enquiry_count(self, obj):
         return obj._n
+
+    def get_fieldsets(self, request, obj=None):
+        sets = super().get_fieldsets(request, obj)
+        if obj is None:  # new listing: nothing to show under 'Owner access' yet
+            sets = [(name, {**opts, "fields": tuple(f for f in opts["fields"] if f != "owner_access")}) for name, opts in sets]
+        return sets
 
     @display(description="Owner access")
     def owner_access(self, obj):
