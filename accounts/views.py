@@ -1,6 +1,7 @@
+from django.urls import reverse_lazy
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, PasswordResetConfirmView
 from django.shortcuts import redirect, render
 
 from .forms import EmailLoginForm, SignupForm
@@ -28,3 +29,15 @@ def signup(request):
         messages.success(request, "Welcome to Island Stay! Now add your property or service — our team reviews every listing before it goes live.")
         return redirect("directory:listing_create")
     return render(request, "accounts/signup.html", {"form": form, "next": request.GET.get("next", "")})
+
+
+class OwnerWelcomeView(PasswordResetConfirmView):
+    """The invite link from the team: the owner chooses a password, is signed in, and lands on their dashboard."""
+    template_name = "accounts/welcome.html"
+    post_reset_login = True
+    post_reset_login_backend = "accounts.backends.CaseInsensitiveEmailBackend"
+    success_url = reverse_lazy("directory:dashboard")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Welcome to Island Stay! Your password is set. Here are your listings.")
+        return super().form_valid(form)

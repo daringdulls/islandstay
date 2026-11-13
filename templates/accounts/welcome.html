@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Welcome to Island Stay{% endblock %}
+{% block content %}
+<div class="container auth-wrap">
+  <div class="panel">
+    {% if validlink %}
+      <h1 style="font-size:1.7rem">Welcome to Island Stay</h1>
+      <p class="muted">Your business page has been set up for you. Choose a password to manage it: photos, prices and booking requests.
+        You'll sign in with <b>{{ form.user.email }}</b>.</p>
+      <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}
+        <button class="btn btn-block" style="margin-top:16px">Set password and continue</button></form>
+    {% else %}
+      <h1 style="font-size:1.7rem">This link has expired</h1>
+      <p class="muted">Invite links work once, for 14 days. Message us on Instagram or WhatsApp and we'll send you a new one,
+        or <a href="{% url 'accounts:login' %}">log in</a> if you've already set your password.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

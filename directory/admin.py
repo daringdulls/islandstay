@@ -280,8 +280,42 @@ class VerificationFilter(admin.SimpleListFilter):
         return qs
 
 
+class ListingAdminForm(forms.ModelForm):
+    owner_email = forms.EmailField(
+        label="Owner's email", required=False,
+        help_text="Type the owner's email to give them this listing: their account is created for you (no password yet), and you "
+                  "get an invite link to send them. Leave empty to keep the listing under Island Stay until it's claimed.")
+
+    class Meta:
+        model = Listing
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "owner" in self.fields:
+            self.fields["owner"].required = False
+            self.fields["owner"].help_text = "Or pick an existing account. Empty means the listing stays with Island Stay."
+        if "contact_email" in self.fields:
+            self.fields["contact_email"].required = False
+        owner = getattr(self.instance, "owner", None) if self.instance.pk else None
+        if owner and not owner.is_staff and "owner_email" in self.fields:
+            self.fields["owner_email"].initial = owner.email
+
+    def clean(self):
+        data = super().clean()
+        email = (data.get("owner_email") or "").strip().lower()
+        data["owner_email"] = email
+        if not data.get("contact_email"):
+            if email:
+                data["contact_email"] = email  # booking requests go to the owner
+            else:
+                self.add_error("contact_email", "Enter the email where booking requests should go (or the owner's email above).")
+        return data
+
+
 @admin.register(Listing)
 class ListingAdmin(PhotoManagerMixin, BaseAdmin):
+    form = ListingAdminForm
     list_tabs = [
         ("All", {}, None),
         ("Pending review", {"status__exact": "pending"}, Q(status="pending")),
@@ -294,7 +328,6 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
 
     def get_changeform_initial_data(self, request):
         initial = super().get_changeform_initial_data(request)
-        initial.setdefault("owner", request.user.pk)  # listings you add yourself are owned by you until claimed
         initial.setdefault("is_claimed", False)
         initial.setdefault("status", Listing.STATUS_APPROVED)
         return initial
@@ -313,10 +346,10 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
     actions = ["approve", "reject", "suspend", "verify"]
     actions_row = ["approve_row"]
     actions_detail = ["approve_detail", "reject_detail", "verify_detail"]
-    readonly_fields = ("created_at", "updated_at", "verified_at", "verification_requested_at")
+    readonly_fields = ("created_at", "updated_at", "verified_at", "verification_requested_at", "owner_access")
     fieldsets = (
         ("Business", {"classes": ["tab"], "fields": (
-            ("name", "slug"), ("kind", "island"), "owner", "short_description", "description")}),
+            ("name", "slug"), ("kind", "island"), ("owner_email", "owner"), "owner_access", "short_description", "description")}),
         ("Review & verification", {"classes": ["tab"], "fields": (
             ("status", "is_featured", "is_claimed"), "admin_note", ("is_verified", "registration_number"), "verification_document",
             ("verification_requested_at", "verified_at"), ("created_at", "updated_at"))}),
@@ -360,7 +393,42 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
     def enquiry_count(self, obj):
         return obj._n
 
+    @display(description="Owner access")
+    def owner_access(self, obj):
+        from accounts.invites import invite_link
+        owner = obj.owner if obj and obj.pk else None
+        if not owner or owner.is_staff:
+            return "Held by Island Stay. Type the owner's email above to give it to them."
+        if owner.has_usable_password():
+            return format_html("<b>{}</b> manages this listing (they have set a password).", owner.email)
+        link = invite_link(owner)
+        first = (obj.contact_name or "").split(" ")[0] or f"{obj.name} team"
+        msg = (f"Hello {first},\n\nYour Island Stay page for {obj.name} is ready. To manage it (photos, prices and booking "
+               f"requests), choose your password here:\n{link}\n\nThe link works for 14 days.\n\nKind regards,\nIsland Stay team")
+        return format_html(
+            '<div style="display:flex;flex-direction:column;gap:8px;max-width:640px">'
+            '<span><b>{}</b> has an account but hasn\'t set a password yet. Send them this invite:</span>'
+            '<input type="text" readonly value="{}" onclick="this.select()" style="width:100%;border:1px solid #7D9399;border-radius:8px;padding:6px 10px;font-size:13px">'
+            '<span style="display:flex;gap:8px;flex-wrap:wrap">'
+            '<button type="button" data-msg="{}" onclick="navigator.clipboard.writeText(this.dataset.msg);this.textContent=\'Copied\'" '
+            'style="padding:6px 14px;border-radius:999px;background:#0B6E8A;color:#fff;font-weight:600;font-size:13px">Copy invite message</button>'
+            '<button type="button" data-msg="{}" onclick="navigator.clipboard.writeText(this.dataset.msg);this.textContent=\'Copied\'" '
+            'style="padding:6px 14px;border-radius:999px;border:1px solid #7D9399;font-weight:600;font-size:13px">Copy link only</button></span>'
+            '<small style="color:#4A6068">Works for 14 days and stops working once they set a password. Reload this page for a fresh link.</small></div>',
+            owner.email, link, msg, link)
+
     def save_model(self, request, obj, form, change):
+        from accounts.invites import owner_for_email
+        email = form.cleaned_data.get("owner_email")
+        created = False
+        if email and (not obj.owner_id or obj.owner.email.lower() != email):
+            obj.owner, created = owner_for_email(email, obj.name)
+            obj.is_claimed = True
+        elif not obj.owner_id:
+            obj.owner = request.user  # stays with Island Stay until it's claimed
+            obj.is_claimed = False
+        if not obj.contact_email:
+            obj.contact_email = email or request.user.email
         if obj.is_verified and not obj.verified_at:
             obj.verified_at = timezone.now()
         elif not obj.is_verified:
@@ -369,6 +437,9 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
         super().save_model(request, obj, form, change)
         if status_changed:
             notifications.listing_status_changed(obj)
+        if email and not obj.owner.has_usable_password():
+            messages.success(request, f"{'Created an owner account for' if created else 'Linked the owner account'} {email}. "
+                                      "Open the Business tab to copy their invite link and send it to them.")
 
     def _set_status(self, request, queryset, status):
         n = 0

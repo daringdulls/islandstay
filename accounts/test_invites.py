@@ -1,0 +1,55 @@
+import re
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+
+from directory.models import Atoll, Island, Listing
+
+
+class OwnerInviteTests(TestCase):
+    def setUp(self):
+        atoll = Atoll.objects.create(name="Baa", slug="baa")
+        self.island = Island.objects.create(name="Fehendhoo", slug="fehendhoo", atoll=atoll)
+        self.admin = get_user_model().objects.create_superuser("boss@x.mv", "boss@x.mv", "pw")
+        self.client.force_login(self.admin)
+
+    def add(self, **extra):
+        data = {"name": "Tropical Tree", "slug": "", "kind": "guesthouse", "island": self.island.pk, "short_description": "Garden rooms",
+                "description": "Garden rooms near the bikini beach.", "status": "approved", "contact_name": "Ahmed Rasheed", "contact_phone": "", "currency": "USD",
+                "price_unit": "night", "rooms-TOTAL_FORMS": "0", "rooms-INITIAL_FORMS": "0", "routes-TOTAL_FORMS": "0", "routes-INITIAL_FORMS": "0"}
+        data.update(extra)
+        return self.client.post("/admin/directory/listing/add/", data)
+
+    def test_listing_with_owner_email_creates_account_and_invite(self):
+        r = self.add(owner_email="Owner@Tropical.mv")
+        self.assertEqual(r.status_code, 302, getattr(r, "context", None) and r.context["adminform"].form.errors)
+        listing = Listing.objects.get(name="Tropical Tree")
+        owner = listing.owner
+        self.assertEqual((owner.username, owner.email, owner.has_usable_password()), ("owner@tropical.mv", "owner@tropical.mv", False))
+        self.assertEqual((listing.contact_email, listing.is_claimed), ("owner@tropical.mv", True))
+        page = self.client.get(f"/admin/directory/listing/{listing.pk}/change/").content.decode()
+        self.assertIn("Copy invite message", page)
+        link = re.search(r"/accounts/welcome/[^/]+/[^/\"]+/", page).group(0)
+        # the owner opens the link and sets a password
+        self.client.logout()
+        r = self.client.get(link, follow=True)
+        self.assertContains(r, "Welcome to Island Stay")
+        r = self.client.post(r.redirect_chain[-1][0] if r.redirect_chain else link,
+                             {"new_password1": "Coral-reef-2026!", "new_password2": "Coral-reef-2026!"})
+        self.assertRedirects(r, "/dashboard/", fetch_redirect_response=False)
+        owner.refresh_from_db()
+        self.assertTrue(owner.has_usable_password())
+        self.assertEqual(int(self.client.session["_auth_user_id"]), owner.pk)
+        r = self.client.get(link)  # used links stop working
+        self.assertContains(r, "This link has expired")
+
+    def test_existing_account_is_reused_and_empty_email_keeps_it_with_island_stay(self):
+        existing = get_user_model().objects.create_user("host@x.mv", "host@x.mv", "pw12345678")
+        self.add(owner_email="host@x.mv", name="Reef House")
+        self.assertEqual(Listing.objects.get(name="Reef House").owner, existing)
+        self.add(name="Unclaimed Place", contact_email="bookings@x.mv")
+        unclaimed = Listing.objects.get(name="Unclaimed Place")
+        self.assertEqual((unclaimed.owner, unclaimed.is_claimed), (self.admin, False))
+        r = self.add(name="No Email Place")
+        self.assertEqual(r.status_code, 200)  # needs a contact or owner email
+        self.assertFalse(Listing.objects.filter(name="No Email Place").exists())

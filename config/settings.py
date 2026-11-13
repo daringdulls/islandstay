@@ -232,6 +232,7 @@ ADMIN_NOTIFY_EMAILS = [e.strip() for e in env("ADMIN_NOTIFY_EMAILS").split(",") 
 # Set SHOW_PRICES=1 to display the indicative "from" prices again.
 SHOW_PRICES = os.environ.get("SHOW_PRICES", "0") == "1"
 
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 14  # owner invite links work for 14 days (or until used)
 AUTHENTICATION_BACKENDS = ["accounts.backends.CaseInsensitiveEmailBackend"]
 
 
