@@ -108,3 +108,13 @@ class ListingSlugTests(TestCase):
         page = self.client.get("/admin/directory/listing/add/").content.decode()
         self.assertIn("islandstaymv.com/listing/", page)  # live address preview (JS)
         self.assertIn("nl-steps", page)
+
+
+class LongPhotoNameTests(TestCase):
+    def test_long_file_names_are_shortened_to_fit(self):
+        from config.blob_storage import VercelBlobStorage
+        name = "listings/gallery/" + "WhatsApp Image 2026-11-13 at 10.42.17 AM (1) maarehi thoddoo guest house room view" * 3 + ".jpeg"
+        short = VercelBlobStorage.get_available_name(VercelBlobStorage.__new__(VercelBlobStorage), name, max_length=255)
+        self.assertLessEqual(len(short) + 40, 255)
+        self.assertTrue(short.startswith("listings/gallery/WhatsApp") and short.endswith(".jpeg"))
+        self.assertEqual(VercelBlobStorage.get_available_name(None, "logos/a.png", max_length=255), "logos/a.png")

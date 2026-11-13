@@ -100,7 +100,7 @@ class SocialPost(models.Model):
     body = models.TextField("Design text", blank=True,
                             help_text="Text on the design. For tips and facts, one point per line (3–4 lines max).")
     attribution = models.CharField(max_length=80, blank=True, help_text="Quotes: who said it. Others: footer line, e.g. 'islandstay.mv/dhangethi'")
-    image = models.ImageField(upload_to="social/", blank=True, help_text="Upload a photo, or leave empty to use the island / host / activity photo")
+    image = models.ImageField(max_length=255, upload_to="social/", blank=True, help_text="Upload a photo, or leave empty to use the island / host / activity photo")
     image_url = models.URLField(max_length=500, blank=True, help_text="Or a photo link")
     photo_credit = models.CharField(max_length=120, blank=True)
 

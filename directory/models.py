@@ -155,7 +155,7 @@ class Island(models.Model):
         max_length=120, blank=True,
         help_text="English Wikipedia article title, e.g. Maafushi_(Kaafu_Atoll). Used by the fetch_island_photos command.",
     )
-    cover_image = models.ImageField(upload_to="islands/", blank=True, help_text="Upload a photo, or leave empty and use the link below")
+    cover_image = models.ImageField(max_length=255, upload_to="islands/", blank=True, help_text="Upload a photo, or leave empty and use the link below")
     cover_image_url = models.URLField(
         max_length=500, blank=True, help_text="Photo link, e.g. from Wikimedia Commons. Used when no photo is uploaded."
     )
@@ -376,12 +376,12 @@ class Listing(models.Model):
     serves_breakfast = models.BooleanField(default=False)
     delivery = models.BooleanField("Delivers to guest houses", default=False)
 
-    cover_image = models.ImageField(upload_to="listings/", blank=True)
+    cover_image = models.ImageField(max_length=255, upload_to="listings/", blank=True)
     is_claimed = models.BooleanField("Claimed by the owner", default=True,
                                      help_text="Untick for listings you add on the owner's behalf: the page then invites the owner to claim it.")
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True, editable=False)
     rating_count = models.PositiveIntegerField(default=0, editable=False)
-    logo = models.ImageField(upload_to="logos/", blank=True,
+    logo = models.ImageField(max_length=255, upload_to="logos/", blank=True,
                              help_text="Your business logo. Square works best (at least 200 × 200 px); PNG with a transparent background is ideal.")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     admin_note = models.TextField(blank=True, help_text="Feedback to the owner (e.g. reason for rejection)")
@@ -389,7 +389,7 @@ class Listing(models.Model):
                                       help_text="Shows a Recommended badge and lists this business first")
     is_verified = models.BooleanField(default=False, help_text="Licence checked by the Island Stay team")
     verified_at = models.DateTimeField(null=True, blank=True)
-    verification_document = models.FileField(
+    verification_document = models.FileField(max_length=255, 
         upload_to="verification/", blank=True,
         help_text="Tourism licence / business registration certificate (PDF or photo). Only visible to admins.",
     )
@@ -587,7 +587,7 @@ class IslandPhoto(models.Model):
 
 class ListingPhoto(models.Model):
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to="listings/gallery/")
+    image = models.ImageField(max_length=255, upload_to="listings/gallery/")
     caption = models.CharField(max_length=120, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
 
@@ -791,7 +791,7 @@ class ListingClaim(models.Model):
     phone = models.CharField("Phone / WhatsApp", max_length=30)
     message = models.TextField("How can we confirm it's your business?", blank=True,
                                help_text="e.g. the phone number on your tourism licence, your business email, or anything that helps us check")
-    document = models.FileField("Licence or registration (optional)", upload_to="verification/", blank=True)
+    document = models.FileField("Licence or registration (optional)", max_length=255, upload_to="verification/", blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
     admin_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -857,7 +857,7 @@ class PageBanner(models.Model):
         ("how_it_works", "How it works"), ("guides", "Travel guides"), ("shops", "Shops"), ("home", "Home page"),
     ]
     page = models.CharField(max_length=20, choices=PAGE_CHOICES, unique=True)
-    image = models.ImageField(upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")
+    image = models.ImageField(max_length=255, upload_to="banners/", blank=True, help_text="Landscape photo, at least 1800 px wide")
     image_url = models.URLField(max_length=500, blank=True, help_text="Or paste a photo link")
     credit = models.CharField("Photo credit", max_length=120, blank=True, help_text="Shown small in the corner, e.g. 'Photo: Aishath Ali'")
     is_active = models.BooleanField("Show", default=True)
@@ -908,7 +908,7 @@ class Guide(models.Model):
         "These can appear in Google results."
     ))
     islands = models.ManyToManyField(Island, blank=True, related_name="guides", help_text="Islands this guide is about")
-    cover_image = models.ImageField(upload_to="guides/", blank=True)
+    cover_image = models.ImageField(max_length=255, upload_to="guides/", blank=True)
     cover_image_url = models.URLField(max_length=500, blank=True, help_text="Or paste a photo link")
     cover_credit = models.CharField("Photo credit", max_length=160, blank=True)
     author = models.CharField(max_length=80, default="Island Stay team")
@@ -1038,7 +1038,7 @@ class IslandContribution(models.Model):
 
 class ContributionPhoto(models.Model):
     contribution = models.ForeignKey(IslandContribution, on_delete=models.CASCADE, related_name="photos")
-    image = models.ImageField(upload_to="contributions/")
+    image = models.ImageField(max_length=255, upload_to="contributions/")
     caption = models.CharField(max_length=160, blank=True)
     added_to_gallery = models.BooleanField(default=False)
 

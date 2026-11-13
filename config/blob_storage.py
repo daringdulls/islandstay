@@ -119,6 +119,16 @@ class VercelBlobStorage(Storage):
         return False  # Vercel adds a random suffix, so names never clash
 
     def get_available_name(self, name, max_length=None):
+        # Vercel adds "-<random 30 chars>" before the extension and private files get "~p/": keep room for both.
+        limit = (max_length or 255) - 40
+        if len(name) > limit:
+            folder, _, base = name.rpartition("/")
+            stem, dot, ext = base.rpartition(".")
+            if not dot:
+                stem, ext = base, ""
+            ext = ext[:10]
+            keep = max(8, limit - len(folder) - 1 - len(ext) - 1)
+            name = (folder + "/" if folder else "") + stem[:keep] + ("." + ext if ext else "")
         return name
 
     def size(self, name):

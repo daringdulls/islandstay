@@ -12,7 +12,7 @@ from directory.models import Island
 class Sponsor(models.Model):
     name = models.CharField(max_length=120)
     is_sample = models.BooleanField("Sample", default=False)
-    logo = models.ImageField(upload_to="sponsors/", blank=True, help_text="Square or wide logo, PNG or SVG-like on a light background")
+    logo = models.ImageField(max_length=255, upload_to="sponsors/", blank=True, help_text="Square or wide logo, PNG or SVG-like on a light background")
     website = models.URLField(blank=True)
     contact_name = models.CharField(max_length=100, blank=True)
     contact_email = models.EmailField(blank=True)
@@ -42,7 +42,7 @@ class Placement(models.Model):
                                      help_text="Island pages only: leave empty to show on every island")
     headline = models.CharField(max_length=80, help_text="e.g. 'Stay connected from the moment you land'")
     text = models.CharField(max_length=160, blank=True, help_text="One short line")
-    image = models.ImageField(upload_to="sponsors/", blank=True, help_text="Optional wide photo (1200 × 630)")
+    image = models.ImageField(max_length=255, upload_to="sponsors/", blank=True, help_text="Optional wide photo (1200 × 630)")
     image_url = models.URLField("Or photo link", max_length=500, blank=True)
     link = models.URLField(max_length=500, help_text="Where the button goes (the sponsor's page, with their tracking code if they have one)")
     button = models.CharField(max_length=30, default="Learn more")
