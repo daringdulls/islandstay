@@ -283,22 +283,21 @@ class VerificationFilter(admin.SimpleListFilter):
 class ListingAdminForm(forms.ModelForm):
     owner_email = forms.EmailField(
         label="Owner's email", required=False,
-        help_text="Type the owner's email to give them this listing: their account is created for you (no password yet), and you "
-                  "get an invite link to send them. Leave empty to keep the listing under Island Stay until it's claimed.")
+        help_text="Type any email to give the owner this listing. If they don't have an account yet, one is created for you "
+                  "(no password yet) and you get an invite link to send them. Leave empty to keep the listing with Island Stay.")
 
     class Meta:
         model = Listing
-        fields = "__all__"
+        exclude = ("owner",)  # set from 'Owner's email' (see ListingAdmin.save_model)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if "owner" in self.fields:
-            self.fields["owner"].required = False
-            self.fields["owner"].help_text = "Or pick an existing account. Empty means the listing stays with Island Stay."
+        from unfold.widgets import UnfoldAdminEmailInputWidget
+        self.fields["owner_email"].widget = UnfoldAdminEmailInputWidget(attrs={"placeholder": "e.g. owner@tropicaltree.mv", "autocomplete": "off"})
         if "contact_email" in self.fields:
             self.fields["contact_email"].required = False
-        owner = getattr(self.instance, "owner", None) if self.instance.pk else None
-        if owner and not owner.is_staff and "owner_email" in self.fields:
+        owner = self.instance.owner if self.instance.pk and self.instance.owner_id else None
+        if owner and not owner.is_staff:
             self.fields["owner_email"].initial = owner.email
 
     def clean(self):
@@ -309,7 +308,7 @@ class ListingAdminForm(forms.ModelForm):
             if email:
                 data["contact_email"] = email  # booking requests go to the owner
             else:
-                self.add_error("contact_email", "Enter the email where booking requests should go (or the owner's email above).")
+                self.add_error("contact_email", "Enter the email where booking requests should go (or the owner's email).")
         return data
 
 
@@ -340,7 +339,7 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
         ("island__atoll", RelatedDropdownFilter), ("island", RelatedDropdownFilter), "is_featured", "is_claimed",
     )
     search_fields = ("name", "island__name", "owner__email", "contact_email", "registration_number")
-    autocomplete_fields = ("island", "owner")
+    autocomplete_fields = ("island",)
     checkbox_m2m = ("amenities", "activity_types")
     inlines = [RoomInline, OperatorRouteInline]
     actions = ["approve", "reject", "suspend", "verify"]
@@ -349,7 +348,7 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
     readonly_fields = ("created_at", "updated_at", "verified_at", "verification_requested_at", "owner_access")
     fieldsets = (
         ("Business", {"classes": ["tab"], "fields": (
-            ("name", "slug"), ("kind", "island"), ("owner_email", "owner"), "owner_access", "short_description", "description")}),
+            ("name", "slug"), ("kind", "island"), "owner_email", "owner_access", "short_description", "description")}),
         ("Review & verification", {"classes": ["tab"], "fields": (
             ("status", "is_featured", "is_claimed"), "admin_note", ("is_verified", "registration_number"), "verification_document",
             ("verification_requested_at", "verified_at"), ("created_at", "updated_at"))}),
@@ -421,11 +420,13 @@ class ListingAdmin(PhotoManagerMixin, BaseAdmin):
         from accounts.invites import owner_for_email
         email = form.cleaned_data.get("owner_email")
         created = False
-        if email and (not obj.owner_id or obj.owner.email.lower() != email):
-            obj.owner, created = owner_for_email(email, obj.name)
+        current = obj.owner if obj.owner_id else None
+        if email:
+            if not current or current.email.lower() != email:
+                obj.owner, created = owner_for_email(email, obj.name)
             obj.is_claimed = True
-        elif not obj.owner_id:
-            obj.owner = request.user  # stays with Island Stay until it's claimed
+        elif not current or not current.is_staff:
+            obj.owner = request.user  # empty: the listing stays with Island Stay until it's claimed
             obj.is_claimed = False
         if not obj.contact_email:
             obj.contact_email = email or request.user.email

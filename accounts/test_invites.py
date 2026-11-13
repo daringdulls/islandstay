@@ -53,3 +53,33 @@ class OwnerInviteTests(TestCase):
         r = self.add(name="No Email Place")
         self.assertEqual(r.status_code, 200)  # needs a contact or owner email
         self.assertFalse(Listing.objects.filter(name="No Email Place").exists())
+
+
+class OwnerEmailFieldTests(TestCase):
+    def setUp(self):
+        atoll = Atoll.objects.create(name="Baa", slug="baa")
+        self.island = Island.objects.create(name="Fehendhoo", slug="fehendhoo", atoll=atoll)
+        self.admin = get_user_model().objects.create_superuser("boss@x.mv", "boss@x.mv", "pw")
+        self.client.force_login(self.admin)
+
+    def test_field_shows_and_changes_owner(self):
+        page = self.client.get("/admin/directory/listing/add/").content.decode()
+        self.assertIn('name="owner_email"', page)
+        self.assertIn('type="email"', page)
+        self.assertNotIn('name="owner"', page)  # no account dropdown
+        base = {"name": "Reef House", "slug": "", "kind": "guesthouse", "island": self.island.pk, "short_description": "Rooms",
+                "description": "Rooms by the reef.", "status": "approved", "contact_name": "Aisha", "currency": "USD", "price_unit": "night",
+                "rooms-TOTAL_FORMS": "0", "rooms-INITIAL_FORMS": "0", "routes-TOTAL_FORMS": "0", "routes-INITIAL_FORMS": "0"}
+        self.client.post("/admin/directory/listing/add/", {**base, "owner_email": "first@x.mv"})
+        listing = Listing.objects.get(name="Reef House")
+        self.assertEqual(listing.owner.email, "first@x.mv")
+        page = self.client.get(f"/admin/directory/listing/{listing.pk}/change/").content.decode()
+        self.assertIn('value="first@x.mv"', page)
+        self.client.post(f"/admin/directory/listing/{listing.pk}/change/", {**base, "slug": listing.slug, "owner_email": "second@x.mv",
+                                                                           "contact_email": "first@x.mv"})
+        listing.refresh_from_db()
+        self.assertEqual(listing.owner.email, "second@x.mv")
+        self.client.post(f"/admin/directory/listing/{listing.pk}/change/", {**base, "slug": listing.slug, "owner_email": "",
+                                                                           "contact_email": "first@x.mv"})
+        listing.refresh_from_db()
+        self.assertEqual((listing.owner, listing.is_claimed), (self.admin, False))
