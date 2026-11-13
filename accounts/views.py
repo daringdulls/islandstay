@@ -28,7 +28,10 @@ def signup(request):
             return redirect(nxt)
         messages.success(request, "Welcome to Island Stay! Now add your property or service — our team reviews every listing before it goes live.")
         return redirect("directory:listing_create")
-    return render(request, "accounts/signup.html", {"form": form, "next": request.GET.get("next", "")})
+    from directory.models import Island
+
+    islands = Island.objects.filter(is_published=True).select_related("atoll").order_by("name")
+    return render(request, "accounts/signup.html", {"form": form, "next": request.GET.get("next", ""), "islands": islands})
 
 
 class OwnerWelcomeView(PasswordResetConfirmView):

@@ -1,0 +1,6 @@
+{% load ui %}<div class="su-f{% if full %} full{% endif %}{% if field.errors %} has-err{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} <span class="su-opt">optional</span>{% endif %}</label>
+  <div class="su-in">{% icon icon "su-ic" %}{{ field }}{% if pw %}<button type="button" class="su-eye" aria-pressed="false" aria-label="Show password">Show</button>{% endif %}</div>
+  {% if note %}<span class="su-note">{{ note }}</span>{% endif %}
+  {{ field.errors }}
+</div>

@@ -18,6 +18,23 @@ class SignupForm(UserCreationForm):
         model = User
         fields = ("full_name", "email", "business_name", "phone", "island_of_operation")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["password1"].help_text = ""
+        self.fields["password2"].help_text = ""
+        self.fields["password2"].label = "Confirm password"
+        attrs = {
+            "full_name": {"placeholder": "e.g. Aiman Ibrahim", "autocomplete": "name"},
+            "email": {"placeholder": "you@example.com", "autocomplete": "email"},
+            "business_name": {"placeholder": "e.g. The Corbin Guest House", "autocomplete": "organization"},
+            "phone": {"placeholder": "+960 777 1234", "autocomplete": "tel", "inputmode": "tel"},
+            "island_of_operation": {"placeholder": "Start typing, e.g. Dhangethi", "list": "su-islands", "autocomplete": "off"},
+            "password1": {"placeholder": "At least 8 characters", "autocomplete": "new-password"},
+            "password2": {"placeholder": "Type it again", "autocomplete": "new-password"},
+        }
+        for name, a in attrs.items():
+            self.fields[name].widget.attrs.update(a)
+
     def clean_email(self):
         email = self.cleaned_data["email"].lower().strip()
         if User.objects.filter(username__iexact=email).exists() or User.objects.filter(email__iexact=email).exists():
