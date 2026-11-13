@@ -1,50 +1,221 @@
 {% extends "base.html" %}
-{% block title %}{% if creating %}Add a listing{% else %}Edit {{ listing.name }}{% endif %}{% endblock %}
+{% load static ui %}
+{% block title %}{% if creating %}List your business{% else %}Edit {{ listing.name }}{% endif %}{% endblock %}
 {% block content %}
-<div class="container" style="max-width:900px">
-  <div class="dash-head"><div><a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
-    <h1 style="margin:0">{% if creating %}Add your property or service{% else %}Edit {{ listing.name }}{% endif %}</h1>
-    {% if creating %}<p class="muted" style="margin:0">Stays, experiences, transport or food — your listing is reviewed by our team before it goes live. Transfer operators can add routes after saving.</p>{% else %}<span class="pill {% if listing.status == 'approved' %}ok{% else %}warn{% endif %}">{{ listing.get_status_display }}</span>{% endif %}
-  </div></div>
-  <form method="post" enctype="multipart/form-data">
+<div class="lf-hero">
+  <div class="container">
+    <a class="lf-back" href="{% url 'directory:dashboard' %}">{% icon "arrow-right" "lf-flip" %} Dashboard</a>
+    <div class="lf-hero-row">
+      <div>
+        <p class="eyebrow lf-eyebrow">{% if creating %}New listing{% else %}Your listing{% endif %}</p>
+        <h1>{% if creating %}Put your business on the map{% else %}Edit {{ listing.name }}{% endif %}</h1>
+        <p class="lf-lead">{% if creating %}Tell travellers what you offer. It takes about 10 minutes, and our team checks every listing before it goes live.{% else %}Changes to an approved listing show on your page straight away.{% endif %}</p>
+      </div>
+      {% if not creating %}<span class="pill {% if listing.status == 'approved' %}ok{% else %}warn{% endif %}">{{ listing.get_status_display }}</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container lf">
+  <form method="post" enctype="multipart/form-data" class="lf-form" id="lf-form" novalidate>
     {% csrf_token %}
-    {% if form.non_field_errors %}<ul class="errorlist nonfield">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    {% if form.errors %}<div class="messages"><li class="error">Please fix the highlighted fields below.</li></div>{% endif %}
-    <fieldset><legend>Basics</legend><div class="form-grid">
-      {% for f in form.basics %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
-    </div></fieldset>
+    <nav class="lf-steps" aria-label="Sections">
+      <ol>
+        <li><a href="#s-type" data-step="s-type"><b>1</b>What you offer</a></li>
+        <li><a href="#s-about" data-step="s-about"><b>2</b>About</a></li>
+        <li><a href="#s-photos" data-step="s-photos"><b>3</b>Photos</a></li>
+        <li data-kinds="stay"><a href="#s-stay" data-step="s-stay"><b>4</b>Stay details</a></li>
+        <li data-kinds="experience"><a href="#s-exp" data-step="s-exp"><b>4</b>Experiences</a></li>
+        <li data-kinds="food"><a href="#s-food" data-step="s-food"><b>4</b>Food &amp; hours</a></li>
+        <li data-kinds="stay experience"><a href="#s-rooms" data-step="s-rooms"><b>5</b>Rooms &amp; packages</a></li>
+        {% if SHOW_PRICES %}<li><a href="#s-price" data-step="s-price"><b>6</b>Pricing</a></li>{% endif %}
+        <li><a href="#s-contact" data-step="s-contact"><b>6</b>Contact</a></li>
+      </ol>
+    </nav>
 
-    <fieldset><legend>Stay details <span class="muted small">(places to stay only)</span></legend><div class="form-grid">
-      {% for f in form.stay %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
-    </div></fieldset>
+    <div class="lf-main">
+      {% if form.errors or rooms.total_error_count %}
+        <div class="lf-alert" role="alert">{% icon "info" %}<div><strong>A few things need a look.</strong> The fields marked in red below still need fixing.
+          {% if form.non_field_errors %}<ul>{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</div></div>
+      {% endif %}
 
-    <fieldset><legend>Experiences offered <span class="muted small">(activity &amp; dive operators)</span></legend><div class="form-grid">
-      {% include "dashboard/_field.html" with field=form.activity_types %}
-    </div></fieldset>
-
-    <fieldset><legend>Restaurant details <span class="muted small">(food only)</span></legend><div class="form-grid">
-      {% for f in form.food %}{% if f.field.widget.input_type == 'checkbox' %}<div class="check-inline"><label>{{ f }} {{ f.label }}</label></div>{% else %}{% include "dashboard/_field.html" with field=f %}{% endif %}{% endfor %}
-    </div></fieldset>
-
-    <fieldset><legend>Rooms / packages <span class="muted small">(optional)</span></legend>
-      {{ rooms.management_form }}
-      {% for rf in rooms %}
-        <div class="form-grid" style="padding:12px 0;border-bottom:1px solid var(--line)">
-          {% for hidden in rf.hidden_fields %}{{ hidden }}{% endfor %}
-          {% for f in rf.visible_fields %}<div class="{% if f.name == 'DELETE' %}check-inline{% endif %}">{% if f.name == 'DELETE' %}{% if rf.instance.pk %}<label>{{ f }} Remove</label>{% endif %}{% else %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}{% endif %}</div>{% endfor %}
+      <section class="lf-card" id="s-type">
+        <header><span class="lf-num">1</span><div><h2>What do you offer?</h2><p>Pick the one that fits best. The rest of the form adapts to it.</p></div></header>
+        <div class="lf-kinds" role="radiogroup" aria-label="Type of business">
+          {% for g in form.kind_groups %}
+            <div class="lf-kgroup">
+              <p class="lf-kgroup-label">{% icon g.icon %} {{ g.label }}</p>
+              <div class="lf-kopts">
+                {% for k in g.kinds %}
+                  <label class="lf-kind">
+                    <input type="radio" name="kind" value="{{ k.value }}" {% if k.checked %}checked{% endif %} required>
+                    <span class="lf-kind-ic">{% icon k.icon %}</span>
+                    <span class="lf-kind-txt">{{ k.label }}</span>
+                    <span class="lf-kind-tick">{% icon "check" %}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
-      <p class="small muted" style="margin:8px 0 0">Save to add more rows.</p>
-    </fieldset>
-    {% if SHOW_PRICES %}<fieldset><legend>Indicative pricing</legend><p class="small muted">Shown as "from" prices. You confirm the final rate with each guest.</p><div class="form-grid">
-      {% for f in form.pricing %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
-    </div></fieldset>{% endif %}
+        {{ form.kind.errors }}
+      </section>
 
-    <fieldset><legend>Contact details</legend><p class="small muted">Guests can message you at this email, WhatsApp and Viber, so add the ones you use. Phone and WhatsApp are shown to travellers.</p><div class="form-grid">
-      {% for f in form.contact %}{% include "dashboard/_field.html" with field=f %}{% endfor %}
-    </div></fieldset>
+      <section class="lf-card" id="s-about">
+        <header><span class="lf-num">2</span><div><h2>About your business</h2><p>The name and first line are what travellers see in search results.</p></div></header>
+        <div class="lf-grid">
+          {% include "dashboard/_lf_field.html" with field=form.name icon="store" %}
+          {% include "dashboard/_lf_field.html" with field=form.island icon="map-pin" %}
+          <div class="lf-f full">
+            <label for="{{ form.short_description.id_for_label }}">Headline <span class="req">*</span><span class="lf-count" data-count-for="{{ form.short_description.id_for_label }}">0 / 200</span></label>
+            {{ form.short_description }}
+            <span class="helptext">One sentence. Shown under your name everywhere on the site.</span>
+            {{ form.short_description.errors }}
+          </div>
+          <div class="lf-f full">
+            <label for="{{ form.description.id_for_label }}">Full description{% if form.description.field.required %} <span class="req">*</span>{% endif %}</label>
+            {{ form.description }}
+            <span class="helptext lf-tip">{% icon "sparkles" %} Good descriptions mention the rooms, the island, what guests can do nearby and how you help with transfers.</span>
+            {{ form.description.errors }}
+          </div>
+        </div>
+      </section>
 
-    <div class="row"><button class="btn" type="submit">{% if creating %}Submit for review{% else %}Save changes{% endif %}</button><a class="btn btn-ghost" href="{% url 'directory:dashboard' %}">Cancel</a></div>
+      <section class="lf-card" id="s-photos">
+        <header><span class="lf-num">3</span><div><h2>Photos</h2><p>Listings with a bright cover photo get far more requests. You can add a full gallery after you submit.</p></div></header>
+        <div class="lf-drops">
+          <label class="lf-drop lf-drop-cover" data-preview="cover">
+            {{ form.cover_image }}
+            <span class="lf-drop-img" {% if listing.cover_image %}style="background-image:url('{{ listing.cover_image.url }}')"{% endif %}></span>
+            <span class="lf-drop-empty">{% icon "camera" %}<strong>Cover photo</strong><small>Drag a photo here or tap to choose. Landscape, at least 1600 px wide.</small></span>
+            <span class="lf-drop-change">{% icon "pencil" %} Change</span>
+          </label>
+          <label class="lf-drop lf-drop-logo" data-preview="logo">
+            {{ form.logo }}
+            <span class="lf-drop-img" {% if listing.logo %}style="background-image:url('{{ listing.logo.url }}')"{% endif %}></span>
+            <span class="lf-drop-empty">{% icon "image" %}<strong>Logo</strong><small>Optional. Square works best.</small></span>
+            <span class="lf-drop-change">{% icon "pencil" %} Change</span>
+          </label>
+        </div>
+        {{ form.cover_image.errors }}{{ form.logo.errors }}
+      </section>
+
+      <section class="lf-card" id="s-stay" data-kinds="stay">
+        <header><span class="lf-num">4</span><div><h2>Stay details</h2><p>Helps guests compare places and filter search results.</p></div></header>
+        <div class="lf-grid lf-grid-3">
+          {% include "dashboard/_lf_field.html" with field=form.room_count icon="bed-double" %}
+          {% include "dashboard/_lf_field.html" with field=form.max_guests icon="users" %}
+          {% include "dashboard/_lf_field.html" with field=form.distance_to_beach_m icon="umbrella" %}
+          {% include "dashboard/_lf_field.html" with field=form.check_in_time icon="clock" %}
+          {% include "dashboard/_lf_field.html" with field=form.check_out_time icon="clock" %}
+          {% include "dashboard/_lf_field.html" with field=form.star_rating icon="star" %}
+          <div class="lf-f full">
+            <label for="{{ form.house_rules.id_for_label }}">House rules</label>
+            {{ form.house_rules }}{{ form.house_rules.errors }}
+          </div>
+        </div>
+        <div class="lf-chips-wrap">
+          <p class="lf-sub">Facilities <span class="muted">Tap all that apply</span></p>
+          <div class="lf-chips">{% for c in form.amenities %}<label class="lf-chip">{{ c.tag }}<span>{% icon "check" %}{{ c.choice_label }}</span></label>{% endfor %}</div>
+        </div>
+      </section>
+
+      <section class="lf-card" id="s-exp" data-kinds="experience">
+        <header><span class="lf-num">4</span><div><h2>Experiences you offer</h2><p>Your listing appears on each of these experience pages.</p></div></header>
+        <div class="lf-chips">{% for c in form.activity_types %}<label class="lf-chip">{{ c.tag }}<span>{% icon "check" %}{{ c.choice_label }}</span></label>{% endfor %}</div>
+      </section>
+
+      <section class="lf-card" id="s-food" data-kinds="food">
+        <header><span class="lf-num">4</span><div><h2>Food &amp; opening hours</h2><p>So guests know when to come by.</p></div></header>
+        <div class="lf-grid">
+          {% include "dashboard/_lf_field.html" with field=form.cuisine icon="utensils" %}
+          {% include "dashboard/_lf_field.html" with field=form.opening_hours icon="clock" %}
+        </div>
+        <div class="lf-toggles">
+          <label class="lf-toggle">{{ form.serves_breakfast }}<span class="lf-switch"></span>Serves breakfast</label>
+          <label class="lf-toggle">{{ form.delivery }}<span class="lf-switch"></span>Delivers to guest houses</label>
+        </div>
+      </section>
+
+      <section class="lf-card" id="s-rooms" data-kinds="stay experience">
+        <header><span class="lf-num">5</span><div><h2>Rooms &amp; packages</h2><p>Optional. Add each room type or trip so guests can ask about the right one.</p></div></header>
+        {{ rooms.management_form }}
+        <div class="lf-rooms" id="lf-rooms">
+          {% for rf in rooms %}{% include "dashboard/_lf_room.html" with rf=rf n=forloop.counter %}{% endfor %}
+        </div>
+        <template id="lf-room-tpl">{% include "dashboard/_lf_room.html" with rf=rooms.empty_form n="__n__" %}</template>
+        <button type="button" class="lf-add" id="lf-add-room">{% icon "plus" %} Add another</button>
+      </section>
+
+      {% if SHOW_PRICES %}
+      <section class="lf-card" id="s-price">
+        <header><span class="lf-num">6</span><div><h2>Indicative pricing</h2><p>Shown as a "from" price. You confirm the final rate with each guest.</p></div></header>
+        <div class="lf-grid lf-grid-3">{% for f in form.pricing %}{% include "dashboard/_lf_field.html" with field=f %}{% endfor %}</div>
+      </section>
+      {% endif %}
+
+      <section class="lf-card" id="s-contact">
+        <header><span class="lf-num">6</span><div><h2>How guests reach you</h2><p>Booking requests go to your email. Phone and WhatsApp are shown to travellers.</p></div></header>
+        <div class="lf-grid">
+          {% include "dashboard/_lf_field.html" with field=form.contact_name icon="users" %}
+          {% include "dashboard/_lf_field.html" with field=form.contact_email icon="mail" %}
+          {% include "dashboard/_lf_field.html" with field=form.contact_phone icon="phone" %}
+          {% include "dashboard/_lf_field.html" with field=form.whatsapp icon="message-circle" %}
+        </div>
+        <details class="lf-more" {% if form.website.value or form.instagram.value or form.facebook.value or form.viber.value or form.address.value or form.registration_number.value %}open{% endif %}>
+          <summary>{% icon "chevron-down" %} Website, social media and address</summary>
+          <div class="lf-grid">
+            {% include "dashboard/_lf_field.html" with field=form.website icon="globe" %}
+            {% include "dashboard/_lf_field.html" with field=form.instagram icon="instagram" %}
+            {% include "dashboard/_lf_field.html" with field=form.facebook icon="facebook" %}
+            {% include "dashboard/_lf_field.html" with field=form.viber icon="phone" %}
+            {% include "dashboard/_lf_field.html" with field=form.address icon="map-pin" %}
+            {% include "dashboard/_lf_field.html" with field=form.registration_number icon="shield-check" %}
+          </div>
+        </details>
+      </section>
+
+      {% if creating %}
+      <section class="lf-next">
+        <h3>What happens next</h3>
+        <ol>
+          <li>{% icon "upload" %}<span><strong>Add your gallery</strong>Right after you submit, you can upload more photos.</span></li>
+          <li>{% icon "shield-check" %}<span><strong>We review it</strong>Usually within 1–2 days. We may message you with small edits.</span></li>
+          <li>{% icon "badge-check" %}<span><strong>You go live</strong>We email you, and travellers can send you requests.</span></li>
+        </ol>
+      </section>
+      {% endif %}
+    </div>
+
+    <aside class="lf-side">
+      <div class="lf-side-in">
+        <article class="lf-prev">
+          <div class="lf-prev-img" id="pv-cover" {% if listing.cover_image %}style="background-image:url('{{ listing.cover_image.url }}')"{% endif %}>
+            <span class="lf-prev-kind" id="pv-kind">{% icon "house" %}<em>Guest house</em></span>
+            <span class="lf-prev-logo" id="pv-logo" {% if listing.logo %}style="background-image:url('{{ listing.logo.url }}')"{% endif %}></span>
+          </div>
+          <div class="lf-prev-body"><span class="lf-live"><i></i>Live preview</span>
+            <h3 id="pv-name">Your business name</h3>
+            <p class="lf-prev-isl">{% icon "map-pin" %}<span id="pv-island">Choose your island</span></p>
+            <p class="lf-prev-desc" id="pv-desc">Your headline appears here.</p>
+            <div class="lf-prev-tags" id="pv-tags"></div>
+          </div>
+        </article>
+        <div class="lf-meter">
+          <div class="lf-meter-top"><strong>Listing strength</strong><span id="lf-pct">0%</span></div>
+          <div class="lf-bar"><span id="lf-bar"></span></div>
+          <ul class="lf-todo" id="lf-todo"></ul>
+        </div>
+        <button class="btn lf-submit" type="submit">{% if creating %}Submit for review{% else %}Save changes{% endif %} {% icon "arrow-right" %}</button>
+        <a class="lf-cancel" href="{% url 'directory:dashboard' %}">Cancel</a>
+      </div>
+    </aside>
+
+    <div class="lf-bar-mobile">
+      <div><span id="lf-pct-m">0%</span> complete</div>
+      <button class="btn" type="submit">{% if creating %}Submit for review{% else %}Save{% endif %}</button>
+    </div>
   </form>
 </div>
+<script src="{% static 'js/listing_form.js' %}" defer></script>
 {% endblock %}

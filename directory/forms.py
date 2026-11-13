@@ -124,12 +124,50 @@ class ListingForm(forms.ModelForm):
             for f in ListingForm.GROUPS["pricing"]:
                 self.fields.pop(f)
         self.fields["island"].label_from_instance = lambda i: f"{i.name} — {i.atoll.name}"
+        self.fields["kind"].widget = forms.RadioSelect(choices=self.fields["kind"].choices)
+        for f in ("logo", "cover_image"):
+            self.fields[f].widget = forms.FileInput(attrs={"accept": "image/*"})
+        placeholders = {
+            "name": "e.g. The Corbin Guest House", "short_description": "One line guests see first, e.g. Beach-front rooms a short walk from the bikini beach",
+            "description": "What makes your place special: the rooms, the island, what guests can do, how you welcome them.",
+            "house_rules": "e.g. No alcohol on local islands. Quiet hours after 22:00. Modest dress in the village.",
+            "check_in_time": "14:00", "check_out_time": "12:00", "cuisine": "e.g. Maldivian, seafood, Italian",
+            "opening_hours": "e.g. Daily 7:00–23:00", "contact_name": "Your name", "contact_email": "you@example.com",
+            "contact_phone": "+960 777 1234", "whatsapp": "+9607771234", "viber": "+9607771234",
+            "website": "https://", "facebook": "https://facebook.com/…", "instagram": "https://instagram.com/…",
+            "address": "Street or area on the island", "room_count": "e.g. 6", "max_guests": "e.g. 14",
+            "star_rating": "1–5", "distance_to_beach_m": "e.g. 50",
+        }
+        for f, ph in placeholders.items():
+            if f in self.fields:
+                self.fields[f].widget.attrs.setdefault("placeholder", ph)
+        self.fields["short_description"].widget.attrs["maxlength"] = 200
+
+    # Icons for the "What do you offer?" tiles (names from static/img/icons.svg).
+    GROUP_ICONS = {"Places to stay": "bed-double", "Experiences": "compass", "Transport": "speedboat",
+                   "Food & drink": "utensils", "Shops": "store"}
+    KIND_ICONS = {"guesthouse": "house", "hotel": "hotel", "resort": "tree-palm", "villa": "building-2",
+                  "activity": "sailboat", "dive": "fish", "other": "sparkles", "transfer": "speedboat",
+                  "restaurant": "utensils", "cafe": "coffee", "hut": "umbrella", "food_truck": "car-front",
+                  "shop": "shopping-bag", "souvenir": "shell"}
+
+    def kind_groups(self):
+        current = str(self["kind"].value() or "")
+        groups = []
+        for group, options in Listing.KIND_CHOICES:
+            groups.append({"label": group, "icon": self.GROUP_ICONS.get(group, "sparkles"),
+                           "kinds": [{"value": v, "label": l, "icon": self.KIND_ICONS.get(v, "sparkles"), "checked": v == current}
+                                     for v, l in options]})
+        return groups
 
 
 RoomFormSet = inlineformset_factory(
     Listing, RoomType, fields=["name", "description", "max_guests"] + (["price_from"] if settings.SHOW_PRICES else []),
     extra=2, can_delete=True,
     labels={"name": "Room / package name", "price_from": "From price"},
+    widgets={"name": forms.TextInput(attrs={"placeholder": "e.g. Deluxe double with sea view"}),
+             "description": forms.TextInput(attrs={"placeholder": "e.g. King bed, balcony, air conditioning, private bathroom"}),
+             "max_guests": forms.NumberInput(attrs={"placeholder": "2", "min": 1})},
 )
 
 

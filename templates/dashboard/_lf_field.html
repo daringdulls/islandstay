@@ -1,0 +1,6 @@
+{% load ui %}<div class="lf-f{% if field.errors %} has-err{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="req">*</span>{% endif %}</label>
+  <div class="lf-in{% if icon %} has-ic{% endif %}">{% if icon %}{% icon icon "lf-in-ic" %}{% endif %}{{ field }}</div>
+  {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+  {{ field.errors }}
+</div>

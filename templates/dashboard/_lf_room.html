@@ -1,0 +1,11 @@
+{% load ui %}<div class="lf-room">
+  {% for hidden in rf.hidden_fields %}{{ hidden }}{% endfor %}
+  <div class="lf-room-head"><span class="lf-room-n">{% icon "bed-double" %} <span>Room or package {{ n }}</span></span>
+    {% if rf.instance.pk %}<label class="lf-room-del">{{ rf.DELETE }} {% icon "trash-2" %} Remove</label>{% endif %}</div>
+  <div class="lf-grid lf-grid-3">
+    <div class="lf-f lf-span2"><label for="{{ rf.name.id_for_label }}">Name</label>{{ rf.name }}{{ rf.name.errors }}</div>
+    <div class="lf-f"><label for="{{ rf.max_guests.id_for_label }}">Sleeps / group size</label>{{ rf.max_guests }}{{ rf.max_guests.errors }}</div>
+    <div class="lf-f full"><label for="{{ rf.description.id_for_label }}">Short description</label>{{ rf.description }}{{ rf.description.errors }}</div>
+    {% if rf.price_from %}<div class="lf-f"><label for="{{ rf.price_from.id_for_label }}">From price</label>{{ rf.price_from }}{{ rf.price_from.errors }}</div>{% endif %}
+  </div>
+</div>
