@@ -674,12 +674,65 @@ def suggest_island(request):
 def dashboard(request):
     if hasattr(request.user, "partner") and not request.user.listings.exists() and not request.user.is_staff:
         return redirect("links:partner_dashboard")
-    listings = request.user.listings.select_related("island").annotate(
-        n_enquiries=Count("enquiries"), n_new=Count("enquiries", filter=Q(enquiries__status=Enquiry.STATUS_NEW))
-    )
-    recent = Enquiry.objects.filter(listing__owner=request.user).select_related("listing")[:8]
-    live_count = sum(1 for l in listings if l.is_live)
-    return render(request, "dashboard/home.html", {"listings": listings, "recent": recent, "live_count": live_count})
+    from datetime import timedelta
+
+    from django.db.models import Sum
+
+    from analytics.models import AnonymousPageview, Event
+    from links.models import Commission, LinkPlan, Membership, Programme
+
+    since = timezone.now() - timedelta(days=30)
+    listings = list(request.user.listings.select_related("island").annotate(
+        n_enquiries=Count("enquiries", distinct=True),
+        n_new=Count("enquiries", filter=Q(enquiries__status=Enquiry.STATUS_NEW), distinct=True),
+        n_30=Count("enquiries", filter=Q(enquiries__created_at__gte=since), distinct=True),
+    ))
+    ids = [l.pk for l in listings]
+    paths = {l.get_absolute_url(): l for l in listings}
+    views = dict(Event.objects.filter(type="pageview", path__in=paths, ts__gte=since).values("path").annotate(n=Count("id")).values_list("path", "n"))
+    for path, n in AnonymousPageview.objects.filter(path__in=paths, date__gte=since.date()).values("path").annotate(n=Sum("views")).values_list("path", "n"):
+        views[path] = views.get(path, 0) + (n or 0)
+    plans = {p.listing_id: p for p in LinkPlan.objects.filter(listing_id__in=ids)}
+    progs = {p.listing_id: p for p in Programme.objects.filter(listing_id__in=ids)}
+    apps = dict(Membership.objects.filter(programme__listing_id__in=ids, status="applied").values("programme__listing").annotate(n=Count("id")).values_list("programme__listing", "n"))
+    to_settle = dict(Commission.objects.filter(membership__programme__listing_id__in=ids, status__in=[Commission.PENDING, Commission.APPROVED])
+                     .values("membership__programme__listing").annotate(n=Count("id")).values_list("membership__programme__listing", "n"))
+    today = timezone.localdate()
+    attention = []
+    for l in listings:
+        l.views_30 = views.get(l.get_absolute_url(), 0)
+        plan = plans.get(l.pk)
+        l.pro = bool(plan and plan.is_live)
+        l.pro_ends = plan.ends if l.pro else None
+        l.programme = progs.get(l.pk)
+        l.apps = apps.get(l.pk, 0)
+        l.settle = to_settle.get(l.pk, 0)
+        if l.n_new:
+            attention.append(("inbox", f"{l.n_new} new request{'s' if l.n_new != 1 else ''} for {l.name}", "Reply soon: guests often book the first host who answers.",
+                              reverse("directory:enquiry_list") + "?status=new", "Reply"))
+        if l.status == Listing.STATUS_PENDING:
+            attention.append(("clock", f"{l.name} is waiting for review", "We usually review new listings within 1–2 days.", reverse("directory:listing_edit", args=[l.pk]), "Check details"))
+        elif l.status not in (Listing.STATUS_PENDING, Listing.STATUS_APPROVED):
+            attention.append(("info", f"{l.name} needs changes", l.admin_note or "Open the listing to see what to fix.", reverse("directory:listing_edit", args=[l.pk]), "Edit"))
+        if l.apps:
+            attention.append(("users", f"{l.apps} partner application{'s' if l.apps != 1 else ''} for {l.name}", "Approve them to give them their link.", reverse("links:partners", args=[l.pk]), "Review"))
+        if l.settle:
+            attention.append(("hand-coins", f"{l.settle} partner commission{'s' if l.settle != 1 else ''} to settle", f"For {l.name}.", reverse("links:partners", args=[l.pk]), "Open"))
+        if l.pro and l.pro_ends and (l.pro_ends - today).days <= 7:
+            attention.append(("calendar", f"Pro for {l.name} ends on {l.pro_ends:%-d %b}", "Renew to keep counting visits and partner bookings.", reverse("links:manage", args=[l.pk]), "Renew"))
+    recent = Enquiry.objects.filter(listing__owner=request.user).select_related("listing")[:6]
+    hour = timezone.localtime().hour
+    greeting = "Good morning" if hour < 12 else "Good afternoon" if hour < 18 else "Good evening"
+    u = request.user
+    profile = getattr(u, "profile", None)
+    name = (u.first_name or (profile.business_name if profile and profile.business_name else "")
+            or (u.email or u.username).split("@")[0].replace(".", " ").replace("_", " ").title())
+    return render(request, "dashboard/home.html", {
+        "listings": listings, "recent": recent, "live_count": sum(1 for l in listings if l.is_live), "attention": attention,
+        "greeting": greeting, "name": name, "views_30": sum(l.views_30 for l in listings), "req_30": sum(l.n_30 for l in listings),
+        "unverified": [l for l in listings if l.is_live and not l.is_verified and not l.verification_pending][:1],
+        "any_pro": any(l.pro for l in listings), "has_partner": hasattr(u, "partner"),
+    })
 
 
 def _own_listing(request, pk):

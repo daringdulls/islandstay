@@ -2513,3 +2513,113 @@ a.card:hover .cover img.cowrie { transform: none; }
 .pj-calc-result b { font-family: var(--font-display); font-size: 1.5rem; color: var(--gold); }
 .pj-calc small { color: rgba(255,255,255,.6); font-size: .74rem; }
 @media (max-width: 560px) { .pj-calc-row { grid-template-columns: 1fr; } }
+
+/* ================= Owner dashboard ================= */
+.dh-hero { background: linear-gradient(135deg, var(--sea-2) 0%, var(--sea) 70%, #138aa6 100%); color: #fff; padding: 34px 0 78px; }
+.dh-hero-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.dh-date { margin: 0 0 4px; color: var(--shallows); font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.dh-hero h1 { color: #fff; margin: 0 0 6px; font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+.dh-sub { margin: 0; color: rgba(255,255,255,.85); }
+.dh-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.dh-actions .btn, .dh-btn-gold { display: inline-flex; gap: 8px; align-items: center; }
+.dh-btn-light { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.35); color: #fff; }
+.dh-btn-light:hover { background: rgba(255,255,255,.2); color: #fff; }
+.dh-btn-gold { background: var(--gold); border-color: var(--gold); color: var(--ink); justify-content: center; }
+.dh-btn-gold:hover { background: #e39b1b; border-color: #e39b1b; color: var(--ink); }
+.dh { margin-top: -48px; padding-bottom: 64px; }
+.dh-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.dh-kpi { display: flex; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 18px; box-shadow: 0 6px 20px rgba(10,61,76,.08); }
+.dh-kpi-ic { width: 44px; height: 44px; border-radius: 14px; background: var(--shoal); color: var(--sea); display: grid; place-items: center; flex: none; }
+.dh-kpi-ic .i { width: 22px; height: 22px; }
+.dh-kpi b { display: block; font-family: var(--font-display); font-size: 1.7rem; line-height: 1.1; color: var(--sea-2); }
+.dh-kpi b small { font-size: .95rem; color: var(--ink-2); font-weight: 600; }
+.dh-kpi span:not(.dh-kpi-ic) { font-size: .82rem; color: var(--ink-2); }
+.dh-kpi.hot .dh-kpi-ic { background: #fdf1d8; color: var(--gold-text); }
+.dh-kpi.hot b { color: var(--gold-text); }
+.dh-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.dh-main { display: grid; gap: 24px; min-width: 0; }
+.dh-card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px 24px; }
+.dh-card h2, .dh-head h2 { font-size: 1.25rem; margin: 0; color: var(--sea-2); display: flex; gap: 8px; align-items: center; }
+.dh-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.dh-head a { font-weight: 600; display: inline-flex; gap: 4px; align-items: center; }
+.dh-attn { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(235,166,42,.12); }
+.dh-attn h2 { margin-bottom: 12px; }
+.dh-attn h2 .i { color: var(--gold-text); }
+.dh-attn ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.dh-attn li { display: flex; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #fffaf0; }
+.dh-attn li > div { flex: 1; min-width: 0; }
+.dh-attn strong { display: block; font-size: .95rem; }
+.dh-attn small { color: var(--ink-2); }
+.dh-attn-ic { width: 36px; height: 36px; border-radius: 12px; background: #fdf1d8; color: var(--gold-text); display: grid; place-items: center; flex: none; }
+.dh-listings { display: grid; gap: 14px; }
+.dh-listing { display: flex; gap: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; transition: box-shadow .2s; }
+.dh-listing:hover { box-shadow: var(--shadow); }
+.dh-thumb { width: 150px; flex: none; border-radius: 14px; background: linear-gradient(160deg, #4cc3c7, #0b6e8a) center / cover; display: grid; place-items: center; color: rgba(255,255,255,.8); min-height: 120px; }
+.dh-thumb .i { width: 30px; height: 30px; }
+.dh-l-body { flex: 1; min-width: 0; display: grid; gap: 12px; }
+.dh-l-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.dh-l-top h3 { margin: 0; font-size: 1.1rem; }
+.dh-l-top h3 a { color: var(--ink); }
+.dh-l-top p { margin: 2px 0 0; }
+.dh-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.dh-verified { display: inline-flex; gap: 5px; align-items: center; padding: 3px 10px 3px 6px; border-radius: 999px; background: #e4f2ec; color: var(--verified); font-size: .78rem; font-weight: 700; }
+.dh-verified .cowrie { width: 16px; height: 16px; }
+.dh-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+.dh-stats > div { background: #f6fafb; border-radius: 12px; padding: 8px 12px; min-width: 96px; }
+.dh-stats b { display: block; font-family: var(--font-display); font-size: 1.2rem; color: var(--sea-2); line-height: 1.2; }
+.dh-stats span { font-size: .74rem; color: var(--ink-2); }
+.dh-stats .hot { background: #fdf1d8; }
+.dh-stats .hot b { color: var(--gold-text); }
+.dh-l-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.dh-l-actions .btn { display: inline-flex; gap: 6px; align-items: center; }
+.dh-sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+.dh-pro-link { display: inline-flex; gap: 6px; align-items: center; font-size: .86rem; font-weight: 600; padding: 6px 8px; border-radius: 10px; }
+.dh-pro-link:hover { background: var(--shoal); text-decoration: none; }
+.dh-note { margin: 0; display: flex; gap: 6px; color: var(--alert); }
+.dh-empty { text-align: center; padding: 36px 24px; }
+.dh-empty-ic { width: 56px; height: 56px; border-radius: 18px; background: var(--shoal); color: var(--sea); display: inline-grid; place-items: center; margin-bottom: 10px; }
+.dh-empty-ic .i { width: 28px; height: 28px; }
+.dh-empty .btn { display: inline-flex; gap: 6px; align-items: center; }
+.dh-reqs { list-style: none; margin: 0; padding: 0; display: grid; }
+.dh-reqs li + li { border-top: 1px solid var(--line); }
+.dh-reqs a { display: flex; gap: 12px; align-items: center; padding: 12px 6px; color: var(--ink); border-radius: 12px; }
+.dh-reqs a:hover { background: #f6fafb; text-decoration: none; }
+.dh-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--shoal); color: var(--sea); display: grid; place-items: center; font-weight: 800; flex: none; }
+.dh-reqs li.new .dh-avatar { background: var(--gold); color: var(--ink); }
+.dh-req-main { flex: 1; min-width: 0; }
+.dh-req-main small { display: block; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dh-req-side { display: grid; justify-items: end; gap: 2px; flex: none; }
+.dh-side { display: grid; gap: 16px; position: sticky; top: 90px; }
+.dh-side h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.dh-pro-card { background: linear-gradient(160deg, var(--sea-2), var(--sea)); color: #fff; border: 0; }
+.dh-pro-card h3 { color: #fff; }
+.dh-pro-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 12px; }
+.dh-pro-list li { display: flex; gap: 10px; font-size: .86rem; color: rgba(255,255,255,.8); }
+.dh-pro-list .i { color: var(--shallows); flex: none; margin-top: 3px; }
+.dh-pro-list strong { display: block; color: #fff; }
+.dh-tip-ic .cowrie { width: 30px; height: 30px; margin-bottom: 6px; }
+.dh-tip p { margin: 0 0 10px; }
+.dh-links { display: grid; gap: 2px; }
+.dh-links a { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 10px; font-size: .9rem; font-weight: 600; }
+.dh-links a:hover { background: var(--shoal); text-decoration: none; }
+@media (max-width: 1000px) {
+  .dh-layout { grid-template-columns: 1fr; }
+  .dh-side { position: static; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .dh-kpis { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .dh-hero { padding: 24px 0 70px; }
+  .dh-actions { width: 100%; }
+  .dh-actions .btn { flex: 1; justify-content: center; }
+  .dh-kpi { padding: 14px; gap: 10px; }
+  .dh-kpi-ic { width: 36px; height: 36px; }
+  .dh-kpi b { font-size: 1.35rem; }
+  .dh-listing { flex-direction: column; }
+  .dh-thumb { width: 100%; min-height: 140px; }
+  .dh-l-top { flex-direction: column; }
+  .dh-badges { justify-content: flex-start; }
+  .dh-sep { display: none; }
+  .dh-card { padding: 18px 16px; }
+  .dh-attn li { flex-wrap: wrap; }
+  .dh-req-side { display: none; }
+}

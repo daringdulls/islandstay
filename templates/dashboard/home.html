@@ -2,39 +2,137 @@
 {% load ui %}
 {% block title %}My dashboard{% endblock %}
 {% block content %}
-<div class="container">
-  <div class="dash-head">
-    <div><h1 style="margin:0">{{ user.first_name|default:user.username }}</h1><p class="muted" style="margin:0">{{ user.profile.business_name|default:"Manage your listings and booking requests" }}</p></div>
-    <div class="row"><a class="btn btn-ghost" href="{% url 'directory:enquiry_list' %}">All requests</a><a class="btn" href="{% url 'directory:listing_create' %}">Add listing</a></div>
+<div class="dh-hero">
+  <div class="container dh-hero-row">
+    <div>
+      <p class="dh-date">{% now "l j F" %}</p>
+      <h1>{{ greeting }}, {{ name }}</h1>
+      <p class="dh-sub">{% if attention %}{{ attention|length }} thing{{ attention|length|pluralize }} need{{ attention|length|pluralize:"s," }} your attention today.{% elif listings %}You're all caught up. Here's how your listings are doing.{% else %}Let's get your first listing online.{% endif %}</p>
+    </div>
+    <div class="dh-actions">
+      <a class="btn dh-btn-light" href="{% url 'directory:enquiry_list' %}">{% icon "inbox" %} All requests{% if new_enquiry_count %} <span class="badge-count">{{ new_enquiry_count }}</span>{% endif %}</a>
+      <a class="btn dh-btn-gold" href="{% url 'directory:listing_create' %}">{% icon "plus" %} Add listing</a>
+    </div>
   </div>
-  <div class="kpis">
-    <div class="kpi"><b>{{ listings|length }}</b><span>Listings</span></div>
-    <div class="kpi"><b>{{ new_enquiry_count }}</b><span>New requests</span></div>
-    <div class="kpi"><b>{{ live_count }}</b><span>Live listings</span></div>
+</div>
+
+<div class="container dh">
+  <div class="dh-kpis">
+    <div class="dh-kpi"><span class="dh-kpi-ic">{% icon "house" %}</span><div><b>{{ live_count }}<small> / {{ listings|length }}</small></b><span>Listings live</span></div></div>
+    <div class="dh-kpi{% if new_enquiry_count %} hot{% endif %}"><span class="dh-kpi-ic">{% icon "inbox" %}</span><div><b>{{ new_enquiry_count }}</b><span>New requests</span></div></div>
+    <div class="dh-kpi"><span class="dh-kpi-ic">{% icon "message-circle" %}</span><div><b>{{ req_30 }}</b><span>Requests, last 30 days</span></div></div>
+    <div class="dh-kpi"><span class="dh-kpi-ic">{% icon "gauge" %}</span><div><b>{{ views_30 }}</b><span>Page views, last 30 days</span></div></div>
   </div>
 
-  <h2>Your listings</h2>
-  {% if listings %}
-  <div class="table-wrap"><table class="data">
-    <tr><th>Listing</th><th>Island</th><th>Status</th><th>Requests</th><th></th></tr>
-    {% for l in listings %}
-    <tr>
-      <td><a href="{{ l.get_absolute_url }}"><b>{{ l.name }}</b></a><br><span class="muted small">{{ l.get_kind_display }}</span></td>
-      <td>{{ l.island.name }}</td>
-      <td><span class="pill {% if l.status == 'approved' %}ok{% elif l.status == 'pending' %}warn{% else %}bad{% endif %}">{{ l.get_status_display }}</span>
-        <br>{% if l.is_verified %}<span class="verified-badge" style="margin-top:4px">{% cowrie %} Verified host</span>{% elif l.verification_pending %}<span class="small muted">Verification in review</span>{% else %}<a class="small" href="{% url 'directory:listing_verify' l.pk %}">Get verified →</a>{% endif %}
-        {% if l.admin_note and l.status != 'approved' %}<br><span class="small muted">{{ l.admin_note }}</span>{% endif %}</td>
-      <td>{{ l.n_enquiries }}{% if l.n_new %} <span class="badge-count">{{ l.n_new }} new</span>{% endif %}</td>
-      <td><div class="row" style="gap:6px"><a class="btn btn-sm" href="{% url 'directory:listing_insights' l.pk %}">{% icon "gauge" %} Performance</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' l.pk %}">Edit</a><a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_photos' l.pk %}">Photos</a><a class="btn btn-ghost btn-sm" href="{% url 'links:manage' l.pk %}">{% icon "share-2" %} Tracked links <span class="tl-pro">Pro</span></a><a class="btn btn-ghost btn-sm" href="{% url 'links:partners' l.pk %}">{% icon "heart-handshake" %} Partners <span class="tl-pro">Pro</span></a>{% if l.is_transport %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_routes' l.pk %}">Routes</a>{% endif %}</div></td>
-    </tr>
-    {% endfor %}
-  </table></div>
-  {% else %}
-  <div class="empty">You haven't added a listing yet.<br><a class="btn" style="margin-top:12px" href="{% url 'directory:listing_create' %}">Add your first listing</a></div>
-  {% endif %}
+  <div class="dh-layout">
+    <div class="dh-main">
+      {% if attention %}
+      <section class="dh-card dh-attn">
+        <h2>{% icon "info" %} Needs your attention</h2>
+        <ul>
+          {% for icon_name, title, note, url, cta in attention %}
+          <li><span class="dh-attn-ic">{% icon icon_name %}</span><div><strong>{{ title }}</strong><small>{{ note }}</small></div><a class="btn btn-sm" href="{{ url }}">{{ cta }}</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
 
-  <h2 style="margin-top:32px">Latest booking requests</h2>
-  {% include "dashboard/_enquiry_table.html" with enquiries=recent %}
-  <p class="small muted" style="margin-top:16px">Island not listed? <a href="{% url 'directory:suggest_island' %}">Suggest an island</a>.</p>
+      <section>
+        <div class="dh-head"><h2>Your listings</h2>{% if listings %}<a class="small" href="{% url 'directory:listing_create' %}">{% icon "plus" %} Add another</a>{% endif %}</div>
+        {% if listings %}
+        <div class="dh-listings">
+          {% for l in listings %}
+          <article class="dh-listing">
+            <a class="dh-thumb" href="{{ l.get_absolute_url }}" style="{% if l.photo_url %}background-image:url('{{ l.photo_url }}'){% endif %}">{% if not l.photo_url %}{% icon "image" %}{% endif %}</a>
+            <div class="dh-l-body">
+              <div class="dh-l-top">
+                <div>
+                  <h3><a href="{{ l.get_absolute_url }}">{{ l.name }}</a></h3>
+                  <p class="muted small">{{ l.get_kind_display }} · {{ l.island.name }}</p>
+                </div>
+                <div class="dh-badges">
+                  <span class="pill {% if l.status == 'approved' %}ok{% elif l.status == 'pending' %}warn{% else %}bad{% endif %}">{% if l.status == 'approved' %}Live{% else %}{{ l.get_status_display }}{% endif %}</span>
+                  {% if l.is_verified %}<span class="dh-verified">{% cowrie %} Verified</span>{% endif %}
+                  {% if l.pro %}<span class="tl-pro">Pro</span>{% endif %}
+                </div>
+              </div>
+              <div class="dh-stats">
+                <div><b>{{ l.views_30 }}</b><span>views (30 d)</span></div>
+                <div><b>{{ l.n_30 }}</b><span>requests (30 d)</span></div>
+                <div><b>{{ l.n_enquiries }}</b><span>requests in total</span></div>
+                {% if l.n_new %}<div class="hot"><b>{{ l.n_new }}</b><span>new</span></div>{% endif %}
+              </div>
+              <div class="dh-l-actions">
+                <a class="btn btn-sm" href="{% url 'directory:listing_insights' l.pk %}">{% icon "gauge" %} Performance</a>
+                <a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_edit' l.pk %}">{% icon "pencil" %} Edit</a>
+                <a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_photos' l.pk %}">{% icon "camera" %} Photos</a>
+                {% if l.is_transport %}<a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_routes' l.pk %}">{% icon "route" %} Routes</a>{% endif %}
+                <span class="dh-sep" aria-hidden="true"></span>
+                <a class="dh-pro-link" href="{% url 'links:manage' l.pk %}">{% icon "share-2" %} Tracked links{% if not l.pro %} <span class="tl-pro">Pro</span>{% endif %}</a>
+                <a class="dh-pro-link" href="{% url 'links:partners' l.pk %}">{% icon "heart-handshake" %} Partners{% if l.apps %} <span class="badge-count">{{ l.apps }}</span>{% endif %}{% if not l.pro %} <span class="tl-pro">Pro</span>{% endif %}</a>
+              </div>
+              {% if l.admin_note and l.status != 'approved' %}<p class="small dh-note">{% icon "info" %} {{ l.admin_note }}</p>{% endif %}
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="dh-card dh-empty">
+          <span class="dh-empty-ic">{% icon "house" %}</span>
+          <h3>Add your first listing</h3>
+          <p class="muted">Guest house, dive centre, transfer, café or shop: it takes about 10 minutes, and we review it within 1–2 days.</p>
+          <a class="btn" href="{% url 'directory:listing_create' %}">{% icon "plus" %} Add your listing</a>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="dh-card">
+        <div class="dh-head"><h2>Latest booking requests</h2><a class="small" href="{% url 'directory:enquiry_list' %}">View all →</a></div>
+        {% if recent %}
+        <ul class="dh-reqs">
+          {% for e in recent %}
+          <li class="{% if e.status == 'new' %}new{% endif %}">
+            <a href="{% url 'directory:enquiry_detail' e.reference %}">
+              <span class="dh-avatar">{{ e.guest_name|slice:":1"|upper }}</span>
+              <span class="dh-req-main"><strong>{{ e.guest_name }}</strong>{% if e.guest_country %} <span class="muted">· {{ e.guest_country }}</span>{% endif %}
+                <small>{{ e.listing.name }} · {% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M" }}{% endif %}{% else %}no dates yet{% endif %} · {{ e.adults }}{% if e.children %}+{{ e.children }}{% endif %} guest{{ e.adults|add:e.children|pluralize }}</small></span>
+              <span class="dh-req-side"><span class="pill {% if e.status == 'new' %}warn{% elif e.status == 'confirmed' %}ok{% elif e.status == 'declined' %}bad{% else %}info{% endif %}">{{ e.get_status_display }}</span><small class="muted">{{ e.created_at|timesince }} ago</small></span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="muted small" style="margin:0">No booking requests yet. When a guest sends one, it appears here.</p>{% endif %}
+      </section>
+    </div>
+
+    <aside class="dh-side">
+      <section class="dh-card dh-pro-card">
+        <span class="tl-pro tl-pro-lg">Pro tools</span>
+        <h3>Grow your bookings</h3>
+        <ul class="dh-pro-list">
+          <li>{% icon "share-2" %}<span><strong>Tracked links</strong>See which posts, profiles and flyers bring you guests.</span></li>
+          <li>{% icon "heart-handshake" %}<span><strong>Partner programme</strong>Influencers and group leaders promote you for a commission.</span></li>
+        </ul>
+        {% if listings %}<a class="btn btn-block dh-btn-gold" href="{% url 'links:manage' listings.0.pk %}">{% if any_pro %}Open Pro tools{% else %}See what's included{% endif %} {% icon "arrow-right" %}</a>{% endif %}
+      </section>
+
+      {% for l in unverified %}
+      <section class="dh-card dh-tip">
+        <span class="dh-tip-ic">{% cowrie %}</span>
+        <h3>Get the Verified badge</h3>
+        <p class="small muted">Verified hosts stand out in search and get more requests. Send us your tourism licence for {{ l.name }}.</p>
+        <a class="btn btn-ghost btn-sm" href="{% url 'directory:listing_verify' l.pk %}">Get verified →</a>
+      </section>
+      {% endfor %}
+
+      <section class="dh-card dh-links">
+        <h3>Quick links</h3>
+        <a href="{% url 'directory:enquiry_list' %}">{% icon "inbox" %} All booking requests</a>
+        {% if has_partner %}<a href="{% url 'links:partner_dashboard' %}">{% icon "hand-coins" %} Your partner dashboard</a>{% endif %}
+        <a href="{% url 'directory:how_it_works' %}">{% icon "book-open" %} How requests work</a>
+        <a href="{% url 'directory:suggest_island' %}">{% icon "map-pin" %} Island not listed? Suggest it</a>
+      </section>
+    </aside>
+  </div>
 </div>
 {% endblock %}
