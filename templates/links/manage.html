@@ -19,7 +19,7 @@
 
   <div class="perf-kpis">
     <div class="perf-kpi"><span>Visits from your links</span><b>{{ total_v }}</b><small>last {{ days }} days</small></div>
-    <div class="perf-kpi"><span>Booking requests</span><b>{{ total_l }}</b><small>made within 30 days of a visit</small></div>
+    <div class="perf-kpi"><span>Booking requests</span><b>{{ total_l }}</b><small>made within 14 days of a visit</small></div>
     <div class="perf-kpi"><span>Conversion</span><b>{{ rate }}%</b><small>of visits became a request</small></div>
     <div class="perf-kpi"><span>On mobile</span><b>{{ mobile }}%</b><small>of visits</small></div>
   </div>
@@ -88,7 +88,7 @@
       <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Guest</th><th>Dates</th><th>Link</th><th></th></tr></thead><tbody>
       {% for lead in recent %}<tr><td>{{ lead.created_at|date:"j M, H:i" }}</td><td>{{ lead.enquiry.guest_name }}</td><td>{% if lead.enquiry.check_in %}{{ lead.enquiry.check_in|date:"j M" }}{% if lead.enquiry.check_out %} – {{ lead.enquiry.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td><td>{{ lead.link.label }}</td><td><a href="{% url 'directory:enquiry_detail' lead.enquiry.reference %}">Open</a></td></tr>{% endfor %}
       </tbody></table></div>
-    {% else %}<p class="muted small">None yet. When a guest opens one of your links and sends a booking request within 30 days, it appears here.</p>{% endif %}
+    {% else %}<p class="muted small">None yet. When a guest opens one of your links and sends a booking request within 14 days, it appears here.</p>{% endif %}
   </div>
 </div>
 <script>

@@ -3,7 +3,7 @@ import time
 
 from .models import LinkLead, TrackedLink
 
-WINDOW = 30 * 24 * 3600  # a request within 30 days of the visit counts
+WINDOW = 14 * 24 * 3600  # a request within 14 days of the visit counts (the session cookie lasts 2 weeks)
 KEY = "ref_links"
 
 

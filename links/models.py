@@ -2,7 +2,7 @@
 
 A property with a live LinkPlan creates short links (islandstaymv.com/r/<code>/) for each place it
 promotes itself: Instagram bio, WhatsApp status, Booking.com profile, flyers (QR code) and so on.
-Every visit is counted, and booking requests made within 30 days of a visit are credited to the link.
+Every visit is counted, and booking requests made within 14 days of a visit are credited to the link.
 """
 from django.db import models
 from django.utils import timezone
@@ -80,7 +80,7 @@ class LinkVisit(models.Model):
 
 
 class LinkLead(models.Model):
-    """A booking request made within 30 days of visiting through a tracked link."""
+    """A booking request made within 14 days of visiting through a tracked link."""
     link = models.ForeignKey(TrackedLink, on_delete=models.CASCADE, related_name="leads")
     enquiry = models.OneToOneField(Enquiry, on_delete=models.CASCADE, related_name="tracked_lead")
     created_at = models.DateTimeField(auto_now_add=True)

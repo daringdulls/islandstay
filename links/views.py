@@ -26,7 +26,7 @@ MOBILE = re.compile(r"Mobi|Android|iPhone|iPad", re.I)
 
 @never_cache
 def follow(request, code):
-    """islandstaymv.com/r/<code>/: count the visit, remember it for 30 days, open the listing."""
+    """islandstaymv.com/r/<code>/: count the visit, remember it for 14 days, open the listing."""
     link = TrackedLink.objects.select_related("listing").filter(code=code.lower()).first()
     if not link:
         raise Http404
