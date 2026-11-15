@@ -672,6 +672,8 @@ def suggest_island(request):
 
 @login_required
 def dashboard(request):
+    if hasattr(request.user, "partner") and not request.user.listings.exists() and not request.user.is_staff:
+        return redirect("links:partner_dashboard")
     listings = request.user.listings.select_related("island").annotate(
         n_enquiries=Count("enquiries"), n_new=Count("enquiries", filter=Q(enquiries__status=Enquiry.STATUS_NEW))
     )

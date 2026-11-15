@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Partners · {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container tl pp">
+  <div class="dash-head">
+    <div>
+      <a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
+      <div class="eyebrow">Partner programme <span class="tl-pro">Pro</span></div>
+      <h1 style="margin:0">{{ listing.name }}</h1>
+      <p class="muted" style="margin:0">Influencers, group leaders and agents promote you with their own link. When a booking they bring is completed, you pay them the commission you set here.</p>
+    </div>
+    <div class="row"><a class="btn btn-ghost btn-sm" href="{% url 'links:manage' listing.pk %}">{% icon "share-2" %} Your tracked links</a></div>
+  </div>
+
+  {% if not prog %}
+  <section class="pp-intro">
+    <ol class="pp-how">
+      <li><b>1</b><span><strong>Set your commission</strong>A percentage of each booking, or a fixed amount per booking or night.</span></li>
+      <li><b>2</b><span><strong>Partners join</strong>Invite people you know, or let them apply from our Become a partner page.</span></li>
+      <li><b>3</b><span><strong>Bookings are tracked</strong>Each partner gets a personal link. Requests through it are marked as theirs.</span></li>
+      <li><b>4</b><span><strong>You pay after the stay</strong>Approve the commission once the guest has stayed, pay the partner directly, and mark it paid.</span></li>
+    </ol>
+  </section>
+  {% else %}
+  <div class="perf-kpis">
+    <div class="perf-kpi"><span>Active partners</span><b>{{ n_active }}</b><small>{{ applications|length }} waiting for approval</small></div>
+    <div class="perf-kpi"><span>Pending</span><b>{{ prog.currency }} {{ totals.pending|floatformat:"-2" }}</b><small>booked, stay not finished</small></div>
+    <div class="perf-kpi"><span>You owe</span><b>{{ prog.currency }} {{ totals.owed|floatformat:"-2" }}</b><small>approved, not paid yet</small></div>
+    <div class="perf-kpi"><span>Paid to partners</span><b>{{ prog.currency }} {{ totals.paid|floatformat:"-2" }}</b><small>all time</small></div>
+  </div>
+  {% endif %}
+
+  {% if prog %}
+  {% if awaiting %}
+  <section class="panel pp-attn">
+    <h3>{% icon "inbox" %} Requests from partners</h3>
+    <p class="muted small" style="margin-top:0">Once a request is confirmed, enter what the guest is paying. That creates the partner's commission ({{ prog.offer }}).</p>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Request</th><th>Partner</th><th>Dates</th><th>Status</th><th>Record the booking</th></tr></thead><tbody>
+    {% for e in awaiting %}<tr>
+      <td><a href="{% url 'directory:enquiry_detail' e.reference %}">{{ e.reference }}</a><br><small class="muted">{{ e.guest_name }}</small></td>
+      <td>{{ e.tracked_lead.link.membership.partner.name }}</td>
+      <td>{% if e.check_in %}{{ e.check_in|date:"j M" }}{% if e.check_out %} – {{ e.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td>
+      <td><span class="pill {% if e.status == 'confirmed' %}ok{% else %}info{% endif %}">{{ e.get_status_display }}</span></td>
+      <td>{% if e.status == 'confirmed' %}<form method="post" class="pp-inline">{% csrf_token %}<input type="hidden" name="action" value="record"><input type="hidden" name="ref" value="{{ e.reference }}">
+        {% if prog.commission_type == 'percent' %}<input type="number" name="value" step="0.01" min="0" placeholder="Booking value ({{ prog.currency }})" required>{% endif %}
+        {% if prog.commission_type == 'night' %}<input type="number" name="nights" min="1" value="{{ e.nights|default:'' }}" placeholder="Nights" required>{% endif %}
+        <button class="btn btn-sm">Record</button></form>
+      {% else %}<small class="muted">Confirm it on the request page first</small>{% endif %}</td>
+    </tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% endif %}
+
+  {% if open_comms %}
+  <section class="panel">
+    <h3>{% icon "hand-coins" %} Commissions to settle</h3>
+    <div class="pp-comms">
+    {% for c in open_comms %}
+      <article class="pp-comm">
+        <div><b>{{ c.currency }} {{ c.amount }}</b> to <strong>{{ c.membership.partner.name }}</strong>
+          <p class="muted small" style="margin:2px 0 0">{{ c.enquiry.reference }} · {{ c.enquiry.guest_name }}{% if c.enquiry.check_out %} · check-out {{ c.enquiry.check_out|date:"j M Y" }}{% endif %}{% if c.booking_value %} · booking {{ c.currency }} {{ c.booking_value }}{% endif %}</p>
+          <span class="pp-st pp-{{ c.status }}">{{ c.get_status_display }}</span>
+          {% if c.membership.partner.payout %}<p class="small pp-payout">{% icon "banknote" %} Pay to: {{ c.membership.partner.payout }}</p>{% endif %}
+        </div>
+        <div class="pp-comm-act">
+          {% if c.status == 'pending' %}<form method="post">{% csrf_token %}<input type="hidden" name="id" value="{{ c.pk }}"><button class="btn btn-sm" name="action" value="c_approve" title="The guest has stayed">Approve: guest stayed</button></form>{% endif %}
+          <form method="post" class="pp-inline">{% csrf_token %}<input type="hidden" name="id" value="{{ c.pk }}"><input name="reference" placeholder="Payment reference"><button class="btn btn-sm btn-ghost" name="action" value="c_paid">Mark paid</button></form>
+          <form method="post" class="pp-inline">{% csrf_token %}<input type="hidden" name="id" value="{{ c.pk }}"><input name="note" placeholder="Reason, e.g. cancelled" required><button class="btn btn-sm btn-ghost" name="action" value="c_reject">Reject</button></form>
+        </div>
+      </article>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if applications %}
+  <section class="panel">
+    <h3>{% icon "users" %} Applications</h3>
+    <div class="pp-apps">
+    {% for m in applications %}
+      <article class="pp-app">
+        <div><strong>{{ m.partner.name }}</strong>{% if m.partner.audience %} <span class="pill info">{{ m.partner.get_audience_display }}</span>{% endif %}
+          <p class="small muted" style="margin:2px 0">{% if m.partner.instagram %}Instagram {{ m.partner.instagram }} · {% endif %}{% if m.partner.tiktok %}TikTok {{ m.partner.tiktok }} · {% endif %}{% if m.partner.country %}{{ m.partner.country }}{% endif %}{% if m.partner.other_link %} · <a href="{{ m.partner.other_link }}" target="_blank" rel="noopener nofollow">website</a>{% endif %}</p>
+          {% if m.message %}<p class="small" style="margin:4px 0 0">"{{ m.message }}"</p>{% endif %}</div>
+        <form method="post" class="row">{% csrf_token %}<input type="hidden" name="id" value="{{ m.pk }}"><button class="btn btn-sm" name="action" value="approve">Approve</button><button class="btn btn-sm btn-ghost" name="action" value="decline">Decline</button></form>
+      </article>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="panel">
+    <div class="tl-new-head"><h3>{% icon "heart-handshake" %} Your partners</h3><span class="muted small">{{ prog.offer }}</span></div>
+    {% if partners %}
+    <div class="table-wrap"><table class="table pp-table"><thead><tr><th>Partner</th><th>Link</th><th>Visits</th><th>Requests</th><th>Bookings</th><th>Owed</th><th>Paid</th><th></th></tr></thead><tbody>
+    {% for m in partners %}<tr class="{% if m.status == 'paused' %}pp-off{% endif %}">
+      <td><strong>{{ m.partner.name }}</strong>{% if m.status == 'paused' %} <span class="pill warn">Paused</span>{% endif %}<br><small class="muted">{{ m.partner.instagram|default:m.partner.user.email }}</small></td>
+      <td>{% if m.url %}<button type="button" class="btn btn-ghost btn-sm" data-copy="{{ m.url }}">{% icon "copy" %} /r/{{ m.link.code }}/</button>{% endif %}</td>
+      <td>{{ m.link.clicks|default:0 }}</td><td>{{ m.n_leads }}</td><td>{{ m.n_booked }}</td>
+      <td>{{ prog.currency }} {{ m.owed|default:0|floatformat:"-2" }}</td><td>{{ prog.currency }} {{ m.paid|default:0|floatformat:"-2" }}</td>
+      <td><form method="post">{% csrf_token %}<input type="hidden" name="id" value="{{ m.pk }}">{% if m.status == 'active' %}<button class="btn btn-ghost btn-sm" name="action" value="pause">Pause</button>{% else %}<button class="btn btn-ghost btn-sm" name="action" value="resume">Resume</button>{% endif %}</form></td>
+    </tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<p class="muted small">No partners yet. Invite someone below{% if prog.joining == 'open' %}, or share your programme page{% endif %}.</p>{% endif %}
+
+    <div class="pp-invite" id="invite">
+      {% if sent %}
+      <div class="pp-sent">
+        <strong>{% icon "check" %} {{ sent.name }} is in. Send them this:</strong>
+        <textarea readonly rows="5" id="pp-msg">Hello {{ sent.name }}, you're now a partner of {{ listing.name }} on Island Stay. Your personal booking link is {{ sent.url }} – share it, and you earn {{ prog.offer }} for every completed stay booked through it.{% if sent.invite %} Set your password and see your stats here: {{ sent.invite }}{% else %} See your stats at islandstaymv.com/partner/{% endif %}</textarea>
+        <button type="button" class="btn btn-sm" data-copy-from="pp-msg">{% icon "copy" %} Copy message</button>
+      </div>
+      {% endif %}
+      <form method="post" class="pp-invite-form" novalidate>{% csrf_token %}<input type="hidden" name="action" value="invite">
+        <div class="tl-f"><label for="{{ invite.name.id_for_label }}">{{ invite.name.label }}</label>{{ invite.name }}{{ invite.name.errors }}</div>
+        <div class="tl-f"><label for="{{ invite.email.id_for_label }}">{{ invite.email.label }}</label>{{ invite.email }}{{ invite.email.errors }}</div>
+        <button class="btn" type="submit">{% icon "plus" %} Add partner</button>
+      </form>
+      {% if prog.joining == 'open' %}<p class="small muted" style="margin:10px 0 0">Your programme is open: partners can also apply from <a href="{{ join_url }}" target="_blank">islandstaymv.com/partners</a>.</p>{% endif %}
+    </div>
+  </section>
+
+  {% if done_comms %}
+  <section class="panel">
+    <h3>{% icon "check" %} Settled</h3>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Partner</th><th>Request</th><th>Amount</th><th>Status</th><th>Note</th></tr></thead><tbody>
+    {% for c in done_comms %}<tr><td>{{ c.membership.partner.name }}</td><td>{{ c.enquiry.reference }}</td><td>{{ c.currency }} {{ c.amount }}</td>
+      <td><span class="pp-st pp-{{ c.status }}">{{ c.get_status_display }}</span>{% if c.received_at %} <small class="muted">· partner confirmed</small>{% endif %}</td>
+      <td class="small">{% if c.status == 'paid' %}{{ c.paid_at|date:"j M Y" }}{% if c.paid_reference %} · {{ c.paid_reference }}{% endif %}{% else %}{{ c.note }}{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% endif %}
+  {% endif %}
+
+  <section class="panel" id="settings">
+    <h3>{% icon "pencil" %} {% if prog %}Programme settings{% else %}Start your partner programme{% endif %}</h3>
+    <form method="post" class="pp-settings" novalidate>{% csrf_token %}<input type="hidden" name="action" value="settings">
+      <div class="pp-set-row">
+        <fieldset><legend>Commission</legend>
+          <div class="pp-radios">{% for r in form.commission_type %}<label class="pp-radio">{{ r.tag }}<span>{{ r.choice_label }}</span></label>{% endfor %}</div>
+          <div class="row" style="margin-top:10px;align-items:flex-start"><div class="tl-f" style="max-width:140px"><label for="{{ form.rate.id_for_label }}">Amount</label>{{ form.rate }}</div>
+            <div class="tl-f" style="max-width:110px"><label for="{{ form.currency.id_for_label }}">Currency</label>{{ form.currency }}</div></div>
+          {{ form.rate.errors }}
+        </fieldset>
+        <fieldset><legend>Who can join</legend>
+          <div class="pp-radios">{% for r in form.joining %}<label class="pp-radio">{{ r.tag }}<span>{{ r.choice_label }}</span></label>{% endfor %}</div>
+          <label class="tl-check" style="margin-top:12px">{{ form.is_active }} Programme on</label>
+        </fieldset>
+      </div>
+      <div class="tl-f"><label for="{{ form.terms.id_for_label }}">Terms for partners</label>{{ form.terms }}</div>
+      <p class="small muted">You pay partners directly. Island Stay tracks the links and keeps the record, but doesn't handle or guarantee payments.</p>
+      <button class="btn" type="submit">{% if prog %}Save settings{% else %}Start the programme{% endif %}</button>
+    </form>
+  </section>
+</div>
+<script>
+document.querySelectorAll('[data-copy],[data-copy-from]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var text = b.dataset.copy || document.getElementById(b.dataset.copyFrom).value;
+    var t = b.innerHTML, done = function () { b.textContent = 'Copied'; setTimeout(function () { b.innerHTML = t; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done); else window.prompt('Copy', text);
+  });
+});
+</script>
+{% endblock %}

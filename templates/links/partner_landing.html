@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Become a partner{% endblock %}
+{% block content %}
+<div class="container tl pp">
+  <section class="tl-hero pp-hero">
+    <div>
+      <span class="tl-pro tl-pro-lg">Partner programme</span>
+      <h1>Earn commission by sharing the islands you love</h1>
+      <p class="tl-lead">For influencers, travel creators, group leaders and agents. Get a personal link for local guest houses and experiences, share it, and earn a commission from the business for every completed booking it brings.</p>
+      {% if partner %}<a class="btn tl-cta" href="{% url 'links:partner_dashboard' %}">Open your partner dashboard {% icon "arrow-right" %}</a>
+      {% else %}<a class="btn tl-cta" href="{% url 'links:partner_join' %}">Become a partner, free {% icon "arrow-right" %}</a>
+      {% if not user.is_authenticated %}<p class="muted small" style="margin:8px 0 0">Already have an Island Stay account? <a href="{% url 'accounts:login' %}?next={% url 'links:partner_join' %}" style="color:#fff;text-decoration:underline">Sign in</a> first.</p>{% endif %}{% endif %}
+    </div>
+    <ol class="pp-how pp-how-light">
+      <li><b>1</b><span><strong>Join free</strong>Tell us where you share: Instagram, TikTok, groups.</span></li>
+      <li><b>2</b><span><strong>Pick properties</strong>Apply below. Each business approves its partners.</span></li>
+      <li><b>3</b><span><strong>Share your link</strong>Every request through it is credited to you.</span></li>
+      <li><b>4</b><span><strong>Get paid by the business</strong>After the guest's stay, directly, as agreed in their terms.</span></li>
+    </ol>
+  </section>
+
+  <h2>Properties looking for partners</h2>
+  {% if programmes %}
+  <div class="pp-grid">
+    {% for p in programmes %}
+    <article class="pp-card" id="p-{{ p.pk }}">
+      <a href="{{ p.listing.get_absolute_url }}" class="pp-card-img" style="{% if p.listing.photo_url %}background-image:url('{{ p.listing.photo_url }}'){% endif %}"></a>
+      <div class="pp-card-body">
+        <p class="small muted" style="margin:0">{{ p.listing.get_kind_display }} · {{ p.listing.island.name }}</p>
+        <h3><a href="{{ p.listing.get_absolute_url }}">{{ p.listing.name }}</a></h3>
+        <p class="pp-offer">{% icon "hand-coins" %} {{ p.offer }}</p>
+        {% if p.terms %}<p class="small muted pp-terms">{{ p.terms|truncatechars:140 }}</p>{% endif %}
+        {% if p.pk in joined %}<span class="pill ok">You've joined or applied</span>
+        {% elif partner %}<form method="post" action="{% url 'links:partner_dashboard' %}">{% csrf_token %}<input type="hidden" name="action" value="apply"><input type="hidden" name="programme" value="{{ p.pk }}">
+          <input name="message" placeholder="A line about you (optional)" class="pp-msg"><button class="btn btn-sm">Apply</button></form>
+        {% else %}<a class="btn btn-sm" href="{% url 'links:partner_join' %}">Join to apply</a>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<p class="muted">No open programmes yet. Join now and we'll show new ones on your dashboard.</p>{% endif %}
+
+  <div class="tl-faq" style="margin-top:36px">
+    <h2>Questions</h2>
+    <details><summary>Who pays me?</summary><p>The business pays you directly, for example by bank transfer, as set out in its terms. Island Stay tracks your links and keeps the record of every commission, but doesn't handle payments.</p></details>
+    <details><summary>When is a booking credited to me?</summary><p>When a guest opens your link and sends that business a booking request within 14 days. If they used another partner's link more recently, the most recent one counts.</p></details>
+    <details><summary>When do I earn the commission?</summary><p>When the business confirms the booking it shows as pending. After the guest has stayed, the business approves it, then pays you and marks it paid. Cancelled bookings don't earn commission.</p></details>
+    <details><summary>What do I see about guests?</summary><p>Only a first name and initial, the dates and the booking value. Never their contact details.</p></details>
+  </div>
+</div>
+{% endblock %}

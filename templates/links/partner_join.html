@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{% if editing %}Partner profile{% else %}Become a partner{% endif %}{% endblock %}
+{% block content %}
+<div class="container" style="max-width:760px;padding-top:28px;padding-bottom:64px">
+  <a class="small" href="{% if editing %}{% url 'links:partner_dashboard' %}{% else %}{% url 'links:partner_landing' %}{% endif %}">← Back</a>
+  <div class="panel pp-join">
+    <span class="tl-pro tl-pro-lg">Partner programme</span>
+    <h1 style="font-size:1.7rem;margin:0 0 6px">{% if editing %}Your partner profile{% else %}Become an Island Stay partner{% endif %}</h1>
+    <p class="muted" style="margin:0 0 20px">{% if editing %}Businesses you work with see this.{% else %}Free to join. Businesses see your profile when you apply, so tell them where you share.{% endif %}</p>
+    <form method="post" novalidate>{% csrf_token %}
+      {% include "partials/form_fields.html" with full_fields="payout" %}
+      <button class="btn btn-block" style="margin-top:16px">{% if editing %}Save{% else %}Create partner account{% endif %}</button>
+    </form>
+    {% if not editing and not user.is_authenticated %}<p class="small" style="margin-top:14px">Already have an Island Stay account? <a href="{% url 'accounts:login' %}?next={% url 'links:partner_join' %}">Sign in first</a>.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}

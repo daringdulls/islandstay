@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Partner dashboard{% endblock %}
+{% block content %}
+<div class="container tl pp">
+  <div class="dash-head">
+    <div><div class="eyebrow">Partner dashboard</div><h1 style="margin:0">{{ partner.name }}</h1>
+      <p class="muted" style="margin:0">Share your links. Every booking request through them is credited to you.</p></div>
+    <div class="row"><a class="btn btn-ghost btn-sm" href="{% url 'links:partner_profile' %}">{% icon "pencil" %} Profile &amp; payment details</a><a class="btn btn-sm" href="{% url 'links:partner_landing' %}">Find properties</a></div>
+  </div>
+  {% if not partner.payout %}<div class="tl-note pp-warn">{% icon "info" %} Add how you'd like to be paid in your <a href="{% url 'links:partner_profile' %}">profile</a>, so businesses can pay you.</div>{% endif %}
+
+  <div class="perf-kpis">
+    <div class="perf-kpi"><span>Visits from your links</span><b>{{ visits }}</b><small>all time</small></div>
+    <div class="perf-kpi"><span>Booking requests</span><b>{{ leads }}</b><small>credited to you</small></div>
+    <div class="perf-kpi"><span>Pending / approved</span><b>{{ cur }} {{ due|floatformat:"-2" }}</b><small>{{ cur }} {{ totals.owed|floatformat:"-2" }} approved, waiting for payment</small></div>
+    <div class="perf-kpi"><span>Paid to you</span><b>{{ cur }} {{ totals.paid|floatformat:"-2" }}</b><small>all time</small></div>
+  </div>
+
+  <h2 style="font-size:1.3rem">Your links</h2>
+  {% if active %}
+  <div class="tl-list">
+    {% for m in active %}
+    <article class="tl-card">
+      <div class="tl-card-main">
+        <div class="tl-card-top"><span class="tl-ch">{% icon "house" %}</span><div><h4><a href="{{ m.programme.listing.get_absolute_url }}">{{ m.programme.listing.name }}</a></h4><p class="muted small">{{ m.programme.listing.island.name }} · you earn <b>{{ m.programme.offer }}</b></p></div></div>
+        <div class="tl-url"><code>{{ m.url }}</code><button type="button" class="btn btn-sm" data-copy="{{ m.url }}">{% icon "copy" %} Copy</button></div>
+        <div class="tl-stats"><span><b>{{ m.link.clicks }}</b> visits</span><span><b>{{ m.n_leads }}</b> request{{ m.n_leads|pluralize }}</span></div>
+        {% if m.programme.terms %}<p class="small muted" style="margin:0">{% icon "scroll-text" %} {{ m.programme.terms }}</p>{% endif %}
+        <div class="tl-actions">
+          <a class="btn btn-ghost btn-sm" href="https://wa.me/?text={{ m.url|urlencode }}" target="_blank" rel="noopener">{% icon "message-circle" %} Share on WhatsApp</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'links:qr' m.link.pk 'png' %}?download=1">{% icon "upload" %} QR code</a>
+        </div>
+      </div>
+      <img class="tl-qr" src="{% url 'links:qr' m.link.pk 'svg' %}" alt="QR code for {{ m.url }}" loading="lazy" width="120" height="120">
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}<div class="panel tl-empty">{% icon "share-2" %}<div><strong>No links yet.</strong><p class="muted small" style="margin:0">Apply to properties below. You get your link as soon as a business approves you.</p></div></div>{% endif %}
+
+  {% if waiting or inactive %}<div class="panel"><h3>Applications</h3><ul class="perf-list">
+    {% for m in waiting %}<li><span>{{ m.programme.listing.name }}</span><b class="pill info">Waiting for approval</b></li>{% endfor %}
+    {% for m in inactive %}<li><span>{{ m.programme.listing.name }}</span><b class="pill {% if m.status == 'paused' %}warn{% else %}bad{% endif %}">{{ m.get_status_display }}</b></li>{% endfor %}
+  </ul></div>{% endif %}
+
+  <div class="panel">
+    <h3>{% icon "hand-coins" %} Your commissions</h3>
+    {% if comms %}
+    <div class="table-wrap"><table class="table"><thead><tr><th>Property</th><th>Guest</th><th>Dates</th><th>Booking</th><th>Commission</th><th>Status</th></tr></thead><tbody>
+    {% for c in comms %}<tr>
+      <td>{{ c.membership.programme.listing.name }}</td><td>{{ c.guest_short }}</td>
+      <td>{% if c.enquiry.check_in %}{{ c.enquiry.check_in|date:"j M" }}{% if c.enquiry.check_out %} – {{ c.enquiry.check_out|date:"j M Y" }}{% endif %}{% else %}–{% endif %}</td>
+      <td>{% if c.booking_value %}{{ c.currency }} {{ c.booking_value }}{% else %}–{% endif %}</td>
+      <td><b>{{ c.currency }} {{ c.amount }}</b></td>
+      <td><span class="pp-st pp-{{ c.status }}">{{ c.get_status_display }}</span>
+        {% if c.status == 'paid' %}<br><small class="muted">{{ c.paid_at|date:"j M Y" }}{% if c.paid_reference %} · ref {{ c.paid_reference }}{% endif %}</small>
+          {% if not c.received_at %}<form method="post" style="margin-top:4px">{% csrf_token %}<input type="hidden" name="id" value="{{ c.pk }}"><button class="btn btn-ghost btn-sm" name="action" value="received">I received it</button></form>{% else %}<br><small style="color:var(--verified)">Received</small>{% endif %}
+        {% elif c.status == 'rejected' and c.note %}<br><small class="muted">{{ c.note }}</small>{% endif %}</td>
+    </tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<p class="muted small">When a business confirms a booking that came through your link, it appears here.</p>{% endif %}
+  </div>
+
+  {% if more %}
+  <h2 style="font-size:1.3rem">More properties to promote</h2>
+  <div class="pp-grid">
+    {% for p in more %}
+    <article class="pp-card">
+      <a href="{{ p.listing.get_absolute_url }}" class="pp-card-img" style="{% if p.listing.photo_url %}background-image:url('{{ p.listing.photo_url }}'){% endif %}"></a>
+      <div class="pp-card-body"><p class="small muted" style="margin:0">{{ p.listing.island.name }}</p><h3>{{ p.listing.name }}</h3><p class="pp-offer">{% icon "hand-coins" %} {{ p.offer }}</p>
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="apply"><input type="hidden" name="programme" value="{{ p.pk }}"><input name="message" placeholder="A line about you (optional)" class="pp-msg"><button class="btn btn-sm">Apply</button></form></div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () { var t = b.innerHTML; navigator.clipboard.writeText(b.dataset.copy).then(function () { b.textContent = 'Copied'; setTimeout(function () { b.innerHTML = t; }, 1500); }); });
+});
+</script>
+{% endblock %}

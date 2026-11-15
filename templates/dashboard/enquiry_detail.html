@@ -42,6 +42,21 @@
           <input class="small" readonly value="{{ review_url }}" onclick="this.select()" aria-label="Review link">
         </div>
       </div>
+      {% with m=e.tracked_lead.link.membership %}{% if m %}
+      <div class="panel pp-epanel">
+        <h3>{% icon "heart-handshake" %} Booked via a partner</h3>
+        <p class="small" style="margin-top:0">This request came through <b>{{ m.partner.name }}</b>'s link. They earn {{ m.programme.offer }} once the guest has stayed.</p>
+        {% if e.commission %}
+          <p class="small" style="margin:0">Commission: <b>{{ e.commission.currency }} {{ e.commission.amount }}</b> · <span class="pp-st pp-{{ e.commission.status }}">{{ e.commission.get_status_display }}</span></p>
+          <a class="small" href="{% url 'links:partners' e.listing_id %}">Manage on your Partners page</a>
+        {% elif e.status == 'confirmed' %}
+          <form method="post" action="{% url 'links:partners' e.listing_id %}" class="stack">{% csrf_token %}<input type="hidden" name="action" value="record"><input type="hidden" name="ref" value="{{ e.reference }}"><input type="hidden" name="next" value="{{ request.path }}">
+            {% if m.programme.commission_type == 'percent' %}<label class="small">Booking value ({{ m.programme.currency }})<input type="number" name="value" step="0.01" min="0" required></label>{% endif %}
+            {% if m.programme.commission_type == 'night' %}<label class="small">Nights<input type="number" name="nights" min="1" value="{{ e.nights|default:'' }}" required></label>{% endif %}
+            <button class="btn btn-sm btn-block">Record the booking</button></form>
+        {% else %}<p class="small muted" style="margin:0">When you confirm the booking, record its value here to work out the commission.</p>{% endif %}
+      </div>
+      {% endif %}{% endwith %}
       <div class="panel">
         <h3>Track this request</h3>
         <form method="post">{% csrf_token %}{% include "partials/form_fields.html" %}<button class="btn btn-block" style="margin-top:12px">Save</button></form>

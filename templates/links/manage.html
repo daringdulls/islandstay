@@ -11,6 +11,7 @@
       <p class="muted" style="margin:0">Share these links wherever you promote yourself. We count every visit and every booking request they bring.{% if plan.ends %} Your plan runs until {{ plan.ends|date:"j M Y" }}.{% endif %}</p>
     </div>
     <div class="row">
+      <a class="btn btn-sm" href="{% url 'links:partners' listing.pk %}">{% icon "heart-handshake" %} Partner programme</a>
       <a class="btn btn-sm {% if days != 7 %}btn-ghost{% endif %}" href="?days=7">7 days</a>
       <a class="btn btn-sm {% if days != 30 %}btn-ghost{% endif %}" href="?days=30">30 days</a>
       <a class="btn btn-sm {% if days != 90 %}btn-ghost{% endif %}" href="?days=90">90 days</a>

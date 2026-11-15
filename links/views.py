@@ -32,7 +32,11 @@ def follow(request, code):
         raise Http404
     listing = link.listing
     target = listing.get_absolute_url() + ("#request" if link.to_form else "")
-    if link.is_active and listing.is_live and plan_is_live(listing) and not is_bot(request):
+    counts = link.is_active and listing.is_live and plan_is_live(listing) and not is_bot(request)
+    membership = getattr(link, "membership", None) if counts else None
+    if membership is not None and not (membership.status == "active" and membership.partner.is_active and membership.programme.is_active):
+        counts = False
+    if counts:
         ref = request.headers.get("Referer", "")
         host = re.sub(r"^https?://(www\.)?", "", ref).split("/")[0][:80] if ref else ""
         LinkVisit.objects.create(link=link, device="mobile" if MOBILE.search(request.headers.get("User-Agent", "")) else "desktop",
@@ -82,7 +86,7 @@ def manage(request, pk):
         return render(request, "links/upsell.html", {"listing": listing, "plan": plan, "requested": requested,
                                                      "price": getattr(settings, "TRACKED_LINKS_PRICE", "")})
 
-    links = listing.tracked_links.all()
+    links = listing.tracked_links.filter(membership__isnull=True)
     form = TrackedLinkForm(request.POST or None, listing=listing)
     if request.method == "POST":
         action = request.POST.get("action")
@@ -100,8 +104,8 @@ def manage(request, pk):
 
     days = 30 if request.GET.get("days") not in ("7", "90") else int(request.GET["days"])
     since = timezone.now() - timedelta(days=days)
-    visits = LinkVisit.objects.filter(link__listing=listing, created_at__gte=since)
-    leads = LinkLead.objects.filter(link__listing=listing, created_at__gte=since)
+    visits = LinkVisit.objects.filter(link__listing=listing, link__membership__isnull=True, created_at__gte=since)
+    leads = LinkLead.objects.filter(link__listing=listing, link__membership__isnull=True, created_at__gte=since)
     per_day = dict(visits.annotate(d=TruncDate("created_at")).values("d").annotate(n=Count("id")).values_list("d", "n"))
     lead_days = dict(leads.annotate(d=TruncDate("created_at")).values("d").annotate(n=Count("id")).values_list("d", "n"))
     today = timezone.localdate()
@@ -144,7 +148,9 @@ def qr(request, pk, fmt):
     if fmt not in ("svg", "png"):
         raise Http404
     link = get_object_or_404(TrackedLink.objects.select_related("listing"), pk=pk)
-    _own(request, link.listing_id)
+    m = getattr(link, "membership", None)  # a partner may download their own link's QR code
+    if not (m and m.partner.user_id == request.user.id):
+        _own(request, link.listing_id)
     code = segno.make(_full(request, link), error="m")
     from io import BytesIO
     buf = BytesIO()

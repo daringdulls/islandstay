@@ -42,5 +42,15 @@ class OwnerWelcomeView(PasswordResetConfirmView):
     success_url = reverse_lazy("directory:dashboard")
 
     def form_valid(self, form):
-        messages.success(self.request, "Welcome to Island Stay! Your password is set. Here are your listings.")
+        user = form.user
+        if hasattr(user, "partner") and not user.listings.exists():
+            messages.success(self.request, "Welcome to Island Stay! Your password is set. Here are your partner links.")
+        else:
+            messages.success(self.request, "Welcome to Island Stay! Your password is set. Here are your listings.")
         return super().form_valid(form)
+
+    def get_success_url(self):
+        user = getattr(self, "user", None)
+        if user is not None and hasattr(user, "partner") and not user.listings.exists():
+            return reverse_lazy("links:partner_dashboard")
+        return super().get_success_url()

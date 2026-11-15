@@ -356,6 +356,9 @@ UNFOLD = {
                     {"title": "Advertising enquiries", "icon": "mail", "link": reverse_lazy("admin:partners_adenquiry_changelist")},
                     {"title": "Tracked links plans", "icon": "workspace_premium", "link": reverse_lazy("admin:links_linkplan_changelist")},
                     {"title": "Tracked links", "icon": "ads_click", "link": reverse_lazy("admin:links_trackedlink_changelist")},
+                    {"title": "Partner programmes", "icon": "handshake", "link": reverse_lazy("admin:links_programme_changelist")},
+                    {"title": "Partners (influencers)", "icon": "group", "link": reverse_lazy("admin:links_partner_changelist")},
+                    {"title": "Partner commissions", "icon": "payments", "link": reverse_lazy("admin:links_commission_changelist")},
                 ],
             },
             {
