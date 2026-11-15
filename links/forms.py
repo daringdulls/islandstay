@@ -80,14 +80,19 @@ class PartnerProfileForm(forms.ModelForm):
     class Meta:
         model = Partner
         fields = ["name", "instagram", "tiktok", "other_link", "audience", "country", "phone", "payout"]
-        widgets = {"payout": forms.Textarea(attrs={"rows": 2, "placeholder": "e.g. BML transfer to Aishath Ali, account 7730000123456"}),
+        widgets = {"payout": forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. BML transfer to Aishath Ali, account 7730000123456"}),
                    "instagram": forms.TextInput(attrs={"placeholder": "@yourhandle"}),
-                   "tiktok": forms.TextInput(attrs={"placeholder": "@yourhandle"})}
+                   "tiktok": forms.TextInput(attrs={"placeholder": "@yourhandle"}),
+                   "name": forms.TextInput(attrs={"placeholder": "e.g. Aishath Travels", "autocomplete": "name"}),
+                   "other_link": forms.URLInput(attrs={"placeholder": "https://youtube.com/@…"}),
+                   "country": forms.TextInput(attrs={"placeholder": "e.g. Maldives", "autocomplete": "country-name"}),
+                   "phone": forms.TextInput(attrs={"placeholder": "+960 777 1234", "autocomplete": "tel", "inputmode": "tel"})}
+        labels = {"name": "Your name or brand", "other_link": "Website or YouTube", "tiktok": "TikTok"}
 
 
 class PartnerSignupForm(PartnerProfileForm):
-    email = forms.EmailField(label="Email (used to sign in)")
-    password = forms.CharField(widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}), min_length=8,
+    email = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"placeholder": "you@example.com", "autocomplete": "email"}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "placeholder": "At least 8 characters"}), min_length=8,
                                help_text="At least 8 characters")
 
     class Meta(PartnerProfileForm.Meta):

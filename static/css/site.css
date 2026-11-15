@@ -2489,3 +2489,27 @@ a.card:hover .cover img.cowrie { transform: none; }
   .pp-comm-act { justify-items: start; }
 }
 @media (max-width: 560px) { .pp-how { grid-template-columns: 1fr; } }
+
+/* ================= Partner sign-up ================= */
+.su-in textarea { width: 100%; padding: 12px 14px 12px 40px; border: 1.5px solid var(--line); border-radius: 12px; background: #fbfdfd; font: inherit; font-size: .95rem; resize: vertical; min-height: 84px; transition: border-color .15s, box-shadow .15s, background .15s; }
+.su-in textarea:focus { outline: none; border-color: var(--sea); background: #fff; box-shadow: 0 0 0 4px rgba(11,110,138,.12); }
+.su-in:has(textarea) .su-ic { top: 22px; transform: none; }
+.pj-aud { margin-top: 14px; }
+.pj-aud-label { margin: 0 0 8px; font-size: .85rem; font-weight: 600; display: flex; gap: 6px; align-items: baseline; }
+.pj-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.pj-chip { position: relative; cursor: pointer; }
+.pj-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.pj-chip span { display: inline-block; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line); font-size: .85rem; font-weight: 600; background: #fff; transition: all .15s; }
+.pj-chip:hover span { border-color: var(--control); }
+.pj-chip input:checked + span { background: var(--sea); border-color: var(--sea); color: #fff; }
+.pj-chip input:focus-visible + span { outline: 3px solid var(--sea); outline-offset: 2px; }
+.pj-calc { position: relative; z-index: 1; margin-top: 4px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); border-radius: 18px; padding: 16px 18px; }
+.pj-calc-label { margin: 0 0 10px; font-size: .74rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--shallows); }
+.pj-calc-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pj-calc label { display: grid; gap: 6px; font-size: .82rem; color: rgba(255,255,255,.8); }
+.pj-calc output { font-weight: 800; color: #fff; font-size: 1rem; }
+.pj-calc input[type=range] { width: 100%; accent-color: var(--gold); }
+.pj-calc-result { margin: 12px 0 2px; color: rgba(255,255,255,.85); }
+.pj-calc-result b { font-family: var(--font-display); font-size: 1.5rem; color: var(--gold); }
+.pj-calc small { color: rgba(255,255,255,.6); font-size: .74rem; }
+@media (max-width: 560px) { .pj-calc-row { grid-template-columns: 1fr; } }

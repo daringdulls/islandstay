@@ -2,17 +2,127 @@
 {% load ui %}
 {% block title %}{% if editing %}Partner profile{% else %}Become a partner{% endif %}{% endblock %}
 {% block content %}
-<div class="container" style="max-width:760px;padding-top:28px;padding-bottom:64px">
-  <a class="small" href="{% if editing %}{% url 'links:partner_dashboard' %}{% else %}{% url 'links:partner_landing' %}{% endif %}">← Back</a>
-  <div class="panel pp-join">
-    <span class="tl-pro tl-pro-lg">Partner programme</span>
-    <h1 style="font-size:1.7rem;margin:0 0 6px">{% if editing %}Your partner profile{% else %}Become an Island Stay partner{% endif %}</h1>
-    <p class="muted" style="margin:0 0 20px">{% if editing %}Businesses you work with see this.{% else %}Free to join. Businesses see your profile when you apply, so tell them where you share.{% endif %}</p>
-    <form method="post" novalidate>{% csrf_token %}
-      {% include "partials/form_fields.html" with full_fields="payout" %}
-      <button class="btn btn-block" style="margin-top:16px">{% if editing %}Save{% else %}Create partner account{% endif %}</button>
-    </form>
-    {% if not editing and not user.is_authenticated %}<p class="small" style="margin-top:14px">Already have an Island Stay account? <a href="{% url 'accounts:login' %}?next={% url 'links:partner_join' %}">Sign in first</a>.</p>{% endif %}
+<div class="su pj">
+  <div class="container su-wrap">
+    <aside class="su-brand">
+      <p class="su-kicker">{% cowrie "su-cowrie" %} Island Stay partner programme</p>
+      {% if editing %}
+        <h1>Your partner profile</h1>
+        <p class="su-lead">Businesses see this when you apply. The ones you work with use your payment details to pay your commission.</p>
+      {% else %}
+        <h1>Earn from the islands you love</h1>
+        <p class="su-lead">For travel creators, influencers, group leaders and agents. Share your personal link to local guest houses and experiences, and earn a commission for every completed stay.</p>
+      {% endif %}
+      <ul class="su-perks">
+        <li>{% icon "badge-check" %}<span><strong>Free to join</strong>No fees and no minimum audience.</span></li>
+        <li>{% icon "hand-coins" %}<span><strong>Commission set by each property</strong>Usually a % of the booking or a fixed amount per night.</span></li>
+        <li>{% icon "banknote" %}<span><strong>Paid by the business</strong>Directly to you after the guest's stay, as agreed in their terms.</span></li>
+        <li>{% icon "gauge" %}<span><strong>Your own dashboard</strong>Links, QR codes, visits, bookings and every commission in one place.</span></li>
+      </ul>
+
+      <div class="pj-calc" aria-label="Earnings example">
+        <p class="pj-calc-label">What could you earn?</p>
+        <div class="pj-calc-row">
+          <label>Bookings a month <output id="pj-n-out">4</output><input type="range" id="pj-n" min="1" max="30" value="4"></label>
+          <label>Average booking <output id="pj-v-out">USD 600</output><input type="range" id="pj-v" min="100" max="3000" step="50" value="600"></label>
+        </div>
+        <p class="pj-calc-result">At 10% commission: <b id="pj-r">USD 240</b> a month</p>
+        <small>An example only. Each property sets its own rate.</small>
+      </div>
+    </aside>
+
+    <section class="su-card">
+      <header>
+        <h2>{% if editing %}Edit your details{% else %}Create your partner account{% endif %}</h2>
+        {% if editing %}<p><a href="{% url 'links:partner_dashboard' %}">← Back to your dashboard</a></p>
+        {% elif user.is_authenticated %}<p>You're signed in as {{ user.email }}. Add your partner details below.</p>
+        {% else %}<p>Takes about a minute. Already have an Island Stay account? <a href="{% url 'accounts:login' %}?next={% url 'links:partner_join' %}">Sign in</a></p>{% endif %}
+      </header>
+
+      <form method="post" novalidate id="su-form">{% csrf_token %}
+        {% if form.non_field_errors %}<div class="su-alert">{% icon "info" %}<div>{% for e in form.non_field_errors %}<p>{{ e }}</p>{% endfor %}</div></div>{% endif %}
+
+        <fieldset>
+          <legend>About you</legend>
+          <div class="su-grid">
+            {% include "accounts/_su_field.html" with field=form.name icon="users" full=True %}
+            {% if form.email %}
+              {% include "accounts/_su_field.html" with field=form.email icon="mail" %}
+              {% include "accounts/_su_field.html" with field=form.password icon="shield-check" pw=True %}
+            {% endif %}
+          </div>
+          {% if form.password %}<ul class="su-rules" id="su-rules" aria-live="polite"><li data-rule="len">At least 8 characters</li><li data-rule="num">Not only numbers</li></ul>{% endif %}
+        </fieldset>
+
+        <fieldset>
+          <legend>Where you share <span>businesses see this when you apply</span></legend>
+          <div class="su-grid">
+            {% include "accounts/_su_field.html" with field=form.instagram icon="instagram" %}
+            {% include "accounts/_su_field.html" with field=form.tiktok icon="share-2" %}
+            {% include "accounts/_su_field.html" with field=form.other_link icon="globe" full=True %}
+          </div>
+          <div class="pj-aud">
+            <p class="pj-aud-label">Audience size <span class="su-opt">optional</span></p>
+            <div class="pj-chips" role="radiogroup" aria-label="Audience size">
+              {% for value, label in form.audience.field.choices %}{% if value %}
+              <label class="pj-chip"><input type="radio" name="audience" value="{{ value }}" {% if form.audience.value == value %}checked{% endif %}><span>{{ label }}</span></label>
+              {% endif %}{% endfor %}
+            </div>
+            {{ form.audience.errors }}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Getting paid <span>shared only with properties you work with</span></legend>
+          <div class="su-grid">
+            {% include "accounts/_su_field.html" with field=form.country icon="globe" %}
+            {% include "accounts/_su_field.html" with field=form.phone icon="phone" %}
+            {% include "accounts/_su_field.html" with field=form.payout icon="banknote" full=True note="Bank and account name, or another way you'd like to be paid. You can add this later." %}
+          </div>
+        </fieldset>
+
+        <button class="btn su-submit" type="submit">{% if editing %}Save changes{% else %}Create partner account{% endif %} {% icon "arrow-right" %}</button>
+        {% if not editing %}<p class="su-legal">By joining you agree to our <a href="{% url 'directory:privacy' %}">privacy policy</a>. Commissions are agreed with and paid by each business; Island Stay tracks them for you.</p>{% endif %}
+      </form>
+    </section>
   </div>
 </div>
+<script>
+(function () {
+  var n = document.getElementById('pj-n'), v = document.getElementById('pj-v');
+  function calc() {
+    document.getElementById('pj-n-out').textContent = n.value;
+    document.getElementById('pj-v-out').textContent = 'USD ' + Number(v.value).toLocaleString('en');
+    document.getElementById('pj-r').textContent = 'USD ' + Math.round(n.value * v.value * 0.1).toLocaleString('en');
+  }
+  n.addEventListener('input', calc); v.addEventListener('input', calc); calc();
+
+  var form = document.getElementById('su-form');
+  var p1 = form.querySelector('[name=password]'), rules = document.getElementById('su-rules');
+  if (p1 && rules) {
+    var check = function () {
+      var a = p1.value, state = { len: a.length >= 8, num: a.length > 0 && !/^\d+$/.test(a) };
+      rules.querySelectorAll('li').forEach(function (li) { li.classList.toggle('ok', state[li.dataset.rule]); });
+    };
+    p1.addEventListener('input', check); check();
+  }
+  form.querySelectorAll('.su-eye').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = btn.parentNode.querySelector('input'), show = input.type === 'password';
+      input.type = show ? 'text' : 'password'; btn.setAttribute('aria-pressed', show); btn.textContent = show ? 'Hide' : 'Show';
+    });
+  });
+  form.addEventListener('submit', function (ev) {
+    var bad = null;
+    form.querySelectorAll('[required]').forEach(function (el) {
+      var box = el.closest('.su-f'), empty = !el.value.trim();
+      if (box) box.classList.toggle('has-err', empty);
+      if (empty && !bad) bad = el;
+    });
+    if (bad) { ev.preventDefault(); bad.focus(); return; }
+    var btn = form.querySelector('.su-submit'); btn.disabled = true; btn.firstChild.textContent = '{% if editing %}Saving… {% else %}Creating your account… {% endif %}';
+  });
+  form.addEventListener('input', function (ev) { var box = ev.target.closest('.su-f.has-err'); if (box && ev.target.value) box.classList.remove('has-err'); });
+})();
+</script>
 {% endblock %}
