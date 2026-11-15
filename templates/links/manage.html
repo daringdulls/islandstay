@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Tracked links · {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container tl">
+  <div class="dash-head">
+    <div>
+      <a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
+      <div class="eyebrow">Tracked links <span class="tl-pro">Pro</span></div>
+      <h1 style="margin:0">{{ listing.name }}</h1>
+      <p class="muted" style="margin:0">Share these links wherever you promote yourself. We count every visit and every booking request they bring.{% if plan.ends %} Your plan runs until {{ plan.ends|date:"j M Y" }}.{% endif %}</p>
+    </div>
+    <div class="row">
+      <a class="btn btn-sm {% if days != 7 %}btn-ghost{% endif %}" href="?days=7">7 days</a>
+      <a class="btn btn-sm {% if days != 30 %}btn-ghost{% endif %}" href="?days=30">30 days</a>
+      <a class="btn btn-sm {% if days != 90 %}btn-ghost{% endif %}" href="?days=90">90 days</a>
+    </div>
+  </div>
+
+  <div class="perf-kpis">
+    <div class="perf-kpi"><span>Visits from your links</span><b>{{ total_v }}</b><small>last {{ days }} days</small></div>
+    <div class="perf-kpi"><span>Booking requests</span><b>{{ total_l }}</b><small>made within 30 days of a visit</small></div>
+    <div class="perf-kpi"><span>Conversion</span><b>{{ rate }}%</b><small>of visits became a request</small></div>
+    <div class="perf-kpi"><span>On mobile</span><b>{{ mobile }}%</b><small>of visits</small></div>
+  </div>
+
+  <section class="panel tl-new" id="new">
+    <div class="tl-new-head"><h3>{% icon "plus" %} Make a new link</h3><span class="muted small">{{ rows|length }} of {{ max_links }} links</span></div>
+    <form method="post" class="tl-form" novalidate>{% csrf_token %}
+      <div class="tl-f"><label for="{{ form.label.id_for_label }}">Name</label>{{ form.label }}{{ form.label.errors }}</div>
+      <div class="tl-f"><label for="{{ form.channel.id_for_label }}">Where you'll share it</label>{{ form.channel }}{{ form.channel.errors }}</div>
+      <div class="tl-f tl-code"><label for="{{ form.code.id_for_label }}">Short link <span class="muted">optional</span></label>
+        <div class="tl-prefix"><span>islandstaymv.com/r/</span>{{ form.code }}</div>{{ form.code.errors }}</div>
+      <label class="tl-check">{{ form.to_form }} Open the booking request form directly</label>
+      <button class="btn" type="submit">Create link</button>
+    </form>
+  </section>
+
+  {% if rows %}
+  <div class="tl-list">
+    {% for r in rows %}
+    <article class="tl-card{% if not r.link.is_active %} off{% endif %}" id="link-{{ r.link.pk }}">
+      <div class="tl-card-main">
+        <div class="tl-card-top">
+          <span class="tl-ch">{% icon r.icon %}</span>
+          <div><h4>{{ r.link.label }}</h4><p class="muted small">{{ r.link.get_channel_display }}{% if r.link.to_form %} · opens the request form{% endif %}{% if not r.link.is_active %} · <b>paused</b>{% endif %}</p></div>
+        </div>
+        <div class="tl-url"><code>{{ r.url }}</code><button type="button" class="btn btn-sm" data-copy="{{ r.url }}">{% icon "copy" %} Copy</button></div>
+        <div class="tl-stats">
+          <span><b>{{ r.visits }}</b> visits</span><span><b>{{ r.leads }}</b> request{{ r.leads|pluralize }}</span><span><b>{{ r.rate }}%</b> conversion</span><span class="muted">{{ r.link.clicks }} visits all time</span>
+        </div>
+        <div class="tl-actions">
+          <a class="btn btn-ghost btn-sm" href="https://wa.me/?text={{ r.url|urlencode }}" target="_blank" rel="noopener">{% icon "message-circle" %} Share on WhatsApp</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'links:qr' r.link.pk 'png' %}?download=1">{% icon "upload" %} QR code (PNG)</a>
+          <a class="btn btn-ghost btn-sm" href="{% url 'links:qr' r.link.pk 'svg' %}?download=1">QR (SVG, for print)</a>
+          <form method="post">{% csrf_token %}<input type="hidden" name="id" value="{{ r.link.pk }}">
+            {% if r.link.is_active %}<button class="btn btn-ghost btn-sm" name="action" value="pause">Pause</button>{% else %}<button class="btn btn-ghost btn-sm" name="action" value="resume">Resume</button>{% endif %}</form>
+        </div>
+      </div>
+      <img class="tl-qr" src="{% url 'links:qr' r.link.pk 'svg' %}" alt="QR code for {{ r.url }}" loading="lazy" width="120" height="120">
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="panel tl-empty">{% icon "share-2" %}<div><strong>Make your first link above.</strong><p class="muted small" style="margin:0">Start with the link in your Instagram bio, then one for WhatsApp and one for your flyers. You'll see which works best.</p></div></div>
+  {% endif %}
+
+  <div class="panel">
+    <h3>{% icon "gauge" %} Visits per day</h3>
+    <div class="perf-bars" role="img" aria-label="Visits from tracked links per day">
+      {% for b in bars %}<div class="perf-bar" title="{{ b.d|date:'D j M' }}: {{ b.n }} visit{{ b.n|pluralize }}{% if b.r %}, {{ b.r }} request{{ b.r|pluralize }}{% endif %}"><i style="height:{{ b.h }}%"></i>{% if b.r %}<em></em>{% endif %}</div>{% endfor %}
+    </div>
+    <div class="perf-axis"><span>{{ bars.0.d|date:"j M" }}</span><span><em class="perf-dot"></em> day with a booking request</span>{% with last=bars|last %}<span>{{ last.d|date:"j M" }}</span>{% endwith %}</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel"><h3>{% icon "share-2" %} Which channel works best</h3>
+      {% if channels %}<ul class="tl-bars">{% for name, v, l, w in channels %}<li><span>{{ name }}</span><div><i style="width:{{ w }}%"></i></div><b>{{ v }}</b><small>{{ l }} req.</small></li>{% endfor %}</ul>
+      {% else %}<p class="muted small">No visits yet.</p>{% endif %}</div>
+    <div class="panel"><h3>{% icon "globe" %} Websites visitors came from</h3>
+      {% if referrers %}<ul class="perf-list">{% for host, n in referrers %}<li><span>{{ host }}</span><b>{{ n }}</b></li>{% endfor %}</ul>
+      {% else %}<p class="muted small">Apps like Instagram and WhatsApp often don't say where a visit came from. That's why each channel needs its own link.</p>{% endif %}</div>
+  </div>
+
+  <div class="panel">
+    <h3>{% icon "inbox" %} Requests from your links</h3>
+    {% if recent %}
+      <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Guest</th><th>Dates</th><th>Link</th><th></th></tr></thead><tbody>
+      {% for lead in recent %}<tr><td>{{ lead.created_at|date:"j M, H:i" }}</td><td>{{ lead.enquiry.guest_name }}</td><td>{% if lead.enquiry.check_in %}{{ lead.enquiry.check_in|date:"j M" }}{% if lead.enquiry.check_out %} – {{ lead.enquiry.check_out|date:"j M" }}{% endif %}{% else %}–{% endif %}</td><td>{{ lead.link.label }}</td><td><a href="{% url 'directory:enquiry_detail' lead.enquiry.reference %}">Open</a></td></tr>{% endfor %}
+      </tbody></table></div>
+    {% else %}<p class="muted small">None yet. When a guest opens one of your links and sends a booking request within 30 days, it appears here.</p>{% endif %}
+  </div>
+</div>
+<script>
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var done = function () { var t = b.innerHTML; b.textContent = 'Copied'; setTimeout(function () { b.innerHTML = t; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.copy).then(done); else { window.prompt('Copy this link', b.dataset.copy); }
+  });
+});
+</script>
+{% endblock %}

@@ -540,6 +540,9 @@ def listing_detail(request, slug):
             if enquiry.visitor_id:
                 from analytics.models import Visitor
                 Visitor.objects.filter(pk=enquiry.visitor_id).update(enquiries=F("enquiries") + 1)
+            from links.tracking import credit
+
+            credit(request, enquiry)
             notifications.enquiry_created(enquiry, request)
             request.session["last_enquiry"] = enquiry.reference
             return redirect("directory:enquiry_sent", ref=enquiry.reference)

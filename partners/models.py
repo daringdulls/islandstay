@@ -150,7 +150,8 @@ class AdEnquiry(models.Model):
     email = models.EmailField()
     phone = models.CharField("Phone / WhatsApp", max_length=40, blank=True)
     interest = models.CharField("Interested in", max_length=20, blank=True, choices=[
-        ("island", "Sponsoring island pages"), ("guide", "Sponsoring travel guides"), ("affiliate", "Affiliate partnership"), ("other", "Something else")])
+        ("island", "Sponsoring island pages"), ("guide", "Sponsoring travel guides"), ("affiliate", "Affiliate partnership"), ("links", "Tracked links for a property"),
+        ("other", "Something else")])
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="new")
     created_at = models.DateTimeField(auto_now_add=True)

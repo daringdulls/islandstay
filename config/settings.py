@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "social",
     "analytics",
     "partners",
+    "links",
     "outreach",
 ]
 
@@ -353,6 +354,8 @@ UNFOLD = {
                     {"title": "Affiliate links", "icon": "link", "link": reverse_lazy("admin:partners_affiliateoffer_changelist")},
                     {"title": "Sponsors", "icon": "handshake", "link": reverse_lazy("admin:partners_sponsor_changelist")},
                     {"title": "Advertising enquiries", "icon": "mail", "link": reverse_lazy("admin:partners_adenquiry_changelist")},
+                    {"title": "Tracked links plans", "icon": "workspace_premium", "link": reverse_lazy("admin:links_linkplan_changelist")},
+                    {"title": "Tracked links", "icon": "ads_click", "link": reverse_lazy("admin:links_trackedlink_changelist")},
                 ],
             },
             {
@@ -370,6 +373,9 @@ UNFOLD = {
 }
 
 
+
+# Price shown to properties on the Tracked links page (the paid add-on). You invoice and switch it on in the admin.
+TRACKED_LINKS_PRICE = os.environ.get("TRACKED_LINKS_PRICE", "USD 15 a month")
 
 # Vercel Cron calls /cron/photos/ with this secret to link missing Wikimedia photos.
 CRON_SECRET = os.environ.get("CRON_SECRET", "")

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Tracked links · {{ listing.name }}{% endblock %}
+{% block content %}
+<div class="container tl">
+  <a class="small" href="{% url 'directory:dashboard' %}">← Dashboard</a>
+  <section class="tl-hero">
+    <div>
+      <span class="tl-pro tl-pro-lg">Pro add-on</span>
+      <h1>Know exactly where your guests come from</h1>
+      <p class="tl-lead">Get your own short links for Instagram, WhatsApp, Booking.com, Google and your flyers. We count every visit and every booking request each link brings to {{ listing.name }}.</p>
+      {% if plan and not plan.is_live %}<p class="tl-note">{% icon "info" %} Your Tracked links plan {% if plan.ends %}ended on {{ plan.ends|date:"j M Y" }}{% else %}is paused{% endif %}. Your links still open your page, but visits aren't counted until you renew.</p>{% endif %}
+      <div class="tl-price">{% if price %}<b>{{ price }}</b>{% endif %}<span>No contract. Cancel any time.</span></div>
+      {% if requested %}
+        <p class="tl-sent">{% icon "check" %} Request received. We'll contact you shortly to switch it on.</p>
+      {% else %}
+        <form method="post">{% csrf_token %}<button class="btn tl-cta" name="action" value="request">{% if plan %}Renew Tracked links{% else %}Switch on Tracked links{% endif %} {% icon "arrow-right" %}</button></form>
+        <p class="muted small" style="margin:8px 0 0">We'll contact you by email or WhatsApp to arrange payment, then switch it on the same day.</p>
+      {% endif %}
+    </div>
+    <div class="tl-demo" aria-hidden="true">
+      <div class="tl-demo-card">
+        <p class="tl-demo-label">Example · last 30 days</p>
+        <div class="tl-demo-kpis"><div><b>412</b><span>visits</span></div><div><b>23</b><span>requests</span></div><div><b>5.6%</b><span>conversion</span></div></div>
+        <ul class="tl-bars">
+          <li><span>Instagram bio</span><div><i style="width:100%"></i></div><b>238</b><small>14 req.</small></li>
+          <li><span>WhatsApp status</span><div><i style="width:46%"></i></div><b>109</b><small>6 req.</small></li>
+          <li><span>Airport flyer (QR)</span><div><i style="width:19%"></i></div><b>45</b><small>2 req.</small></li>
+          <li><span>Google profile</span><div><i style="width:8%"></i></div><b>20</b><small>1 req.</small></li>
+        </ul>
+        <div class="tl-demo-link"><code>islandstaymv.com/r/{{ listing.name|slugify|slice:":16" }}-ig</code><span>Copy</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="tl-feats">
+    <div>{% icon "share-2" %}<h3>Up to 12 short links</h3><p>One per place you promote yourself, with your business name in the link.</p></div>
+    <div>{% icon "inbox" %}<h3>Requests credited to each link</h3><p>See which channel actually brings bookings, not just likes.</p></div>
+    <div>{% icon "ticket" %}<h3>Print-ready QR codes</h3><p>For flyers, business cards, your reception desk and boat transfers.</p></div>
+    <div>{% icon "gauge" %}<h3>Daily statistics</h3><p>Visits per day, conversion, mobile share and the websites visitors came from.</p></div>
+  </div>
+
+  <div class="tl-faq">
+    <h2>Questions</h2>
+    <details><summary>How is a booking request credited to a link?</summary><p>When someone opens your link, we remember it on their device. If they send you a booking request on Island Stay within 30 days, it counts for that link.</p></details>
+    <details><summary>Where does the link take people?</summary><p>To your Island Stay page, or straight to the booking request form if you choose. Guests still contact you directly.</p></details>
+    <details><summary>What if I stop paying?</summary><p>Your links keep opening your page, so nothing you've printed or posted breaks. We just stop counting visits until you renew.</p></details>
+    <details><summary>Is visitor data private?</summary><p>Yes. We count visits and record the device type and the website a visitor came from. We don't store IP addresses or show you anything that identifies a visitor.</p></details>
+  </div>
+</div>
+{% endblock %}
