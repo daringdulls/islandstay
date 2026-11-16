@@ -264,6 +264,7 @@ UNFOLD = {
     ],
     "SCRIPTS": [
         lambda request: static("js/admin.js"),
+        lambda request: static("js/upload_shrink.js"),
     ],
     "COLORS": {
         "primary": {  # Lagoon (#0B6E8A) at 600, down to Channel (#0A3D4C) at 900
