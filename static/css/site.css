@@ -2623,3 +2623,6 @@ a.card:hover .cover img.cowrie { transform: none; }
   .dh-attn li { flex-wrap: wrap; }
   .dh-req-side { display: none; }
 }
+.footer-ig { display: inline-flex; gap: 8px; align-items: center; margin-top: 16px; padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); color: #fff; font-weight: 600; font-size: .9rem; }
+.footer-ig:hover { background: rgba(255,255,255,.1); text-decoration: none; color: #fff; }
+.footer-ig span { color: var(--shallows); font-weight: 500; }
