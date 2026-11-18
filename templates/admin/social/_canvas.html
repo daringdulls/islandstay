@@ -94,7 +94,7 @@
     <div class="sp-panel">
       {% if p.eyebrow %}<div class="sp-eyebrow">{{ p.eyebrow }}</div>{% endif %}
       <h1>{{ parts.0 }}<em>{{ parts.1 }}</em>{{ parts.2 }}</h1>
-      <ol class="sp-rank">{% for line in p.body_lines|slice:":5" %}<li><b>{{ forloop.counter }}</b><span>{{ line }}</span></li>{% endfor %}</ol>
+      <ol class="sp-rank{% if p.body_lines|length > 5 %} sp-rank-2{% endif %}">{% for line in p.body_lines|slice:":10" %}<li><b>{{ forloop.counter }}</b><span>{{ line }}</span></li>{% endfor %}</ol>
       <div class="sp-foot"><img class="sp-logo" src="{% static 'img/brand/islandstay-horizontal-colour-dark.svg' %}" alt="Island Stay">{% if p.attribution %}<span class="sp-swipe">{{ p.attribution }} {% inline_icon "arrow-right" %}</span>{% endif %}</div>
     </div>
 

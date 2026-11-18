@@ -430,3 +430,48 @@ class NationalDayTemplateTests(TestCase):
         self.assertContains(r, "flag_wave.js")
         r = self.client.get(reverse("admin:social_socialpost_design", args=[post.pk]) + "?format=portrait")
         self.assertContains(r, "Switch preview to Story format")
+
+
+class PopularIslandsSeriesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.management import call_command
+        call_command("seed_maldives", stdout=open("/dev/null", "w"))
+
+    def test_series_replaces_drafts_and_keeps_queued_posts(self):
+        import datetime as dt
+        from django.utils import timezone
+        from social.models import SocialPost
+        from social.planner import POPULAR_ISLANDS, popular_islands_series
+
+        start = timezone.localdate() + dt.timedelta(days=1)
+        at = timezone.make_aware(dt.datetime.combine(start + dt.timedelta(3), dt.time(18)))
+        old_draft = SocialPost.objects.create(title="Old draft", headline="x", publish_at=at, status="draft")
+        queued = SocialPost.objects.create(title="Queued", headline="x", publish_at=at, status="draft", ig_state="queued")
+        ready = SocialPost.objects.create(title="Ready", headline="x", publish_at=at, status="ready")
+        posts = popular_islands_series(start)
+        self.assertFalse(SocialPost.objects.filter(pk=old_draft.pk).exists())
+        self.assertTrue(SocialPost.objects.filter(pk__in=[queued.pk, ready.pk]).count() == 2)
+        grid = [p for p in posts if p.post_type == "feed"]
+        self.assertEqual(len(grid), 12)  # cover + 10 islands + closing poll = four rows of three
+        self.assertEqual([p.island.name for p in grid[1:11]], POPULAR_ISLANDS)
+        self.assertEqual(grid[0].template, "toplist")
+        self.assertEqual(len(grid[0].body_lines), 10)
+        self.assertEqual(grid[3].eyebrow, "Popular islands · 3 of 10")
+        self.assertIn("Tomorrow: Ukulhas.", grid[3].caption)
+        self.assertEqual(grid[-1].template, "compare")
+        stories = [p for p in posts if p.post_type == "story"]
+        self.assertEqual(len(stories), 6)
+        self.assertTrue(all(p.format == "story" for p in stories))
+        # one grid post a day at 18:00, twelve days in a row
+        days = sorted({timezone.localtime(p.publish_at).date() for p in grid})
+        self.assertEqual(len(days), 12)
+
+    def test_series_alternates_panels(self):
+        import datetime as dt
+        from django.utils import timezone
+        from social.planner import popular_islands_series
+
+        grid = [p for p in popular_islands_series(timezone.localdate() + dt.timedelta(days=1)) if p.post_type == "feed"]
+        templates = [p.template for p in grid]
+        self.assertTrue(all(a != b for a, b in zip(templates, templates[1:])), templates)

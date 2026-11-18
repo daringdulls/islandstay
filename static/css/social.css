@@ -486,3 +486,9 @@
 .sp-landscape .sp-national-dv { font-size: 64px; }
 .sp-landscape.sp-national h1 { font-size: 72px; }
 .sp-landscape.sp-national .sp-body { font-size: 24px; }
+/* top lists with more than five entries: two columns */
+.sp-rank-2 { columns: 2; column-gap: 56px; margin-top: 44px; }
+.sp-rank-2 li { font-size: 42px; padding: 16px 0; break-inside: avoid; gap: 22px; }
+.sp-rank-2 b { flex-basis: 56px; font-size: 42px; }
+.sp-story .sp-rank-2 li { font-size: 50px; padding: 24px 0; }
+.sp-square .sp-rank-2 li { font-size: 34px; padding: 10px 0; }

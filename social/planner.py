@@ -531,3 +531,89 @@ def launch_plan(start):
         data.setdefault("post_type", "feed")
         created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
     return created
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# "Popular islands" series: one well-known local island a day, opened by a cover post and closed by a poll.
+# Twelve grid posts fill four rows of three, so the series reads as one block on the profile.
+
+POPULAR_ISLANDS = ["Maafushi", "Thulusdhoo", "Dhigurah", "Ukulhas", "Thoddoo", "Fulidhoo", "Rasdhoo", "Dhiffushi",
+                   "Fuvahmulah", "Dhangethi"]
+ASK_US = ("Ask us about any island", "island",
+          "Which island suits your trip\nHow to get there from Malé\nWhat to pack and wear\nWhere to stay and eat",
+          "Planning a local island trip? Ask us anything: which island suits you, how to get there, what to pack, "
+          "where to stay. We answer the best questions in our stories.")
+
+
+def popular_islands_series(start, replace=True):
+    """Plan the series from `start` (a date): cover, ten islands (one a day), a closing poll, and Stories between.
+
+    replace: first remove plain drafts from `start` to the end of the series, so the grid shows only the series.
+    Posts already queued for or published on Instagram, or marked Ready / Scheduled / Posted, are never touched.
+    Returns the posts created.
+    """
+    by_name = {i.name: i for i in Island.objects.filter(is_published=True, name__in=POPULAR_ISLANDS).select_related("atoll")}
+    islands = [by_name[n] for n in POPULAR_ISLANDS if n in by_name]
+    if len(islands) < 4:
+        return []
+    n = len(islands)
+    end = start + dt.timedelta(n + 2)
+    if replace:
+        SocialPost.objects.filter(publish_at__gte=_at(start, 0), publish_at__lt=_at(end, 0), ig_state="",
+                                  status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+    names = [i.name for i in islands]
+    last = start + dt.timedelta(n)
+    plan = []
+
+    cover = dict(title="Popular islands: the series", pillar="islands", template="toplist", format="portrait",
+                 island=islands[0], eyebrow="New series · one island a day", headline=f"{n} popular local islands",
+                 accent_word="popular", body="\n".join(names), attribution="Starting tomorrow",
+                 caption=(f"{n} of the local islands travellers love most, one a day from tomorrow: {', '.join(names)}.\n\n"
+                          "Each one has guest houses run by island families, a beach where swimwear is fine, and day trips "
+                          "to sandbanks and reefs. Follow along, save the ones you like, and tell us which you'd pick."),
+                 hashtags=_tags(*names[:4], "Maldives Travel"))
+    plan.append((_at(start, 18), cover))
+    story = dict(cover, title="Popular islands: series story", attribution="Turn on post notifications")
+    plan.append((_at(start, 20), as_story(story, "Share the series cover to your Story. Add a 'New post' sticker and a countdown "
+                                                 "sticker called 'Island no. 1' set for tomorrow 18:00.")))
+
+    for k, island in enumerate(islands, 1):
+        day = start + dt.timedelta(k)
+        data = island_post(island)
+        data.update(title=f"Popular islands {k}/{n}: {island.name}", eyebrow=f"Popular islands · {k} of {n}",
+                    caption=(f"Popular local islands, {k} of {n}: {island.name}, {island.atoll.name}.\n\n{data['caption']}"
+                             + (f"\n\nTomorrow: {islands[k].name}." if k < n else "\n\nThat's the series. Which one is your pick?")),
+                    hashtags=_tags(island.name, island.atoll.name + " Atoll", "Maldives Travel"))
+        if k % 2 == 0:
+            data["template"] = "experience"  # light Sandbank panel; with the dark ones the grid reads as a checkerboard
+        plan.append((_at(day, 18), data))
+
+    # Stories in between: polls on islands from the same part of the country, and a question box.
+    pairs = [(0, 1), (3, 4), (5, 6), (8, 9)]
+    for idx, (a, b) in enumerate(pairs):
+        if b >= n:
+            continue
+        day = start + dt.timedelta(b + 1)
+        plan.append((_at(day, 12), compare_post(islands[a], islands[b], fmt="story", story=True)))
+    plan.append((_at(start + dt.timedelta(4), 12),
+                 as_story(tip_post(ASK_US, fmt="story"), "Add a question sticker: 'Ask us about any island'. "
+                                                         "Answer the best questions in stories over the weekend.")))
+
+    quiet = next((i for i in islands if i.name == "Fulidhoo"), islands[-1])
+    close = compare_post(islands[0], quiet)
+    close.update(title="Popular islands: your pick", headline="Busy island or quiet one?", accent_word="quiet",
+                 caption=(f"{islands[0].name} or {quiet.name}? One has the most guest houses, cafés and day trips; "
+                          f"the other is small, slow and close to the reef. Tell us which you'd choose, and which of the "
+                          f"{n} islands in our series you'd visit first."),
+                 hashtags=_tags(islands[0].name, quiet.name, "Maldives Travel"))
+    plan.append((_at(last + dt.timedelta(1), 18), close))
+
+    created = []
+    now = timezone.now()
+    for when, data in sorted(plan, key=lambda p: p[0]):
+        if when < now:
+            continue
+        data.setdefault("platforms", "instagram,facebook")
+        data.setdefault("post_type", "feed")
+        created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
+    return created
