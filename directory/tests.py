@@ -1317,3 +1317,49 @@ class PhotoConversionTests(TestCase):
         self.assertLessEqual(max(Image.open(f).size), 2600)
         f, err = _prepare_image(self._upload(b"not a photo", "x.jpg", "image/jpeg"))
         self.assertIn("isn't a photo", err)
+
+
+class RestaurantAndShopRequestTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+        cls.cafe = Listing.objects.get(name="Fathuhu Café")
+        cls.cafe.delivery = False
+        cls.cafe.save()
+        cls.shop = Listing.objects.create(
+            owner=cls.cafe.owner, name="Reef Souvenirs", kind="souvenir", island=cls.cafe.island, status="approved",
+            short_description="Handicrafts and sarongs", description="Local handicrafts.", contact_name="Aisha",
+            contact_email="shop@example.mv", opening_hours="Daily 9:00–22:00")
+
+    def test_restaurant_shows_table_form_and_sends_table_request(self):
+        page = self.client.get(self.cafe.get_absolute_url()).content.decode()
+        self.assertIn("Reserve a table", page)
+        self.assertNotIn("Help with my transfer", page)
+        self.assertNotIn("Not served", page)
+        self.assertNotIn('value="order"', page)  # no delivery option when the café doesn't deliver
+        d = timezone.localdate() + timedelta(days=3)
+        base = {"guest_name": "Sara Lee", "guest_email": "sara@example.com", "preferred_contact": "whatsapp", "guest_phone": "+447700900123",
+                "adults": 4, "hp_leave_empty": "", "request_type": "table", "time": "19:30", "occasion": "Birthday"}
+        r = self.client.post(self.cafe.get_absolute_url(), base)
+        self.assertContains(r, "Choose the date you&#x27;d like the table")
+        self.client.post(self.cafe.get_absolute_url(), {**base, "check_in": d})
+        e = Enquiry.objects.get(guest_email="sara@example.com")
+        self.assertEqual((e.request_type, e.time, e.occasion, e.adults), ("table", "19:30", "Birthday", 4))
+        msg = e.as_message()
+        for text in ["Request: Reserve a table", "Time: 19:30", "Table for: 4 people", "Occasion: Birthday"]:
+            self.assertIn(text, msg)
+        self.assertNotIn("adults", msg)
+
+    def test_shop_asks_what_you_are_looking_for(self):
+        page = self.client.get(self.shop.get_absolute_url()).content.decode()
+        self.assertIn("Ask the shop", page)
+        self.assertIn("Reserve items for pickup", page)
+        self.assertNotIn("Adults", page)
+        base = {"guest_name": "Tom", "guest_email": "tom@example.com", "preferred_contact": "email", "hp_leave_empty": "", "request_type": "product"}
+        r = self.client.post(self.shop.get_absolute_url(), base)
+        self.assertFalse(Enquiry.objects.filter(guest_email="tom@example.com").exists())  # message is required
+        self.client.post(self.shop.get_absolute_url(), {**base, "message": "Do you have reef-safe sunscreen?"})
+        e = Enquiry.objects.get(guest_email="tom@example.com")
+        msg = e.as_message()
+        self.assertIn("Request: Ask about a product", msg)
+        self.assertNotIn("Guests", msg)

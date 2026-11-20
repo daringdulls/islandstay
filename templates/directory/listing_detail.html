@@ -71,18 +71,27 @@
       {% if listing.is_food %}
       <section class="panel">
         <h3>{% icon "utensils" %} {{ listing.get_kind_display }} details</h3>
-        <dl class="kv">
+        {% if listing.cuisine or listing.opening_hours %}<dl class="kv">
           {% if listing.cuisine %}<dt>Cuisine</dt><dd>{{ listing.cuisine }}</dd>{% endif %}
           {% if listing.opening_hours %}<dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd>{% endif %}
-          <dt>Breakfast</dt><dd>{{ listing.serves_breakfast|yesno:"Served,Not served" }}</dd>
-          <dt>Delivery</dt><dd>{{ listing.delivery|yesno:"Delivers to guest houses,No delivery" }}</dd>
-        </dl>
+        </dl>{% endif %}
+        <div class="offer-chips">
+          <span>{% icon "calendar" %} Table reservations</span>
+          {% if listing.serves_breakfast %}<span>{% icon "coffee" %} Serves breakfast</span>{% endif %}
+          {% if listing.delivery %}<span>{% icon "bike" %} Delivers to guest houses</span>{% endif %}
+          {% if listing.whatsapp_digits %}<span>{% icon "message-circle" %} Replies on WhatsApp</span>{% endif %}
+        </div>
       </section>
       {% endif %}
-      {% if listing.is_shop and listing.opening_hours %}
+      {% if listing.is_shop %}
       <section class="panel">
-        <h3>{% icon "store" %} Shop details</h3>
-        <dl class="kv"><dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd></dl>
+        <h3>{% icon "store" %} {{ listing.get_kind_display }}</h3>
+        {% if listing.opening_hours %}<dl class="kv"><dt>Opening hours</dt><dd>{{ listing.opening_hours }}</dd></dl>{% endif %}
+        <div class="offer-chips">
+          <span>{% icon "message-circle" %} Ask before you go</span>
+          <span>{% icon "shopping-bag" %} Reserve items for pickup</span>
+          {% if listing.delivery %}<span>{% icon "bike" %} Delivers to guest houses</span>{% endif %}
+        </div>
       </section>
       {% endif %}
 
@@ -149,7 +158,7 @@
         {% include "partials/request_form.html" %}
       </div>
       <div class="panel">
-        <h3>Contact the host</h3>
+        <h3>{% if listing.is_food %}Contact the restaurant{% elif listing.is_shop %}Contact the shop{% else %}Contact the host{% endif %}</h3>
         <ul class="contact-list">
           {% if listing.contact_email %}<li>{% icon "mail" %}<a href="mailto:{{ listing.contact_email }}?subject={{ 'Question from Island Stay: '|urlencode:'' }}{{ listing.name|urlencode:'' }}">{{ listing.contact_email }}</a></li>{% endif %}
           {% if listing.contact_phone %}<li>{% icon "phone" %}<a href="tel:{{ listing.contact_phone }}">{{ listing.contact_phone }}</a></li>{% endif %}
@@ -166,6 +175,6 @@
 </div>
 <div class="mobile-cta" role="region" aria-label="Contact {{ listing.name }}">
   {% if listing.whatsapp_digits %}<a class="btn btn-wa" data-track="WhatsApp bar" target="_blank" rel="noopener" href="https://wa.me/{{ listing.whatsapp_digits }}?text={{ 'Hello, I found you on Island Stay and would like to ask about '|urlencode }}{{ listing.name|urlencode }}">{% icon "message-circle" %} WhatsApp</a>{% endif %}
-  <a class="btn btn-accent" data-track="Request bar" href="#request">{% if listing.is_stay %}Check availability{% else %}Send a request{% endif %}</a>
+  <a class="btn btn-accent" data-track="Request bar" href="#request">{% if listing.is_stay %}Check availability{% elif listing.is_food %}Reserve a table{% elif listing.is_shop %}Ask the shop{% else %}Send a request{% endif %}</a>
 </div>
 {% endblock %}

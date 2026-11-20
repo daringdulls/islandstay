@@ -8,19 +8,22 @@
   <div class="layout">
     <div class="stack">
       <div class="panel">
-        <h3>Guest & stay</h3>
+        <h3>{% if e.listing.is_food %}Guest & table{% elif e.listing.is_shop %}Customer & request{% else %}Guest & stay{% endif %}</h3>
         <dl class="kv">
           <dt>Name</dt><dd>{{ e.guest_name }}</dd>
           <dt>Email</dt><dd><a href="mailto:{{ e.guest_email }}?subject=Re: your request {{ e.reference }} — {{ e.listing.name|urlencode }}">{{ e.guest_email }}</a></dd>
           {% if e.guest_phone %}<dt>Phone</dt><dd>{{ e.guest_phone }}</dd>{% endif %}
           {% if e.guest_country %}<dt>Country</dt><dd>{{ e.guest_country }}</dd>{% endif %}
           <dt>Prefers</dt><dd>{{ e.get_preferred_contact_display }}</dd>
-          {% if e.check_in %}<dt>{% if e.listing.is_stay %}Check-in{% else %}Date{% endif %}</dt><dd>{{ e.check_in|date:"l j M Y" }}</dd>{% endif %}
+          {% if e.request_type %}<dt>Request</dt><dd><b>{{ e.get_request_type_display }}</b></dd>{% endif %}
+          {% if e.check_in %}<dt>{% if e.listing.is_stay %}Check-in{% elif e.request_type == 'pickup' %}Pickup date{% else %}Date{% endif %}</dt><dd>{{ e.check_in|date:"l j M Y" }}{% if e.time %} at {{ e.time }}{% endif %}</dd>{% endif %}
+          {% if e.occasion %}<dt>Occasion</dt><dd>{{ e.occasion }}</dd>{% endif %}
           {% if e.check_out %}<dt>Check-out</dt><dd>{{ e.check_out|date:"l j M Y" }} ({{ e.nights }} night{{ e.nights|pluralize }})</dd>{% endif %}
-          <dt>Guests</dt><dd>{{ e.adults }} adult{{ e.adults|pluralize }}{% if e.children %}, {{ e.children }} child{{ e.children|pluralize:"ren" }}{% endif %}</dd>
+          {% if e.listing.is_food %}{% if e.request_type != 'question' %}<dt>People</dt><dd>{{ e.adults }}</dd>{% endif %}
+          {% elif not e.listing.is_shop %}<dt>Guests</dt><dd>{{ e.adults }} adult{{ e.adults|pluralize }}{% if e.children %}, {{ e.children }} child{{ e.children|pluralize:"ren" }}{% endif %}</dd>{% endif %}
           {% if e.rooms %}<dt>Rooms</dt><dd>{{ e.rooms }}</dd>{% endif %}
           {% if e.room_type %}<dt>Room / package</dt><dd>{{ e.room_type }}</dd>{% endif %}
-          <dt>Transfer help</dt><dd>{{ e.needs_transfer|yesno:"Yes, please arrange,No" }}</dd>
+          {% if not e.listing.is_food and not e.listing.is_shop %}<dt>Transfer help</dt><dd>{{ e.needs_transfer|yesno:"Yes, please arrange,No" }}</dd>{% endif %}
         </dl>
       </div>
       <div class="panel"><h3>Message</h3>{{ e.message|linebreaks }}</div>

@@ -635,6 +635,12 @@ class Enquiry(models.Model):
     rooms = models.PositiveSmallIntegerField(null=True, blank=True)
     room_type = models.CharField(max_length=80, blank=True)
     needs_transfer = models.BooleanField(default=False, help_text="Guest would like help arranging a transfer")
+    REQUEST_CHOICES = [("table", "Reserve a table"), ("order", "Order for delivery"), ("question", "Ask a question"),
+                       ("product", "Ask about a product"), ("pickup", "Reserve for pickup"), ("delivery", "Ask about delivery")]
+    request_type = models.CharField("Request", max_length=10, choices=REQUEST_CHOICES, blank=True,
+                                    help_text="Restaurants and shops: what the guest would like")
+    time = models.CharField("Preferred time", max_length=5, blank=True)
+    occasion = models.CharField(max_length=40, blank=True)
     message = models.TextField(blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_NEW)
     SENT_VIA_CHOICES = [("whatsapp", "WhatsApp"), ("viber", "Viber"), ("email", "Email"), ("call", "Phone call"), ("copy", "Copied the message")]
@@ -707,14 +713,28 @@ class Enquiry(models.Model):
         lines = [f"Hello{' ' + host if host else ''}, I found {l.name} on Island Stay and would like to ask:", ""]
         if self.check_in:
             when = self.check_in.strftime("%a %d %b %Y")
+            if l.is_food or l.is_shop:
+                lines.append(f"{'Pickup date' if self.request_type == 'pickup' else 'Date'}: {when}")
+                when = None
             if self.check_out:
                 n = self.nights
                 when += f" to {self.check_out.strftime('%a %d %b %Y')}" + (f" ({n} night{'s' if n != 1 else ''})" if n else "")
-            lines.append(f"Dates: {when}")
-        party = f"{self.adults} adult{'s' if self.adults != 1 else ''}"
-        if self.children:
-            party += f", {self.children} child{'ren' if self.children != 1 else ''}"
-        lines.append(f"Guests: {party}")
+            if when:
+                lines.append(f"Dates: {when}")
+        if l.is_food or l.is_shop:
+            if self.request_type:
+                lines.insert(2, f"Request: {self.get_request_type_display()}")
+            if self.time:
+                lines.append(f"Time: {self.time}")
+            if l.is_food and self.request_type != "question":
+                lines.append(f"{'Table for' if self.request_type != 'order' else 'Order for'}: {self.adults} {'person' if self.adults == 1 else 'people'}")
+            if self.occasion:
+                lines.append(f"Occasion: {self.occasion}")
+        else:
+            party = f"{self.adults} adult{'s' if self.adults != 1 else ''}"
+            if self.children:
+                party += f", {self.children} child{'ren' if self.children != 1 else ''}"
+            lines.append(f"Guests: {party}")
         if self.rooms:
             lines.append(f"Rooms: {self.rooms}")
         if self.room_type:

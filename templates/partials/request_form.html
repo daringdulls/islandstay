@@ -4,7 +4,7 @@
   {% if listing.logo_url %}<span class="rq-avatar rq-logo"><img src="{{ listing.logo_url }}" alt="{{ listing.name }} logo" onerror="this.parentNode.remove()"></span>
   {% else %}<span class="rq-avatar" aria-hidden="true">{{ listing.name|slice:":1"|upper }}</span>{% endif %}
   <div>
-    <h3>{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table or ask a question{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
+    <h3>{% if listing.is_stay %}Send a booking request{% elif listing.is_food %}Reserve a table{% elif listing.is_shop %}Ask the shop{% elif listing.is_transport %}Request a transfer{% else %}Request this experience{% endif %}</h3>
     <p>Goes straight to {% if listing.contact_name and listing.contact_name != listing.name %}{{ host }} at {{ listing.name }}{% else %}{{ listing.name }}{% endif %}{% if listing.is_verified %} <span class="badge badge-ok badge-sm">{% cowrie %}Verified</span>{% endif %}</p>
   </div>
 </div>
@@ -15,6 +15,50 @@
   {% if form.errors %}<div class="rq-error-summary" role="alert" id="rq-errors">{% icon "info" %}<div><b>Please check {% if form.errors|length == 1 %}this{% else %}these{% endif %}:</b>
     <ul>{% for field in form %}{% for err in field.errors %}<li>{% if field.name != "hp_leave_empty" %}{{ field.label }}: {% endif %}{{ err }}</li>{% endfor %}{% endfor %}{% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}</ul></div></div>{% endif %}
 
+  {% if listing.is_food %}
+  <fieldset class="rq-step">
+    <legend><span>1</span>Your table</legend>
+    <div class="rq-segments rq-type" role="radiogroup" aria-label="What would you like?">
+      {% for radio in form.request_type %}<label class="rq-seg">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endfor %}
+    </div>
+    <div class="rq-when" data-hide-for="question">
+      <div class="rq-dates rq-dt">
+        <label class="rq-cell rq-date" for="{{ form.check_in.id_for_label }}">
+          <small>Date</small>
+          <span class="rq-date-val" data-placeholder="Add date">Add date</span>{% icon "calendar" %}<span class="rq-date-sub"></span>{{ form.check_in }}</label>
+        <label class="rq-cell rq-time" for="{{ form.time.id_for_label }}">
+          <small>Time</small>{{ form.time }}{% icon "clock" %}</label>
+      </div>
+      {{ form.check_in.errors }}{{ form.time.errors }}
+      {% if listing.opening_hours %}<p class="rq-hint">{% icon "clock" %} Open {{ listing.opening_hours }}</p>{% endif %}
+      <div class="rq-counters">
+        <div class="rq-count"><div><b>People</b><small>Including children</small></div>
+          <div class="stepper"><button type="button" data-step="-1" aria-label="One person fewer">−</button>{{ form.adults }}<button type="button" data-step="1" aria-label="One more person">+</button></div></div>
+        {{ form.adults.errors }}
+      </div>
+      <div class="rq-label" id="rq-occ-label">Occasion <span class="muted">optional</span></div>
+      <div class="rq-chips" role="radiogroup" aria-labelledby="rq-occ-label">
+        {% for radio in form.occasion %}{% if radio.data.value %}<label class="rq-chip">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endif %}{% endfor %}
+      </div>
+    </div>
+  </fieldset>
+  {% elif listing.is_shop %}
+  <fieldset class="rq-step">
+    <legend><span>1</span>How can they help?</legend>
+    <div class="rq-segments rq-type" role="radiogroup" aria-label="What would you like?">
+      {% for radio in form.request_type %}<label class="rq-seg">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endfor %}
+    </div>
+    <div class="rq-when" data-show-for="pickup">
+      <div class="rq-dates single">
+        <label class="rq-cell rq-date" for="{{ form.check_in.id_for_label }}">
+          <small>Pickup date</small>
+          <span class="rq-date-val" data-placeholder="Add date">Add date</span>{% icon "calendar" %}<span class="rq-date-sub"></span>{{ form.check_in }}</label>
+      </div>
+      {{ form.check_in.errors }}
+    </div>
+    {% if listing.opening_hours %}<p class="rq-hint">{% icon "clock" %} Open {{ listing.opening_hours }}</p>{% endif %}
+  </fieldset>
+  {% else %}
   <fieldset class="rq-step">
     <legend><span>1</span>{% if listing.is_stay %}Your stay{% else %}When and who{% endif %}</legend>
     <div class="rq-dates{% if not form.check_out %} single{% endif %}">
@@ -51,8 +95,10 @@
     {% endif %}
   </fieldset>
 
+  {% endif %}
+
   <fieldset class="rq-step">
-    <legend><span>2</span>Your message</legend>
+    <legend><span>2</span>{% if listing.is_shop %}What are you looking for? <b class="req">*</b>{% else %}Your message{% endif %}</legend>
     {{ form.message }}{{ form.message.errors }}
   </fieldset>
 
@@ -71,7 +117,7 @@
     {{ form.preferred_contact.errors }}
   </fieldset>
 
-  <button class="btn btn-accent btn-block rq-submit" type="submit">Send request {% icon "arrow-right" %}</button>
+  <button class="btn btn-accent btn-block rq-submit" type="submit">{% if listing.is_food %}<span data-label-for="table">Request this table</span><span data-label-for="order" hidden>Send order request</span><span data-label-for="question" hidden>Send question</span>{% elif listing.is_shop %}Send to the shop{% else %}Send request{% endif %} {% icon "arrow-right" %}</button>
   <ul class="rq-assure">
     <li>{% icon "check" %}Next, send it to {{ host }} on {% if listing.whatsapp_digits %}WhatsApp, {% endif %}{% if listing.viber_digits %}Viber, {% endif %}email or phone, already written for you</li>
     <li>{% icon "check" %}Free, no booking fee and no card details</li>
@@ -102,6 +148,19 @@
     cell.addEventListener('click', function (ev) { ev.preventDefault(); try { input.showPicker(); } catch (e) { input.focus(); } });
     input.addEventListener('change', show); input.addEventListener('input', show); show();
   });
+  var types = f.querySelectorAll('input[name=request_type]');
+  function byType() {
+    var cur = (f.querySelector('input[name=request_type]:checked') || {}).value;
+    f.querySelectorAll('[data-hide-for]').forEach(function (el) { el.hidden = el.dataset.hideFor === cur; });
+    f.querySelectorAll('[data-show-for]').forEach(function (el) { el.hidden = el.dataset.showFor !== cur; });
+    f.querySelectorAll('[data-label-for]').forEach(function (el) { el.hidden = el.dataset.labelFor !== cur; });
+  }
+  types.forEach(function (r) { r.addEventListener('change', byType); });
+  f.querySelectorAll('.rq-chip input').forEach(function (r) {  // tap a chosen occasion again to clear it
+    r.addEventListener('mousedown', function () { r.dataset.was = r.checked ? '1' : ''; });
+    r.closest('label').addEventListener('click', function (ev) { if (r.dataset.was === '1') { ev.preventDefault(); r.checked = false; r.dataset.was = ''; } });
+  });
+  if (types.length) byType();
   var errs = document.getElementById('rq-errors');
   if (errs) { errs.scrollIntoView({ block: 'center' }); }
   var ci = f.querySelector('[name=check_in]'), co = f.querySelector('[name=check_out]'), out = document.getElementById('rq-nights');

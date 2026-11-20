@@ -18,6 +18,7 @@ class EnquiryForm(forms.ModelForm):
         fields = [
             "guest_name", "guest_email", "guest_phone", "guest_country", "preferred_contact",
             "check_in", "check_out", "adults", "children", "rooms", "room_type", "needs_transfer", "message",
+            "request_type", "time", "occasion",
         ]
         labels = {
             "guest_name": "Full name", "guest_email": "Email", "guest_phone": "Phone / WhatsApp",
@@ -52,7 +53,45 @@ class EnquiryForm(forms.ModelForm):
                 self.fields["adults"].label = "Adults"
                 for f in ("check_out", "rooms"):
                     self.fields.pop(f)
+            if listing.is_food:
+                self._setup_food(listing)
+            elif listing.is_shop:
+                self._setup_shop(listing)
+            else:
+                for f in ("request_type", "time", "occasion"):
+                    self.fields.pop(f)
+        else:
+            for f in ("request_type", "time", "occasion"):
+                self.fields.pop(f)
         self.fields["preferred_contact"].choices = [c for c in self.fields["preferred_contact"].choices if c[0]]
+
+    TIMES = [f"{h:02d}:{m:02d}" for h in range(7, 24) for m in (0, 30)]
+    OCCASIONS = ["Birthday", "Anniversary", "Date night", "Family meal", "Group or event", "Business"]
+
+    def _setup_food(self, listing):
+        types = [("table", "Reserve a table")] + ([("order", "Order for delivery")] if listing.delivery else []) + [("question", "Ask a question")]
+        self.fields["request_type"] = forms.ChoiceField(choices=types, initial="table", widget=forms.RadioSelect, label="What would you like?")
+        self.fields["time"] = forms.ChoiceField(required=False, label="Time", choices=[("", "Any time")] + [(t, t) for t in self.TIMES])
+        self.fields["occasion"] = forms.ChoiceField(required=False, label="Occasion", widget=forms.RadioSelect,
+                                                    choices=[("", "None")] + [(o, o) for o in self.OCCASIONS])
+        self.fields["check_in"].label = "Date"
+        self.fields["adults"].label = "People"
+        self.fields["adults"].widget.attrs.update({"min": 1, "max": 60})
+        self.fields["message"].widget.attrs["placeholder"] = "Allergies, a table by the beach, a cake for the birthday…"
+        self.fields["guest_name"].widget.attrs["placeholder"] = "Name for the booking"
+        for f in ("children", "needs_transfer"):
+            self.fields.pop(f, None)
+
+    def _setup_shop(self, listing):
+        types = [("product", "Ask about a product"), ("pickup", "Reserve for pickup")] + ([("delivery", "Ask about delivery")] if listing.delivery else [])
+        self.fields["request_type"] = forms.ChoiceField(choices=types, initial="product", widget=forms.RadioSelect, label="What would you like?")
+        self.fields["check_in"].label = "Pickup date"
+        self.fields["message"].required = True
+        self.fields["guest_name"].widget.attrs["placeholder"] = "Your name"
+        self.fields["message"].label = "What are you looking for?"
+        self.fields["message"].widget.attrs["placeholder"] = "e.g. Two sarongs and reef-safe sunscreen. Do you have them in stock, and what do they cost?"
+        for f in ("children", "needs_transfer", "adults", "time", "occasion"):
+            self.fields.pop(f, None)
 
     def clean_hp_leave_empty(self):
         if self.cleaned_data.get("hp_leave_empty"):
@@ -68,6 +107,11 @@ class EnquiryForm(forms.ModelForm):
 
         if ci and ci < timezone.localdate():
             self.add_error("check_in", "Date can't be in the past.")
+        kind = data.get("request_type")
+        if kind == "table" and not ci:
+            self.add_error("check_in", "Choose the date you'd like the table.")
+        if kind == "pickup" and not ci:
+            self.add_error("check_in", "Choose the day you'd like to pick it up.")
         return data
 
 

@@ -2626,3 +2626,25 @@ a.card:hover .cover img.cowrie { transform: none; }
 .footer-ig { display: inline-flex; gap: 8px; align-items: center; margin-top: 16px; padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.25); color: #fff; font-weight: 600; font-size: .9rem; }
 .footer-ig:hover { background: rgba(255,255,255,.1); text-decoration: none; color: #fff; }
 .footer-ig span { color: var(--shallows); font-weight: 500; }
+
+/* ================= Restaurant & shop request forms ================= */
+.rq-type { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); margin-bottom: 14px; }
+.rq-type .rq-seg span { padding: 10px 6px; font-size: .8rem; line-height: 1.2; }
+.rq-when[hidden] { display: none !important; }
+.rq-time { position: relative; }
+.rq-time .i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-2); pointer-events: none; }
+.rq .rq-time select { display: block; width: 100%; border: 0 !important; background: transparent; padding: 2px 22px 0 0; font: inherit; font-size: 1.15rem; font-weight: 600; color: var(--ink); appearance: none; -webkit-appearance: none; cursor: pointer; box-shadow: none; min-height: 0; outline: none; }
+.rq-hint { display: flex; gap: 6px; align-items: center; margin: 8px 0 0; font-size: .8rem; color: var(--ink-2); }
+.rq-hint .i { width: 14px; height: 14px; flex: none; }
+.rq-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.rq-chip { position: relative; margin: 0; cursor: pointer; }
+.rq-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.rq-chip span { display: inline-block; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--control); background: #fff; font-size: .8rem; font-weight: 600; transition: all .15s; }
+.rq-chip input:checked + span { background: var(--sea); border-color: var(--sea); color: #fff; }
+.rq-chip input:focus-visible + span { outline: 3px solid var(--sea); outline-offset: 2px; }
+.rq-label .muted { font-weight: 400; font-size: .78rem; }
+
+/* details panels for restaurants and shops: offers as chips, never "not served" */
+.offer-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.offer-chips span { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; border-radius: 999px; background: var(--shoal); color: var(--sea-2); font-size: .85rem; font-weight: 600; }
+.offer-chips .i { width: 15px; height: 15px; color: var(--sea); }
