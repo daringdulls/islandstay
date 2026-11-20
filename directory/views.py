@@ -392,6 +392,15 @@ def stay_list(request):
     })
 
 
+ACTIVITY_GROUPS = {
+    **dict.fromkeys(["snorkeling", "scuba-diving", "turtle-snorkeling", "manta-ray-snorkeling", "whale-shark-excursion", "freediving",
+                     "nurse-sharks-stingrays", "wreck-diving", "hammerhead-dive", "tiger-shark-dive"], "underwater"),
+    **dict.fromkeys(["dolphin-cruise", "sunset-night-fishing", "big-game-fishing", "surfing", "water-sports", "kayaking-sup",
+                     "island-hopping"], "water"),
+    **dict.fromkeys(["sandbank-picnic", "local-culture-village-walk", "resort-day-trip", "spa-wellness", "bioluminescence"], "land"),
+}
+
+
 def service_list(request):
     page, f, sort = _filtered_listings(request, Listing.EXPERIENCE_KINDS)
     live = _live_listings().filter(kind__in=Listing.EXPERIENCE_KINDS)
@@ -399,6 +408,11 @@ def service_list(request):
         n_islands=Count("islands", filter=Q(islands__is_published=True), distinct=True),
         n_ops=Count("listings", filter=Q(listings__status=APPROVED, listings__kind__in=Listing.EXPERIENCE_KINDS), distinct=True),
     ).filter(Q(n_islands__gt=0) | Q(n_ops__gt=0)).order_by("-n_islands", "name"))
+    groups = {"underwater": ("Underwater", "fish"), "water": ("On the water", "sailboat"), "land": ("On the islands", "tree-palm")}
+    for a in activities:
+        a.group = ACTIVITY_GROUPS.get(a.slug, "water")
+    tabs = [(key, label, icon, sum(1 for a in activities if a.group == key)) for key, (label, icon) in groups.items()]
+    top = activities[:3]
     activity = next((a for a in activities if a.slug == f["activity"]), None)
     island = Island.objects.filter(slug=f["island"]).first() if f["island"] else None
     best_islands = list(_islands().filter(activities=activity).order_by("-is_featured", "name")[:8]) if activity else []
@@ -413,6 +427,7 @@ def service_list(request):
         hero_credit = ""
     return render(request, "directory/experience_list.html", {"hero_credit": hero_credit,
         "page": page, "f": f, "sort": sort, "activity": activity, "island": island, "activities": activities,
+        "act_tabs": tabs, "top_acts": top,
         "best_islands": best_islands, "hero_photo": hero_photo,
         "islands": Island.objects.filter(is_published=True).order_by("name"),
         "n_ops": live.count(), "n_acts": len(activities),

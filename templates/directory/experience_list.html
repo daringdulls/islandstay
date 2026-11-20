@@ -30,22 +30,69 @@
 </section>
 
 {# ---------- activities ---------- #}
-<section class="section" style="padding-bottom:0">
+<section class="section xa" style="padding-bottom:0">
   <div class="container">
     <div class="section-head"><div><div class="eyebrow">Choose by activity</div><h2>What would you like to do?</h2></div>
       {% if activity %}<a class="link-arrow" href="{% url 'directory:service_list' %}">All activities {% icon "arrow-right" %}</a>{% endif %}</div>
-    <div class="ex-acts">
-      {% for a in activities %}
-      {% if forloop.counter == 11 %}</div><details class="ex-more"{% if activity %} open{% endif %}><summary>Show all {{ activities|length }} activities</summary><div class="ex-acts">{% endif %}
-      <a class="ex-act{% if activity and a.slug == activity.slug %} on{% endif %}" href="{% url 'directory:activity_detail' a.slug %}{% if f.island %}?island={{ f.island }}{% endif %}#operators">
-        <span class="ex-act-img">{% if a.image_url %}<img src="{{ a.thumb_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}<span class="ex-act-ico">{% icon a.icon %}</span></span>
-        <span class="ex-act-body"><b>{{ a.name }}</b><small>{{ a.n_islands }} island{{ a.n_islands|pluralize }}{% if a.n_ops %} · {{ a.n_ops }} operator{{ a.n_ops|pluralize }}{% endif %}</small></span>
+
+    {% if not activity and top_acts %}
+    <div class="xa-top">
+      {% for a in top_acts %}
+      <a class="xa-feature" href="{% url 'directory:activity_detail' a.slug %}{% if f.island %}?island={{ f.island }}{% endif %}#operators">
+        {% if a.image_url %}<img src="{{ a.thumb_url }}" alt="" loading="lazy" onerror="this.remove()">{% endif %}
+        <span class="xa-shade"></span>
+        <span class="xa-rank">Most popular · {{ forloop.counter }}</span>
+        <span class="xa-feature-body"><b>{{ a.name }}</b>{% if a.description %}<small>{{ a.description|truncatechars:90 }}</small>{% endif %}
+          <em>{{ a.n_islands }} island{{ a.n_islands|pluralize }}{% if a.n_ops %} · {{ a.n_ops }} operator{{ a.n_ops|pluralize }}{% endif %} {% icon "arrow-right" %}</em></span>
       </a>
-      {% if forloop.last and forloop.counter > 10 %}</div></details><div class="ex-acts">{% endif %}
       {% endfor %}
     </div>
+    {% endif %}
+
+    <div class="xa-bar">
+      <div class="xa-tabs" role="tablist" aria-label="Kinds of activity">
+        <button type="button" class="xa-tab on" data-group="all" role="tab" aria-selected="true">All <span>{{ activities|length }}</span></button>
+        {% for key, label, ic, n in act_tabs %}{% if n %}<button type="button" class="xa-tab" data-group="{{ key }}" role="tab" aria-selected="false">{% icon ic %} {{ label }} <span>{{ n }}</span></button>{% endif %}{% endfor %}
+      </div>
+      <label class="xa-search">{% icon "search" %}<input type="search" placeholder="Search activities" aria-label="Search activities" id="xa-q"></label>
+    </div>
+
+    <div class="xa-grid" id="xa-grid">
+      {% for a in activities %}
+      <a class="xa-card{% if activity and a.slug == activity.slug %} on{% endif %}{% if not a.image_url %} no-img{% endif %}" data-group="{{ a.group }}" data-name="{{ a.name|lower }} {{ a.description|lower }}"
+         href="{% url 'directory:activity_detail' a.slug %}{% if f.island %}?island={{ f.island }}{% endif %}#operators">
+        {% if a.image_url %}<img src="{{ a.thumb_url }}" alt="" loading="lazy" onerror="this.parentNode.classList.add('no-img');this.remove()">{% endif %}
+        <span class="xa-shade"></span>
+        <span class="xa-ico">{% icon a.icon %}</span>
+        <span class="xa-body"><b>{{ a.name }}</b><small>{{ a.n_islands }} island{{ a.n_islands|pluralize }}{% if a.n_ops %} · <strong>{{ a.n_ops }} operator{{ a.n_ops|pluralize }}</strong>{% endif %}</small></span>
+      </a>
+      {% endfor %}
+    </div>
+    <p class="xa-empty" id="xa-empty" hidden>No activity matches that. Try another word.</p>
   </div>
 </section>
+<script>
+(function () {
+  var grid = document.getElementById('xa-grid'); if (!grid) return;
+  var cards = grid.querySelectorAll('.xa-card'), tabs = document.querySelectorAll('.xa-tab'), q = document.getElementById('xa-q'), empty = document.getElementById('xa-empty');
+  var group = 'all';
+  function apply() {
+    var term = (q.value || '').trim().toLowerCase(), shown = 0;
+    cards.forEach(function (c) {
+      var ok = (group === 'all' || c.dataset.group === group) && (!term || c.dataset.name.indexOf(term) >= 0);
+      c.hidden = !ok; if (ok) shown++;
+    });
+    empty.hidden = shown > 0;
+  }
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      tabs.forEach(function (x) { x.classList.toggle('on', x === t); x.setAttribute('aria-selected', x === t); });
+      group = t.dataset.group; apply();
+    });
+  });
+  q.addEventListener('input', apply);
+})();
+</script>
 
 {# ---------- best islands for the chosen activity ---------- #}
 {% if activity and best_islands %}
