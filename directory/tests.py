@@ -1363,3 +1363,59 @@ class RestaurantAndShopRequestTests(TestCase):
         msg = e.as_message()
         self.assertIn("Request: Ask about a product", msg)
         self.assertNotIn("Guests", msg)
+
+
+class IslandPlanningTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_essentials_give_tips_for_what_is_missing(self):
+        from directory.models import Island
+        i = Island.objects.get(slug="dhangethi")
+        i.details_verified, i.has_atm, i.has_pharmacy = True, False, True
+        ess = {e["icon"]: e for e in i.essentials}
+        self.assertEqual(ess["banknote"]["state"], "no")
+        self.assertIn("cash", ess["banknote"]["tip"])
+        self.assertEqual(ess["pill"]["state"], "ok")
+        i.details_verified = False
+        self.assertEqual({e["icon"]: e for e in i.essentials}["banknote"]["state"], "unknown")
+
+    def test_island_fit_is_worked_out_or_set_by_hand(self):
+        from directory.models import Island
+        i = Island.objects.get(slug="maafushi")
+        fit = i.fit
+        self.assertEqual(fit["pace"], "lively")  # population 4,471
+        i.pace, i.best_for = "quiet", "Divers, Couples"
+        self.assertEqual((i.fit["pace_label"], i.fit["tags"]), ("Very quiet", ["Divers", "Couples"]))
+
+    def test_route_labels_and_island_page(self):
+        from directory.models import Island, TransportRoute
+        i = Island.objects.get(slug="dhangethi")
+        r = TransportRoute.objects.create(island=i, mode="speedboat", duration="1 hr 45 min", last_departure="15:30", days="mon,wed,sat")
+        self.assertEqual(r.days_label, "Only Mon, Wed, Sat")
+        self.assertEqual(r.evening_label, ("time", "Last departure 15:30"))
+        r2 = TransportRoute(island=i, mode="speedboat", days="mon,tue,wed,thu,sat,sun", evening="no")
+        self.assertEqual(r2.days_label, "Not on Fridays")
+        self.assertEqual(r2.evening_label[0], "no")
+        page = self.client.get(i.get_absolute_url()).content.decode()
+        for text in ["When do you land in Malé?", 'data-last="15:30"', 'data-days="mon,wed,sat"', "Before you pack", "Good for"]:
+            self.assertIn(text, page) if text != "Before you pack" else self.assertIn("ess-strip", page)
+
+    def test_local_calendar(self):
+        import datetime as dt
+        from directory.local_calendar import upcoming
+        names = [e["name"] for e in upcoming(dt.date(2027, 2, 20), days=30)]
+        self.assertIn("Ramadan", names)
+        ram = [e for e in upcoming(dt.date(2027, 2, 20), days=30) if e["name"] == "Ramadan"][0]
+        self.assertTrue(ram["now"] and ram["expected"])
+
+    def test_route_admin_form_stores_days_and_checks_time(self):
+        from directory.admin import RouteForm
+        from directory.models import Island
+        i = Island.objects.get(slug="dhangethi")
+        base = {"island": i.pk, "mode": "ferry", "origin": "Malé", "duration": "7 hr", "currency": "USD", "order": 0, "is_active": "on"}
+        f = RouteForm({**base, "days": ["sat", "mon", "wed"], "last_departure": "9.30"})
+        self.assertTrue(f.is_valid(), f.errors)
+        self.assertEqual((f.cleaned_data["days"], f.cleaned_data["last_departure"]), ("mon,wed,sat", "09:30"))
+        self.assertFalse(RouteForm({**base, "last_departure": "25:00"}).is_valid())

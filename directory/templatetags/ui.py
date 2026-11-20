@@ -140,3 +140,9 @@ def transfer_icon(text):
     if "boat" in t or "ferry" in t or "dhoni" in t or "launch" in t:
         return "ship"
     return "route"
+
+
+@register.filter
+def split(value, sep=" "):
+    """'a b c'|split -> ['a', 'b', 'c']"""
+    return (value or "").split(sep)

@@ -279,7 +279,8 @@ def island_detail(request, slug):
         {"@type": "ListItem", "position": 1, "name": "Islands", "item": request.build_absolute_uri(reverse("directory:island_list"))},
         {"@type": "ListItem", "position": 2, "name": island.atoll.name, "item": request.build_absolute_uri(island.atoll.get_absolute_url())},
         {"@type": "ListItem", "position": 3, "name": island.name, "item": url}]}
-    return render(request, "directory/island_detail.html", {
+    from .local_calendar import FRIDAY, upcoming
+    return render(request, "directory/island_detail.html", {"local_calendar": upcoming(timezone.localdate()), "local_friday": FRIDAY,
         "island": island, "stays": stays, "kind": kind, "nearby": nearby, "ld": [place, crumbs],
         "guides": island.guides.filter(is_published=True)[:3],
         "helpers": island_helpers(island),
@@ -1181,7 +1182,8 @@ def island_getting_there(request, slug):
         ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
             {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faqs]})
     nearby = _islands().filter(atoll=island.atoll).exclude(pk=island.pk)[:4]
-    return render(request, "directory/island_getting_there.html", {
+    from .local_calendar import FRIDAY, upcoming
+    return render(request, "directory/island_getting_there.html", {"local_calendar": upcoming(timezone.localdate()), "local_friday": FRIDAY,
         "island": island, "routes": routes, "operators": operators, "paragraphs": paragraphs, "faqs": faqs,
         "ld": ld, "nearby": nearby,
     })

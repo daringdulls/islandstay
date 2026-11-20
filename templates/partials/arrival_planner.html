@@ -1,0 +1,13 @@
+{% load ui %}{# "When do you land?": marks which routes to the island still work that day #}
+<div class="ap" id="ap-{{ island.slug }}" data-island="{{ island.name }}">
+  <div class="ap-head">
+    <span class="ap-ic">{% icon "plane-landing" %}</span>
+    <div><b>When do you land in Malé?</b><small>We'll show which of these still get you to {{ island.name }} the same day.</small></div>
+  </div>
+  <div class="ap-row">
+    <label>Landing time<select data-ap="time">{% for h in "06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23"|split %}<option value="{{ h }}:00"{% if h == "14" %} selected{% endif %}>{{ h }}:00</option><option value="{{ h }}:30">{{ h }}:30</option>{% endfor %}</select></label>
+    <label>Day<select data-ap="day"><option value="mon">Monday</option><option value="tue">Tuesday</option><option value="wed">Wednesday</option><option value="thu">Thursday</option><option value="fri">Friday</option><option value="sat">Saturday</option><option value="sun">Sunday</option></select></label>
+  </div>
+  <p class="ap-out" aria-live="polite"></p>
+  <p class="ap-note">We allow an hour after landing for passport control and bags. Times are indicative: confirm with the operator or your host.</p>
+</div>

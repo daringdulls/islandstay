@@ -145,3 +145,41 @@
   document.addEventListener("click", function (e) { if (more.open && !more.contains(e.target)) more.open = false; });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && more.open) { more.open = false; more.querySelector("summary").focus(); } });
 })();
+
+/* Arrival planner on island pages: which routes still work for a given landing time and day. */
+(function () {
+  document.querySelectorAll('.ap').forEach(function (ap) {
+    var scope = ap.parentNode;
+    var routes = scope.querySelectorAll('.route');
+    var time = ap.querySelector('[data-ap=time]'), day = ap.querySelector('[data-ap=day]'), out = ap.querySelector('.ap-out');
+    var names = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+    day.value = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+    function mins(t) { var p = (t || '').split(':'); return p.length === 2 ? (+p[0]) * 60 + (+p[1]) : null; }
+    function update() {
+      var ready = mins(time.value) + 60, d = day.value, works = 0, maybe = 0;
+      routes.forEach(function (r) {
+        var box = r.querySelector('.route-fit'); if (!box) return;
+        var days = r.dataset.days ? r.dataset.days.split(',') : [], last = mins(r.dataset.last), ev = r.dataset.evening;
+        var state, text;
+        if (!r.dataset.fromMale) { state = 'leg'; text = 'Second leg: from ' + r.dataset.origin; }
+        else if (days.length && days.indexOf(d) < 0) { state = 'no'; text = 'Doesn’t run on ' + names[d] + 's'; }
+        else if (ev === 'yes') { state = 'ok'; text = 'Works: can leave after you land'; }
+        else if (last !== null) {
+          if (ready <= last) { state = 'ok'; text = 'Works: last one leaves ' + r.dataset.last; }
+          else { state = 'no'; text = 'Too late: the last one leaves ' + r.dataset.last; }
+        } else if (ev === 'no') {
+          if (ready >= 17 * 60) { state = 'no'; text = 'Daytime only: too late for this landing'; }
+          else { state = 'maybe'; text = 'Daytime only: probably fine, check the times'; }
+        } else { state = 'maybe'; text = 'Check the departure times'; }
+        if (state === 'ok') works++; if (state === 'maybe') maybe++;
+        box.hidden = false; box.className = 'route-fit fit-' + state; box.textContent = text;
+      });
+      var island = ap.dataset.island;
+      if (works) out.innerHTML = '<b>' + works + ' option' + (works > 1 ? 's' : '') + ' work' + (works > 1 ? '' : 's') + '</b> for a ' + time.value + ' landing on a ' + names[d] + '.';
+      else if (maybe) out.innerHTML = '<b>Nothing confirmed for a ' + time.value + ' landing on a ' + names[d] + '.</b> Some routes have no exact times yet, so ask your host. If it’s late, a night in <a href="/islands/hulhumale/">Hulhumalé</a>, next to the airport, is the easy option.';
+      else out.innerHTML = '<b>Nothing reaches ' + island + ' after a ' + time.value + ' landing on a ' + names[d] + '.</b> Many travellers spend the night in <a href="/islands/hulhumale/">Hulhumalé</a>, next to the airport, and continue in the morning. Your host can also arrange a private speedboat.';
+      out.className = 'ap-out ' + (works ? 'ok' : (maybe ? 'maybe' : 'no'));
+    }
+    time.addEventListener('change', update); day.addEventListener('change', update); update();
+  });
+})();

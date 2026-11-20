@@ -38,6 +38,18 @@
     <div class="fact"><span>Mobile data</span><b>{{ island.mobile_data_label }}</b></div>
   </div>
 
+  {% with fit=island.fit %}
+  <section class="ess" aria-label="Before you pack for {{ island.name }}">
+    <div class="ess-fit">
+      <span class="ess-pace pace-{{ fit.pace }}">{% icon "gauge" %} {{ fit.pace_label }}</span>
+      {% if fit.tags %}<span class="ess-good">Good for</span>{% for t in fit.tags %}<span class="ess-tag">{{ t }}</span>{% endfor %}{% endif %}
+    </div>
+    <div class="ess-strip">
+      {% for e in island.essentials %}<div class="ess-item ess-{{ e.state }}">{% icon e.icon %}<div><b>{{ e.title }}</b>{% if e.tip %}<small>{{ e.tip }}</small>{% endif %}</div></div>{% endfor %}
+    </div>
+  </section>
+  {% endwith %}
+
   <div class="ct-cta{% if not island.details_verified %} urgent{% endif %}">
     <span class="ct-cta-ico">{% icon "heart-handshake" %}</span>
     <div><b>{% if island.details_verified %}Know {{ island.name }}? Help keep this guide up to date{% else %}Know {{ island.name }}? Help us complete this guide{% endif %}</b>
@@ -105,7 +117,8 @@
         <div class="section-title"><h2>Getting there</h2><span class="label">{{ island.route_count }} route{{ island.route_count|pluralize }}</span><a class="sub-link" href="{% url 'directory:island_getting_there' island.slug %}">How to get to {{ island.name }} {% icon "arrow-right" %}</a></div>
         {% if island.getting_there %}<p>{{ island.getting_there }}</p>{% endif %}
         {% if routes %}
-        <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div>
+        <div class="ap-wrap">{% include "partials/arrival_planner.html" %}
+        <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div></div>
         <p class="small muted" style="margin-top:10px">Schedules are indicative and change with the season. Confirm with the operator or your host.</p>
         {% endif %}
         {% if transport %}<h3 style="margin-top:24px">Transfer operators</h3><div class="grid">{% for l in transport %}{% include "partials/listing_card.html" %}{% endfor %}</div>{% endif %}
@@ -131,6 +144,7 @@
           <div class="facility-grid">{% for ic, label, ok in island.facility_flags %}<div class="facility {% if not ok %}{% if island.details_verified %}no{% else %}unknown{% endif %}{% endif %}">{% icon ic %}{{ label }}<span class="state">{% if ok %}YES{% elif island.details_verified %}NO{% else %}?{% endif %}</span></div>{% endfor %}</div>
           {% if island.facilities_list %}<ul class="list-check" style="margin-top:16px">{% for f in island.facilities_list %}<li>{{ f }}</li>{% endfor %}</ul>{% endif %}
         </div>
+        {% include "partials/local_calendar.html" %}
         {% if island.local_rules_list %}
         <div class="panel"><h3>{% icon "scroll-text" %} Local regulations</h3>
           <ul class="list-check expect">{% for f in island.local_rules_list %}<li>{{ f }}</li>{% endfor %}</ul></div>

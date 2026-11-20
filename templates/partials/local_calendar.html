@@ -1,0 +1,15 @@
+{% load ui %}{% if local_calendar %}
+<div class="panel lc">
+  <h3>{% icon "calendar" %} Coming up on the islands</h3>
+  <p class="small muted" style="margin-top:0">Dates that change a visit, and what they mean for you.</p>
+  <ul class="lc-list">
+    {% for e in local_calendar %}
+    <li class="{% if e.now %}now{% endif %}">
+      <span class="lc-date"><b>{{ e.start|date:"j M" }}</b>{% if not e.single %}<small>to {{ e.end|date:"j M" }}</small>{% endif %}</span>
+      <span><strong>{{ e.name }}</strong>{% if e.now %} <em class="lc-now">On now</em>{% endif %}{% if e.expected %} <small class="muted">expected, follows the moon</small>{% endif %}<small class="lc-note">{{ e.note }}</small></span>
+    </li>
+    {% endfor %}
+    <li class="lc-friday"><span class="lc-date"><b>Fri</b><small>weekly</small></span><span><strong>{{ local_friday.0 }}</strong><small class="lc-note">{{ local_friday.1 }}</small></span></li>
+  </ul>
+</div>
+{% endif %}

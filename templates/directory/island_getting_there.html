@@ -29,7 +29,9 @@
     {% if paragraphs %}<h2>Overview</h2>{% for p in paragraphs %}<p>{{ p }}</p>{% endfor %}{% endif %}
     <h2>Routes and schedules</h2>
     {% if routes %}
-      <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div>
+      <div class="ap-wrap">{% include "partials/arrival_planner.html" %}
+      <div class="panel" style="padding-block:4px">{% for r in routes %}{% include "partials/route_row.html" %}{% endfor %}</div></div>
+      {% include "partials/local_calendar.html" %}
       <p class="small muted" style="margin-top:10px">Schedules are indicative and change with the season and the weather. Confirm with the operator or your host before you travel.</p>
     {% else %}
       <p>We don't have route details for {{ island.name }} yet. Guest houses on the island arrange speedboat transfers from the airport for their guests. Ask your host when you send a request.</p>

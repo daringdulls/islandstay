@@ -135,13 +135,41 @@ class PhotoFilter(admin.SimpleListFilter):
         return qs
 
 
+class RouteForm(forms.ModelForm):
+    days = forms.MultipleChoiceField(choices=TransportRoute.DAY_CHOICES, required=False, label="Runs on",
+                                     help_text="Leave all unticked if it runs every day or you're not sure.")
+
+    class Meta:
+        model = TransportRoute
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget
+        self.fields["days"].widget = UnfoldAdminCheckboxSelectMultipleWidget(choices=TransportRoute.DAY_CHOICES, attrs={"class": "is-chip-checks"})
+        if self.instance and self.instance.pk:
+            self.initial["days"] = self.instance.day_list
+
+    def clean_days(self):
+        days = self.cleaned_data.get("days") or []
+        return "" if len(days) in (0, 7) else ",".join(d for d, _ in TransportRoute.DAY_CHOICES if d in days)
+
+    def clean_last_departure(self):
+        import re
+        v = (self.cleaned_data.get("last_departure") or "").strip().replace(".", ":")
+        if v and not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", v):
+            raise forms.ValidationError("Use 24-hour time, e.g. 15:30")
+        return v.zfill(5) if v else ""
+
+
 class IslandRouteInline(TabularInline):
     model = TransportRoute
+    form = RouteForm
     fk_name = "island"
     extra = 0
     tab = True
     verbose_name_plural = "Transport routes"
-    fields = ("mode", "origin", "via", "operator", "operator_name", "duration", "schedule", "is_active", "order")
+    fields = ("mode", "origin", "via", "operator", "operator_name", "duration", "schedule", "last_departure", "evening", "is_active", "order")
     autocomplete_fields = ("operator",)
 
 
@@ -195,7 +223,7 @@ class IslandAdmin(PhotoManagerMixin, BaseAdmin):
     fieldsets = (
         ("Overview", {"classes": ["tab"], "fields": (
             ("name", "slug"), ("atoll", "island_type"), "tagline", ("is_published", "is_featured"),
-            "overview", "famous_for", "what_to_expect", "best_time_to_visit", "activities")}),
+            "overview", "famous_for", "what_to_expect", "best_time_to_visit", "activities", ("pace", "best_for"))}),
         ("Getting there", {"classes": ["tab"], "fields": (
             "getting_there", "transfer_types", ("distance_from_airport_km", "transfer_time"), ("nearest_airport", "nearest_airport_km"))}),
         ("Facilities & rules", {"classes": ["tab"], "fields": (
@@ -662,6 +690,7 @@ class IslandSuggestionAdmin(BaseAdmin):
 
 @admin.register(TransportRoute)
 class TransportRouteAdmin(BaseAdmin):
+    form = RouteForm
     list_display = ("route", "mode_label", "provider", "duration", "schedule", "is_active")
     list_display_links = ("route",)
     list_filter = (("mode", ChoicesDropdownFilter), "is_active", ("island", RelatedDropdownFilter))
@@ -671,6 +700,8 @@ class TransportRouteAdmin(BaseAdmin):
     fieldsets = (
         (None, {"fields": (("island", "mode"), ("origin", "via"), ("operator", "operator_name"), ("duration", "schedule"),
                            "notes", ("price_from", "currency", "price_note"), ("is_active", "order"))}),
+        ("Arrival planning", {"fields": ("days", ("last_departure", "evening")),
+                              "description": "Used by 'When do you land?' on the island page to show which routes still work."}),
     )
 
     def get_queryset(self, request):

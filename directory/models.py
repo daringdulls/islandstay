@@ -145,6 +145,10 @@ class Island(models.Model):
     has_5g = models.BooleanField("5G mobile data", default=False, help_text="5G from Dhiraagu or Ooredoo on this island")
     nearest_airport = models.CharField(max_length=80, blank=True, help_text="Nearest airport, e.g. Velana International (MLE) or Maamigili (VAM)")
     nearest_airport_km = models.PositiveIntegerField(null=True, blank=True)
+    pace = models.CharField(max_length=6, blank=True, choices=[("", "Work it out"), ("lively", "Lively"), ("easy", "Easygoing"), ("quiet", "Very quiet")],
+                            help_text="How busy the island feels. Leave on 'Work it out' to use the population.")
+    best_for = models.CharField("Good for", max_length=160, blank=True,
+                                help_text="Comma-separated, e.g. 'Divers, Families, Short trips'. Leave empty to work it out from activities and facilities.")
     facilities_notes = models.TextField(blank=True, help_text="Other facilities: mosques, sports ground, water sports centre… One per line.")
     local_rules = models.TextField("Local regulations", blank=True, help_text="Rules visitors must follow (dress code, alcohol, drones…). One per line.")
     accessibility = models.TextField(blank=True, help_text="Accessibility for visitors with reduced mobility, families with prams, etc. One per line.")
@@ -231,6 +235,63 @@ class Island(models.Model):
     @property
     def facilities_list(self):
         return [line.strip("-• ").strip() for line in self.facilities_notes.splitlines() if line.strip()]
+
+    @property
+    def essentials(self):
+        """The 'Before you pack' strip: what's on the island, and what to do when something isn't."""
+        sure = self.details_verified
+        def item(icon, ok, yes, no, no_tip):
+            if ok:
+                return {"icon": icon, "state": "ok", "title": yes, "tip": ""}
+            if not sure:
+                return {"icon": icon, "state": "unknown", "title": no.replace("No ", "") + "?", "tip": "Not confirmed yet: ask your host"}
+            return {"icon": icon, "state": "no", "title": no, "tip": no_tip}
+        health = ("cross", True, "Hospital", "", "") if self.has_full_hospital else (
+            "cross", self.has_hospital, "Health centre", "No health centre", "Pack a first-aid kit; the nearest care is a boat ride away")
+        out = [
+            item("banknote", self.has_atm, "ATM", "No ATM", "Bring enough cash in US dollars or rufiyaa"),
+            item(*health),
+            item("pill", self.has_pharmacy, "Pharmacy", "No pharmacy", "Pack any medicines you need"),
+            item("store", self.has_supermarket, "Shops", "No shops", "Ask your host about water and snacks"),
+            item("umbrella", self.has_bikini_beach, "Bikini beach", "No bikini beach", "Swimwear on boat trips and sandbanks only"),
+            {"icon": "signal", "state": "ok" if (self.has_5g or self.has_4g) else "no",
+             "title": "5G" if self.has_5g else ("4G" if self.has_4g else "Weak signal"),
+             "tip": "" if (self.has_5g or self.has_4g) else "Download maps and tickets before you go"},
+        ]
+        return out
+
+    PACE_CHOICES = [("", "Work it out"), ("lively", "Lively"), ("easy", "Easygoing"), ("quiet", "Very quiet")]
+
+    @property
+    def fit(self):
+        """Pace and who the island suits: from the editor's choice, or worked out from the island's data."""
+        pace = self.pace
+        if not pace:
+            pop = self.population or 0
+            pace = "lively" if pop >= 3000 else ("quiet" if 0 < pop < 900 else "easy")
+        pace_label = dict(self.PACE_CHOICES)[pace]
+        if self.best_for.strip():
+            tags = [t.strip() for t in self.best_for.split(",") if t.strip()]
+        else:
+            slugs = set(a.slug for a in self.activities.all())
+            tags = []
+            if slugs & {"scuba-diving", "wreck-diving", "hammerhead-dive", "tiger-shark-dive", "manta-ray-snorkeling", "whale-shark-excursion"}:
+                tags.append("Divers")
+            if "surfing" in slugs:
+                tags.append("Surfers")
+            if slugs & {"snorkeling", "turtle-snorkeling", "nurse-sharks-stingrays"}:
+                tags.append("Snorkellers")
+            if self.has_bikini_beach:
+                tags.append("Beach days")
+            if self.has_bikini_beach and (self.has_hospital or self.has_full_hospital):
+                tags.append("Families")
+            if pace == "quiet":
+                tags.append("Switching off")
+            if pace == "lively":
+                tags.append("First-timers")
+            if self.distance_from_airport_km and self.distance_from_airport_km <= 40:
+                tags.append("Short trips")
+        return {"pace": pace, "pace_label": pace_label, "tags": tags[:5]}
 
     @property
     def facility_flags(self):
@@ -539,11 +600,54 @@ class TransportRoute(models.Model):
     currency = models.CharField(max_length=3, choices=[("USD", "USD"), ("MVR", "MVR")], default="USD")
     price_note = models.CharField(max_length=60, blank=True, help_text="e.g. per person one way")
     notes = models.CharField(max_length=240, blank=True)
+    # Arrival planning: travellers pick when they land and see which routes still work that day.
+    DAY_CHOICES = [("mon", "Mon"), ("tue", "Tue"), ("wed", "Wed"), ("thu", "Thu"), ("fri", "Fri"), ("sat", "Sat"), ("sun", "Sun")]
+    EVENING_CHOICES = [("", "Not sure"), ("yes", "Yes: can leave after an evening flight"), ("no", "No: daytime only")]
+    days = models.CharField("Runs on", max_length=40, blank=True,
+                            help_text="Days it runs. Leave empty if it runs daily or you're not sure.")
+    last_departure = models.CharField("Last departure", max_length=5, blank=True,
+                                      help_text="Last departure of the day towards the island, 24h, e.g. 15:30")
+    evening = models.CharField("Evening arrivals", max_length=3, choices=EVENING_CHOICES, blank=True,
+                               help_text="Can a guest landing after dark still get there the same night?")
     is_active = models.BooleanField(default=True)
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         ordering = ["order", "mode"]
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # new routes: read days and times from the schedule text when they weren't filled in
+            from .route_timing import infer
+            days, last, evening = infer(self.schedule)
+            self.days = self.days or days
+            self.last_departure = self.last_departure or last
+            self.evening = self.evening or evening
+        super().save(*args, **kwargs)
+
+    @property
+    def day_list(self):
+        return [d for d in (self.days or "").replace(" ", "").lower().split(",") if d in dict(self.DAY_CHOICES)]
+
+    @property
+    def days_label(self):
+        days = self.day_list
+        if not days or len(days) == 7:
+            return ""
+        names = dict(self.DAY_CHOICES)
+        if set(days) == set(names) - {"fri"}:
+            return "Not on Fridays"
+        return "Only " + ", ".join(names[d] for d in days)
+
+    @property
+    def evening_label(self):
+        """A short, honest label for evening arrivals."""
+        if self.evening == "yes":
+            return ("ok", "Evening arrivals OK")
+        if self.evening == "no" or self.mode == "seaplane":
+            return ("no", f"Daytime only{' · last ' + self.last_departure if self.last_departure else ''}")
+        if self.last_departure:
+            return ("time", f"Last departure {self.last_departure}")
+        return ("", "")
 
     def __str__(self):
         return f"{self.get_mode_display()} {self.origin} → {self.island.name}"
