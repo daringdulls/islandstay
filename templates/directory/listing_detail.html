@@ -37,10 +37,11 @@
   {% endif %}
 
   {% with photos=listing.photos.all %}
-  <div class="gallery {% if not photos %}single{% endif %}">
-    {% if listing.photo_url %}<img src="{{ listing.photo_url }}" alt="{% if listing.has_own_photo %}{{ listing.name }}{% else %}{{ listing.island.name }}{% endif %}">
+  <div class="gallery {% if not photos %}single{% endif %}" data-lb-group="{{ listing.name }}">
+    {% if listing.photo_url %}<a class="lb-a" href="{{ listing.photo_url }}" data-lb data-caption="{{ listing.name }}"><img src="{{ listing.photo_url }}" alt="{% if listing.has_own_photo %}{{ listing.name }}{% else %}{{ listing.island.name }}{% endif %}"></a>
     {% else %}<div class="cover chart" style="{{ listing.island.chart_style }};aspect-ratio:auto"><span class="label">{{ listing.name }}</span><span class="kind-mark">{% icon listing.kind_icon %}</span></div>{% endif %}
-    {% for p in photos|slice:":4" %}<img src="{{ p.image.url }}" alt="{{ p.caption|default:listing.name }}">{% endfor %}
+    {% for p in photos %}<a class="lb-a{% if forloop.counter > 4 %} ig-hidden{% endif %}" href="{{ p.image.url }}" data-lb data-caption="{{ p.caption }}"><img src="{{ p.image.url }}" alt="{{ p.caption|default:listing.name }}" loading="lazy">{% if forloop.counter == 4 and photos|length > 4 %}<span class="ig-more">+{{ photos|length|add:"-4" }} more</span>{% endif %}</a>{% endfor %}
+    {% if photos|length > 1 %}<button type="button" class="gal-all" data-lb-open="0" data-lb-grid>{% icon "columns-3" %} Show all photos</button>{% endif %}
   </div>
   {% endwith %}
 

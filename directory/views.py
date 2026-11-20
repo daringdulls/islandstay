@@ -280,7 +280,20 @@ def island_detail(request, slug):
         {"@type": "ListItem", "position": 2, "name": island.atoll.name, "item": request.build_absolute_uri(island.atoll.get_absolute_url())},
         {"@type": "ListItem", "position": 3, "name": island.name, "item": url}]}
     from .local_calendar import FRIDAY, upcoming
+    from .models import card_size
+
+    gallery, seen = [], set()
+    if island.photo_url:
+        gallery.append({"src": island.photo_url, "thumb": card_size(island.photo_url), "caption": island.tagline or island.name,
+                        "credit": island.cover_credit, "license": island.cover_license, "source": island.cover_source_url})
+        seen.add(island.photo_url)
+    for ph in island.photos.all():
+        if ph.is_visible and ph.image_url not in seen:
+            seen.add(ph.image_url)
+            gallery.append({"src": ph.image_url, "thumb": ph.thumb_url, "caption": ph.caption, "credit": ph.credit,
+                            "license": ph.license, "source": ph.source_url})
     return render(request, "directory/island_detail.html", {"local_calendar": upcoming(timezone.localdate()), "local_friday": FRIDAY,
+                                                            "gallery": gallery,
         "island": island, "stays": stays, "kind": kind, "nearby": nearby, "ld": [place, crumbs],
         "guides": island.guides.filter(is_published=True)[:3],
         "helpers": island_helpers(island),
