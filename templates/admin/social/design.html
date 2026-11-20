@@ -66,6 +66,11 @@
           {% if post.ig_error and post.ig_state != "failed" %}<br><small style="color:#B9442C">Last try: {{ post.ig_error }}</small>{% endif %}
         </p>
         {% if post.post_type == "carousel" %}
+          {% if not slides and auto_slides %}
+          <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Photo slides, added for you ({{ auto_slides|length|add:"1" }} after the design)</div>
+          <div class="ig-slides">{% for a in auto_slides %}<figure title="{{ a.caption }}"><img src="{{ a.src }}" alt="" loading="lazy"></figure>{% endfor %}<figure class="ig-cta-thumb" title="Message a local">IS</figure></div>
+          <small style="display:block;color:rgb(107 114 128);margin-bottom:8px">When you schedule, each photo becomes a branded slide with its caption and photo credit, and a last slide says "Message a local". Upload your own below to use them instead.</small>
+          {% endif %}
           <div style="font-size:13px;font-weight:600;margin:10px 0 6px">Slides after this design ({{ slides|length }}/9)</div>
           <div class="ig-slides">{% for a in slides %}<figure><img src="{{ a.file.url }}" alt=""><button type="button" class="ig-x" data-del="{{ a.pk }}" title="Remove">&times;</button></figure>{% endfor %}
             <label class="ig-add">+<input type="file" accept="image/*" multiple hidden id="slide-in"></label></div>
@@ -181,11 +186,61 @@ document.getElementById('dl').onclick = async function () {
     var img = new Image(); img.src = url; await img.decode();
     return toJpeg(img, 1920);
   }
+  var AUTO = {{ auto_slides_json|safe }};
+  function wrap(g, text, maxW) {
+    var words = (text || '').split(' '), lines = [], line = '';
+    words.forEach(function (w) { var t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; });
+    if (line) lines.push(line);
+    return lines.slice(0, 2);
+  }
+  function loadImg(src) { return new Promise(function (ok, bad) { var i = new Image(); i.onload = function () { ok(i); }; i.onerror = bad; i.src = src; }); }
+  async function makeSlides() {
+    var sp = document.querySelector('#design .sp'), W = +sp.dataset.w || 1080, H = +sp.dataset.h || 1350;
+    await document.fonts.ready;
+    var logo = await loadImg('{% static "img/brand/islandstay-horizontal-colour-dark.svg" %}').catch(function () { return null; });
+    var total = AUTO.length + 2, made = 0;
+    async function upload(c, name) {
+      var blob = await new Promise(function (ok) { c.toBlob(ok, 'image/jpeg', 0.9); });
+      var fd = new FormData(); fd.append('kind', 'slide'); fd.append('name', name); fd.append('file', blob, 'slide.jpg');
+      var d = await send(asset, fd); if (!d.ok) throw new Error(d.error);
+    }
+    for (var k = 0; k < AUTO.length; k++) {
+      var a = AUTO[k], img;
+      try { img = await loadImg(a.src); } catch (e) { continue; }
+      say('Making photo slide ' + (k + 1) + ' of ' + AUTO.length + '…');
+      var c = document.createElement('canvas'); c.width = W; c.height = H; var g = c.getContext('2d');
+      var s = Math.max(W / img.naturalWidth, H / img.naturalHeight), w = img.naturalWidth * s, h = img.naturalHeight * s;
+      g.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      var grd = g.createLinearGradient(0, H * 0.55, 0, H); grd.addColorStop(0, 'rgba(10,61,76,0)'); grd.addColorStop(1, 'rgba(10,61,76,.88)');
+      g.fillStyle = grd; g.fillRect(0, H * 0.55, W, H * 0.45);
+      g.fillStyle = 'rgba(10,61,76,.78)'; g.beginPath(); g.roundRect(W - 168, 48, 120, 56, 28); g.fill();
+      g.fillStyle = '#FFF8EC'; g.font = '600 28px "Plus Jakarta Sans", sans-serif'; g.textAlign = 'center'; g.fillText((k + 2) + ' / ' + total, W - 108, 86);
+      g.textAlign = 'left';
+      g.font = '600 64px Outfit, sans-serif'; g.fillStyle = '#FFF8EC';
+      var lines = wrap(g, a.caption, W - 144), y = H - 110 - (lines.length - 1) * 72 - (a.credit ? 20 : 0);
+      lines.forEach(function (l, n) { g.fillText(l, 72, y + n * 72); });
+      if (a.credit) { g.font = '500 24px "Plus Jakarta Sans", sans-serif'; g.fillStyle = 'rgba(255,248,236,.75)'; g.fillText('Photo: ' + a.credit, 72, H - 58); }
+      await upload(c, 'photo-' + (k + 1) + '.jpg'); made++;
+    }
+    if (!made) return;
+    var c2 = document.createElement('canvas'); c2.width = W; c2.height = H; var g2 = c2.getContext('2d');
+    g2.fillStyle = '#0A3D4C'; g2.fillRect(0, 0, W, H);
+    g2.strokeStyle = 'rgba(76,195,199,.25)'; g2.lineWidth = 3; [260, 380, 500].forEach(function (r) { g2.beginPath(); g2.arc(W * 0.82, H * 0.2, r, 0, Math.PI * 2); g2.stroke(); });
+    g2.fillStyle = '#4CC3C7'; g2.font = '700 30px "Plus Jakarta Sans", sans-serif'; g2.fillText('PLAN IT WITH A LOCAL', 72, H * 0.42);
+    g2.fillStyle = '#FFF8EC'; g2.font = '600 96px Outfit, sans-serif'; g2.fillText('Message a local', 72, H * 0.42 + 110);
+    g2.font = '500 40px "Plus Jakarta Sans", sans-serif'; g2.fillStyle = 'rgba(255,248,236,.85)';
+    wrap(g2, 'Find the island, message the host directly, no booking fees.', W - 144).forEach(function (l, n) { g2.fillText(l, 72, H * 0.42 + 190 + n * 54); });
+    g2.fillStyle = '#EBA62A'; g2.beginPath(); g2.roundRect(72, H - 230, 560, 92, 46); g2.fill();
+    g2.fillStyle = '#122A31'; g2.font = '700 36px Outfit, sans-serif'; g2.fillText('Link in bio · islandstaymv.com', 104, H - 172);
+    if (logo) { var lw = 300, lh = lw * (logo.naturalHeight / logo.naturalWidth || 0.25); g2.drawImage(logo, 72, 72, lw, lh); }
+    await upload(c2, 'message-a-local.jpg');
+  }
   async function queue(btn, now, repost) {
     if (repost && !confirm('Have you deleted the old post in the Instagram app? This posts it again now.')) return;
     if (now && !repost && !confirm('Post this to Instagram right now?')) return;
     btn.disabled = true; say(now ? 'Saving the design and posting to Instagram… this can take up to a minute.' : 'Saving the design…');
     try {
+      if (AUTO.length && !{{ slides|length }} && '{{ post.post_type }}' === 'carousel') await makeSlides();
       var fd = new FormData(); fd.append('image', await render(), 'design.jpg');
       if (now) fd.append('now', '1');
       if (repost) fd.append('repost', '1');

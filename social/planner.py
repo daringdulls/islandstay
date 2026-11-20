@@ -761,5 +761,23 @@ def know_before_you_go_month(start, end, only=None):
             continue
         data.setdefault("platforms", "instagram,facebook")
         data.setdefault("post_type", "feed")
-        created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
+        post = SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data)
+        carouselize(post)
+        created.append(post)
     return created
+
+
+CAROUSEL_STARTS = ("Before you visit", "Host:", "Stay:", "Pick your island by mood", "Popular islands")
+
+
+def carouselize(post, min_photos=2):
+    """Single-image posts about a place become carousels (design + photo slides) when there are photos to show."""
+    if post.post_type == SocialPost.TYPE_FEED and post.format != "story" and post.title.startswith(CAROUSEL_STARTS) \
+            and len(post.auto_slides(limit=min_photos)) >= min_photos:
+        post.post_type = SocialPost.TYPE_CAROUSEL
+        post.script = (post.script + "\n" if post.script else "") + \
+            "Carousel: this design, then photo slides made for you when you schedule, then a 'Message a local' slide."
+        post.save(update_fields=["post_type", "script", "updated_at"])
+        return True
+    return False
+

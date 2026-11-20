@@ -153,7 +153,8 @@ def problems(post):
         out.append("Set a date and time (Post on).")
     if post.post_type == SocialPost.TYPE_REEL and not post.assets.filter(kind=SocialAsset.KIND_VIDEO).exists():
         out.append("Upload the Reel video (MP4).")
-    if post.post_type == SocialPost.TYPE_CAROUSEL and not post.assets.filter(kind=SocialAsset.KIND_SLIDE).exists():
+    if post.post_type == SocialPost.TYPE_CAROUSEL and not post.assets.filter(kind=SocialAsset.KIND_SLIDE).exists() \
+            and not post.auto_slides(limit=1):
         out.append("Add at least one more slide: a carousel needs 2 to 10 images.")
     if post.post_type in (SocialPost.TYPE_FEED, SocialPost.TYPE_CAROUSEL) and post.format == "story":
         out.append("Feed images must be Portrait, Square or Landscape: change the format, or make it a Story or Reel.")
@@ -201,7 +202,11 @@ def create_containers(account, post):
     if post.post_type == SocialPost.TYPE_STORY:
         return _container(account, media_type="STORIES", image_url=post.ig_image_url)
     if post.post_type == SocialPost.TYPE_CAROUSEL:
-        urls = [post.ig_image_url] + [a.url for a in post.assets.filter(kind=SocialAsset.KIND_SLIDE).order_by("order")][:9]
+        slides = [a.url for a in post.assets.filter(kind=SocialAsset.KIND_SLIDE).order_by("order")]
+        if not slides:  # no rendered slides: use the photos themselves
+            from accounts.invites import site_url
+            slides = [(x["src"] if x["src"].startswith("http") else site_url() + x["src"]) for x in post.auto_slides()]
+        urls = [post.ig_image_url] + slides[:9]
         children = []
         for url in urls:
             child = _container(account, image_url=url, is_carousel_item="true")

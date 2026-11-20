@@ -518,3 +518,45 @@ class KnowBeforeYouGoMonthTests(TestCase):
         island_posts = [p for p in posts if p.island_id and p.template in ("island", "route", "tip")]
         self.assertTrue(island_posts)
         self.assertTrue(all(p.island_id in allowed for p in island_posts), [p.title for p in island_posts])
+
+
+class CarouselFromPhotosTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.management import call_command
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_place_posts_become_carousels_with_photo_slides(self):
+        from directory.models import Island, IslandPhoto
+        from social.instagram import problems
+        from social.planner import carouselize, essentials_tip
+
+        i = Island.objects.get(slug="maafushi")
+        for k in range(3):
+            IslandPhoto.objects.create(island=i, image_url=f"https://upload.wikimedia.org/x/{k}.jpg", caption=f"View {k}",
+                                       credit="A. Photographer", license="CC BY-SA 4.0")
+        data = essentials_tip(i) or {}
+        fields = {**data, "title": f"Before you visit {i.name}", "template": "tip", "island": i}
+        fields.setdefault("headline", "x")
+        post = SocialPost.objects.create(**fields)
+        self.assertTrue(carouselize(post))
+        post.refresh_from_db()
+        self.assertEqual(post.post_type, "carousel")
+        slides = post.auto_slides()
+        self.assertGreaterEqual(len(slides), 3)
+        self.assertIn("CC BY-SA 4.0", slides[-1]["credit"])
+        self.assertNotIn("Add at least one more slide: a carousel needs 2 to 10 images.", problems(post))
+        # the design page shows the slides it will make
+        from social.models import InstagramAccount
+        InstagramAccount.objects.create(ig_user_id="1", username="islandstaymv", access_token="t")
+        admin = get_user_model().objects.create_superuser("c@x.mv", "c@x.mv", "pw")
+        self.client.force_login(admin)
+        page = self.client.get(reverse("admin:social_socialpost_design", args=[post.pk])).content.decode()
+        self.assertIn("Photo slides, added for you", page)
+        self.assertIn("var AUTO = [", page)
+
+    def test_top_list_slides_one_photo_per_island(self):
+        post = SocialPost(title="Pick your island by mood", template="toplist", headline="x",
+                          body="Divers: Maafushi\\nSwitching off: Gulhi\\nBeach days: Nowhere")
+        names = [s["caption"] for s in post.auto_slides()]
+        self.assertTrue(all(":" in n for n in names))

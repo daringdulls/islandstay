@@ -143,6 +143,42 @@ class SocialPost(models.Model):
     def body_lines(self):
         return [line.strip() for line in self.body.splitlines() if line.strip()]
 
+    def auto_slides(self, limit=9):
+        """Photos that follow the design in a carousel when no slides were uploaded: one per island for top lists,
+        the place's own photos for host and stay posts, otherwise the island's gallery. Each: src, caption, credit."""
+        out, seen = [], {self.photo}
+
+        def add(src, caption="", credit=""):
+            if src and src not in seen and len(out) < limit:
+                seen.add(src)
+                out.append({"src": src, "caption": caption, "credit": credit})
+
+        if self.template == "toplist":
+            names = {}
+            for line in self.body_lines:
+                name = line.split(":")[-1].strip()
+                names[name] = line
+            by_name = {i.name: i for i in Island.objects.filter(name__in=names, is_published=True)}
+            for name, line in names.items():
+                i = by_name.get(name)
+                if i and i.photo_url:
+                    add(i.photo_url, line if ":" in line else f"{i.name}, {i.atoll.name}",
+                        ", ".join(x for x in (i.cover_credit, i.cover_license) if x))
+            return out
+        if self.listing_id:
+            for ph in self.listing.photos.all():
+                try:
+                    add(ph.image.url, ph.caption or self.listing.name)
+                except Exception:
+                    continue
+        island = self.island or (self.listing.island if self.listing_id else None)
+        if island:
+            if island.photo_url and not self.listing_id:
+                add(island.photo_url, f"{island.name}, {island.atoll.name}", ", ".join(x for x in (island.cover_credit, island.cover_license) if x))
+            for ph in island.photos.filter(is_visible=True):
+                add(ph.image_url, ph.caption or island.name, ", ".join(x for x in (ph.credit, ph.license) if x))
+        return out
+
     @property
     def photo(self):
         if self.image:

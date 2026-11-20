@@ -1,3 +1,4 @@
+import json
 import calendar
 import datetime as dt
 import urllib.parse
@@ -25,7 +26,7 @@ from .models import InstagramAccount, SocialAsset, SocialPost
 from .planner import generate_month, generate_plan, launch_plan
 
 STATUS_COLORS = {"idea": "info", "draft": "warning", "ready": "primary", "scheduled": "info", "posted": "success"}
-PROXY_HOSTS = ("upload.wikimedia.org", ".blob.vercel-storage.com")
+PROXY_HOSTS = ("upload.wikimedia.org", "thumb.wikimedia.org", ".blob.vercel-storage.com")
 
 
 def proxied(url):
@@ -257,12 +258,14 @@ class SocialPostAdmin(ModelAdmin):
         issues = ig.problems(post)
         if fmt in SocialPost.FORMAT_SIZES:
             post.format = fmt
+        auto = [dict(a, src=proxied(a["src"])) for a in post.auto_slides(limit=8)] if post.post_type == SocialPost.TYPE_CAROUSEL else []
         siblings = list(SocialPost.objects.filter(publish_at__isnull=False).order_by("publish_at", "id").values_list("pk", flat=True))
         idx = siblings.index(post.pk) if post.pk in siblings else -1
         return TemplateResponse(request, "admin/social/design.html", self._context(
             request, title=post.title, post=post, photo=proxied(post.photo), photo_b=proxied(post.photo_b), formats=SocialPost.FORMAT_CHOICES,
             ig_account=InstagramAccount.current(), ig_problems=issues, post_types=SocialPost.TYPE_CHOICES,
             slides=post.assets.filter(kind=SocialAsset.KIND_SLIDE), video_parts=list(post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
+            auto_slides=auto, auto_slides_json=json.dumps(auto).replace("</", "<\\/"),
             video_size=sum(a.size for a in post.assets.filter(kind=SocialAsset.KIND_VIDEO)),
             format_override=bool(fmt and fmt != saved_format),
             prev_id=siblings[idx - 1] if idx > 0 else None,

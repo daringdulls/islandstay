@@ -492,3 +492,4 @@
 .sp-rank-2 b { flex-basis: 56px; font-size: 42px; }
 .sp-story .sp-rank-2 li { font-size: 50px; padding: 24px 0; }
 .sp-square .sp-rank-2 li { font-size: 34px; padding: 10px 0; }
+.ig-slides .ig-cta-thumb { display: grid; place-items: center; background: #0A3D4C; color: #EBA62A; font: 700 14px "Outfit", sans-serif; }
