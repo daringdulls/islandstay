@@ -501,3 +501,17 @@ class KnowBeforeYouGoMonthTests(TestCase):
         stories = [p for p in posts if p.post_type == "story"]
         self.assertEqual(len(stories), 12)
         self.assertTrue(any(p.headline == "Landing after 6 pm?" for p in grid))
+
+    def test_month_can_be_built_around_chosen_islands(self):
+        import datetime as dt
+        from django.utils import timezone
+        from directory.models import Island
+        from social.planner import know_before_you_go_month
+
+        chosen = ["maafushi", "dhangethi", "fulidhoo", "ukulhas"]
+        start = timezone.localdate() + dt.timedelta(days=1)
+        posts = know_before_you_go_month(start, start + dt.timedelta(days=13), only=chosen)
+        allowed = set(Island.objects.filter(slug__in=chosen).values_list("pk", flat=True))
+        island_posts = [p for p in posts if p.island_id and p.template in ("island", "route", "tip")]
+        self.assertTrue(island_posts)
+        self.assertTrue(all(p.island_id in allowed for p in island_posts), [p.title for p in island_posts])

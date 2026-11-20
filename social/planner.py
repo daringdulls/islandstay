@@ -669,20 +669,35 @@ def mood_post(islands):
                 hashtags=_tags(*[i.name for _, i in picks[:3]], "Maldives Travel"))
 
 
-def know_before_you_go_month(start, end):
+def know_before_you_go_month(start, end, only=None):
     """Plan from `start` to `end` (dates, inclusive). Replaces plain drafts in that range; keeps anything queued,
-    published or marked Ready / Scheduled / Posted. Returns the posts created."""
-    islands = list(_least_used(Island.objects.filter(is_published=True).select_related("atoll").prefetch_related("activities"), "island")
-                   .order_by("n_posts", "-is_featured", "last_post", "name"))
-    islands = [i for i in islands if i.island_type != "capital"] or islands
+    published or marked Ready / Scheduled / Posted, and the seasonal Stories. Returns the posts created.
+
+    only: island slugs to build the month around (in that order); hosts and experiences then come from them too.
+    """
+    if only:
+        by_slug = {i.slug: i for i in Island.objects.filter(slug__in=only).select_related("atoll").prefetch_related("activities")}
+        islands = [by_slug[sl] for sl in only if sl in by_slug]
+    else:
+        islands = list(_least_used(Island.objects.filter(is_published=True).select_related("atoll").prefetch_related("activities"), "island")
+                       .order_by("n_posts", "-is_featured", "last_post", "name"))
+        islands = [i for i in islands if i.island_type != "capital"] or islands
     if len(islands) < 4:
         return []
     SocialPost.objects.filter(publish_at__gte=_at(start, 0), publish_at__lt=_at(end + dt.timedelta(1), 0), ig_state="",
-                              status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+                              status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).exclude(
+                              eyebrow__endswith="on the islands").delete()
     with_routes = [i for i in islands if i.routes.filter(is_active=True).exists()] or islands
-    hosts = list(_least_used(Listing.objects.filter(status=Listing.STATUS_APPROVED).select_related("island", "island__atoll"), "listing")
-                 .order_by("n_posts", "-is_verified", "-is_featured", "last_post"))
-    activities = list(_least_used(ActivityType.objects.all(), "activity"))
+    host_qs = Listing.objects.filter(status=Listing.STATUS_APPROVED).select_related("island", "island__atoll")
+    if only:
+        local = host_qs.filter(island__in=islands)
+        host_qs = local if local.exists() else host_qs
+    hosts = list(_least_used(host_qs, "listing").order_by("n_posts", "-is_verified", "-is_featured", "last_post"))
+    act_qs = ActivityType.objects.all()
+    if only:
+        local = act_qs.filter(islands__in=islands).distinct()
+        act_qs = local if local.exists() else act_qs
+    activities = list(_least_used(act_qs, "activity"))
     used_words = set(SocialPost.objects.filter(template="word").values_list("headline", flat=True))
     words = itertools.cycle([w for w in WORDS if w[0] not in used_words] + [w for w in WORDS if w[0] in used_words])
     used_facts = set(SocialPost.objects.filter(template="fact").values_list("headline", flat=True))
@@ -692,8 +707,14 @@ def know_before_you_go_month(start, end):
     checked = itertools.cycle([i for i in islands if i.details_verified] or islands)
     isl, routes_isl = itertools.cycle(islands), itertools.cycle(with_routes)
     # Reels need footage, so they feature the well-known islands (featured first, then popular, then any).
-    known = [i for i in islands if i.is_featured] or [i for i in islands if i.name in POPULAR_ISLANDS] or islands
-    reel_isl = itertools.cycle(known)
+    known = islands if only else ([i for i in islands if i.is_featured] or [i for i in islands if i.name in POPULAR_ISLANDS] or islands)
+    def rotated(seq, k):  # start each kind of post on a different island, so a week mixes islands
+        k = k % len(seq) if seq else 0
+        return itertools.cycle(seq[k:] + seq[:k])
+    reel_isl = rotated(known, 2)
+    routes_isl = rotated(with_routes, 4)
+    checked = rotated([i for i in islands if i.details_verified] or islands, 0)
+    isl = rotated(islands, 6)
     host_iter = iter(hosts)
     plan, week = [], 0
     day = start
@@ -704,7 +725,8 @@ def know_before_you_go_month(start, end):
         elif wd == 1:
             if activities and week % 2 == 0:
                 act = activities[(week // 2) % len(activities)]
-                act_islands = list(Island.objects.filter(is_published=True, activities=act).order_by("-is_featured", "name"))
+                act_islands = ([i for i in islands if act in i.activities.all()] if only else []) or list(
+                    Island.objects.filter(is_published=True, activities=act).order_by("-is_featured", "name"))
                 plan.append((_at(day, 20), experience_reel(act, act_islands)))           # photo
             else:
                 plan.append((_at(day, 20), island_reel(next(reel_isl))))
