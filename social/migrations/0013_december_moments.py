@@ -6,7 +6,7 @@ from django.db import migrations
 
 MV = zoneinfo.ZoneInfo("Indian/Maldives")
 STORIES = [
-    (dt.datetime(2026, 12, 1, 12, 0, tzinfo=MV), "High season: book transfers early",
+    (dt.datetime(2026, 12, 1, 10, 0, tzinfo=MV), "High season: book transfers early",
      "December is high season", "season",
      "Speedboats fill up, so book with your host\nAsk about the last boat after your flight\nGuest houses on popular islands sell out first",
      "December is high season on the local islands. Book your guest house and your transfer together, and tell your host when your flight lands."),
