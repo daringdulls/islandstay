@@ -28,8 +28,9 @@ from social.views import cron_instagram  # noqa: E402
 def robots_txt(request):
     lines = ["User-agent: *", "Allow: /",
              *[f"Disallow: {p}" for p in ("/admin/", "/dashboard/", "/accounts/", "/t/", "/saved/", "/request-sent/",
-                                          "/review/", "/cron/", "/search/suggest/", "/go/")],
-             "", f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}"]
+                                          "/review/", "/cron/", "/search/suggest/", "/go/", "/r/", "/search/",
+                                          "/*?")],  # filter and sort combinations: crawling them all overloads the database
+             "Crawl-delay: 5", "", f"Sitemap: {request.build_absolute_uri('/sitemap.xml')}"]
     return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
 
 

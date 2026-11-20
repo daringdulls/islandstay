@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {% if request.GET %}<meta name="robots" content="noindex, follow">{% endif %}
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}Local islands of the Maldives — stays, experiences, transport & food{% endblock %} · {{ SITE_NAME }}</title>
   <meta name="description" content="{% filter striptags|truncatechars:160 %}{% block meta_description %}A guide to the local islands of the Maldives. Find guest houses, experiences, transport and places to eat, and contact local hosts directly.{% endblock %}{% endfilter %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
