@@ -76,15 +76,18 @@
     </form>{% endif %}
     <div class="sd-card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <a class="sd-btn" href="?month={{ prev_month|date:'Y-m' }}">&larr;</a>
+        <a class="sd-btn" href="?month={{ prev_month|date:'Y-m' }}{% if show_posted %}&posted=1{% endif %}">&larr;</a>
         <h3 style="margin:0;font-size:16px">{{ month|date:"F Y" }}</h3>
-        <a class="sd-btn" href="?month={{ next_month|date:'Y-m' }}">&rarr;</a>
+        <a class="sd-btn" href="?month={{ next_month|date:'Y-m' }}{% if show_posted %}&posted=1{% endif %}">&rarr;</a>
       </div>
       <dl class="sd-meta" style="margin-top:14px">
         <dt>Grid posts</dt><dd>{{ n_month }} ({{ n_reels }} Reels, {{ n_carousels }} carousel{{ n_carousels|pluralize }})</dd>
         <dt>Stories</dt><dd>{{ stories|length }}</dd>
         <dt>Grid check</dt><dd>{% if clashes %}<span style="color:#B9442C">{{ clashes }} tile{{ clashes|pluralize }} next to the same template. Drag to fix.</span>{% elif n_month %}<span style="color:#1E7A55">Balanced</span>{% else %}–{% endif %}</dd>
       </dl>
+      {% if n_posted %}<p style="margin:10px 0 0;font-size:13px;color:rgb(107 114 128)">
+        {% if show_posted %}Showing the {{ n_posted }} post{{ n_posted|pluralize }} already on Instagram. <a href="?month={{ month|date:'Y-m' }}" style="color:#0B6E8A;font-weight:600">Hide posted</a>
+        {% else %}{{ n_posted }} post{{ n_posted|pluralize }} already on Instagram {{ n_posted|pluralize:"is,are" }} hidden, so you see only what's still to come. <a href="?month={{ month|date:'Y-m' }}&posted=1" style="color:#0B6E8A;font-weight:600">Show posted</a>{% endif %}</p>{% endif %}
       {% if n_missed %}<form method="post" style="margin-top:12px;font-size:13px;background:#F2E4C9;border-radius:10px;padding:10px 12px">{% csrf_token %}
         {{ n_missed }} past post{{ n_missed|pluralize }} that never went out {{ n_missed|pluralize:"is,are" }} hidden from the grid.
         <button class="sd-btn" name="delete_missed" value="1" style="margin-top:8px" onclick="return confirm('Delete past drafts that were never posted?')">Delete past drafts</button>

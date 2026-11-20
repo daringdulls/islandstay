@@ -341,7 +341,10 @@ class MissedDraftTests(TestCase):
         new = SocialPost.objects.create(title="Intro", headline="Hi", template="intro", publish_at=timezone.now() + dt.timedelta(hours=1))
         r = self.client.get(reverse("admin:social_feed"))
         ids = [t["post"].pk for t in r.context["tiles"]]
-        self.assertEqual(ids, [new.pk, done.pk])
+        self.assertEqual(ids, [new.pk])  # posted ones leave the preview...
+        self.assertContains(r, "Show posted")
+        r2 = self.client.get(reverse("admin:social_feed") + "?posted=1")
+        self.assertEqual([t["post"].pk for t in r2.context["tiles"]], [new.pk, done.pk])  # ...unless asked for
         self.assertContains(r, "Delete past drafts")
         self.client.post(reverse("admin:social_feed"), {"delete_missed": "1"})
         self.assertFalse(SocialPost.objects.filter(pk=old.pk).exists())

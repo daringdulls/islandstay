@@ -374,6 +374,12 @@ class SocialPostAdmin(ModelAdmin):
             return redirect(request.get_full_path())
         n_missed = base.filter(missed).count()
         base = base.exclude(missed)
+        # Posts already out on Instagram leave the preview, so it shows only what is still to come.
+        posted = Q(status=SocialPost.STATUS_POSTED) | Q(ig_state=SocialPost.IG_PUBLISHED)
+        show_posted = request.GET.get("posted") == "1"
+        n_posted = base.filter(posted, post_type__in=SocialPost.GRID_TYPES).count()
+        if not show_posted:
+            base = base.exclude(posted)
         grid = list(base.filter(post_type__in=SocialPost.GRID_TYPES, publish_at__date__lt=end).order_by("-publish_at")[:45])
         stories = list(base.filter(post_type=SocialPost.TYPE_STORY, publish_at__date__gte=first, publish_at__date__lt=end).order_by("publish_at"))
 
@@ -389,7 +395,7 @@ class SocialPostAdmin(ModelAdmin):
         return TemplateResponse(request, "admin/social/feed.html", self._context(
             request, title="Instagram feed preview", month=first,
             launch_planned=SocialPost.objects.filter(template="intro", publish_at__isnull=False).exists(), tomorrow=today,
-            n_missed=n_missed,
+            n_missed=n_missed, n_posted=n_posted, show_posted=show_posted,
             highlights=[("Islands", "map-pin"), ("Stays", "house"), ("Getting there", "route"), ("Tips", "info"), ("Dhivehi", "book-open"), ("Hosts", "heart-handshake")], tiles=tiles, stories=[tile(p) for p in stories],
             reels=[t for t in tiles if t["post"].post_type == SocialPost.TYPE_REEL],
             prev_month=(first - dt.timedelta(days=1)).replace(day=1), next_month=end,
