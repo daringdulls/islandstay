@@ -617,3 +617,127 @@ def popular_islands_series(start, replace=True):
         data.setdefault("post_type", "feed")
         created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
     return created
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# "Know before you go" month: practical, local knowledge that answers the questions travellers actually have,
+# using what the island pages know (routes, arrival planner, essentials, island fit). Six grid posts a week that
+# alternate a solid design and a photo design (Mon S, Tue P, Wed S, Thu P, Fri S, Sat P), so the grid stays a
+# checkerboard; two Reels a week; Stories on Tuesday, Thursday and Sunday. Grid posts go out at 20:00, when
+# Europe is online.
+
+LATE_LANDING = ("Landing after 6 pm?", "6 pm",
+                "Shared speedboats often stop before dark\nA private speedboat can still run: ask your host\nOr spend a night in Hulhumalé, by the airport\nEach island page shows what still works",
+                "Flights into Malé often land in the evening. Shared speedboats and ferries usually stop before dark, "
+                "so plan the last leg: your host can arrange a private speedboat, or spend the first night in Hulhumalé "
+                "next to the airport. Every island guide on Island Stay now has a 'When do you land?' planner that shows "
+                "which routes still work for your landing time.")
+
+
+def essentials_tip(island):
+    """'Before you visit X': what's on the island, and what to bring for what isn't."""
+    if not island.details_verified:
+        return island_rules_tip(island)
+    lines = []
+    for e in island.essentials:
+        lines.append(e["title"] + (f": {e['tip'].split(';')[0].lower()}" if e["tip"] else ""))
+    return dict(title=f"Before you visit {island.name}", pillar="practical", template="tip", format="portrait", island=island,
+                eyebrow=f"Before you pack · {island.name}", headline=f"Before you visit {island.name}", accent_word=island.name,
+                body="\n".join(lines[:5]), attribution="Full island guide: link in bio",
+                caption=(f"Heading to {island.name}? What's on the island, and what to bring for what isn't. "
+                         f"The {island.name} guide has the full list, the local rules and a planner for your arrival day."),
+                hashtags=_tags(island.name, "Travel Tips", "Maldives Travel"))
+
+
+def mood_post(islands):
+    """'Pick your island by mood': one island per kind of trip, from each island's fit tags."""
+    picks, used = [], set()
+    for tag in ["Switching off", "Divers", "Surfers", "Families", "First-timers", "Snorkellers", "Short trips", "Beach days"]:
+        for i in islands:
+            if i.pk not in used and tag in i.fit["tags"]:
+                picks.append((tag, i)); used.add(i.pk); break
+        if len(picks) == 5:
+            break
+    if len(picks) < 3:
+        return None
+    return dict(title="Pick your island by mood", pillar="islands", template="toplist", format="portrait", island=picks[0][1],
+                eyebrow="Save this", headline="Pick your island by mood", accent_word="mood",
+                body="\n".join(f"{tag}: {i.name}" for tag, i in picks), attribution="Each guide: link in bio",
+                caption="Not sure which island? Start with how you want the trip to feel. " +
+                        " ".join(f"{tag}: {i.name}." for tag, i in picks) +
+                        " Every island guide shows its pace and who it suits.",
+                hashtags=_tags(*[i.name for _, i in picks[:3]], "Maldives Travel"))
+
+
+def know_before_you_go_month(start, end):
+    """Plan from `start` to `end` (dates, inclusive). Replaces plain drafts in that range; keeps anything queued,
+    published or marked Ready / Scheduled / Posted. Returns the posts created."""
+    islands = list(_least_used(Island.objects.filter(is_published=True).select_related("atoll").prefetch_related("activities"), "island")
+                   .order_by("n_posts", "-is_featured", "last_post", "name"))
+    islands = [i for i in islands if i.island_type != "capital"] or islands
+    if len(islands) < 4:
+        return []
+    SocialPost.objects.filter(publish_at__gte=_at(start, 0), publish_at__lt=_at(end + dt.timedelta(1), 0), ig_state="",
+                              status__in=[SocialPost.STATUS_IDEA, SocialPost.STATUS_DRAFT]).delete()
+    with_routes = [i for i in islands if i.routes.filter(is_active=True).exists()] or islands
+    hosts = list(_least_used(Listing.objects.filter(status=Listing.STATUS_APPROVED).select_related("island", "island__atoll"), "listing")
+                 .order_by("n_posts", "-is_verified", "-is_featured", "last_post"))
+    activities = list(_least_used(ActivityType.objects.all(), "activity"))
+    used_words = set(SocialPost.objects.filter(template="word").values_list("headline", flat=True))
+    words = itertools.cycle([w for w in WORDS if w[0] not in used_words] + [w for w in WORDS if w[0] in used_words])
+    used_facts = set(SocialPost.objects.filter(template="fact").values_list("headline", flat=True))
+    facts = itertools.cycle([f for f in FACTS if f[0] not in used_facts] + [f for f in FACTS if f[0] in used_facts])
+    used_tips = set(SocialPost.objects.filter(template="tip").values_list("headline", flat=True))
+    tips = itertools.cycle([t for t in TIPS if t[0] not in used_tips] + [t for t in TIPS if t[0] in used_tips])
+    checked = itertools.cycle([i for i in islands if i.details_verified] or islands)
+    isl, routes_isl = itertools.cycle(islands), itertools.cycle(with_routes)
+    # Reels need footage, so they feature the well-known islands (featured first, then popular, then any).
+    known = [i for i in islands if i.is_featured] or [i for i in islands if i.name in POPULAR_ISLANDS] or islands
+    reel_isl = itertools.cycle(known)
+    host_iter = iter(hosts)
+    plan, week = [], 0
+    day = start
+    while day <= end:
+        wd = day.weekday()
+        if wd == 0:
+            plan.append((_at(day, 20), route_post(next(routes_isl))))                       # solid
+        elif wd == 1:
+            if activities and week % 2 == 0:
+                act = activities[(week // 2) % len(activities)]
+                act_islands = list(Island.objects.filter(is_published=True, activities=act).order_by("-is_featured", "name"))
+                plan.append((_at(day, 20), experience_reel(act, act_islands)))           # photo
+            else:
+                plan.append((_at(day, 20), island_reel(next(reel_isl))))
+            a = next(isl)
+            same = [i for i in islands if i.atoll_id == a.atoll_id and i.pk != a.pk]
+            plan.append((_at(day, 12), compare_post(a, same[0] if same else next(isl), fmt="story", story=True)))
+        elif wd == 2:
+            plan.append((_at(day, 20), essentials_tip(next(checked)) or tip_post(next(tips), fmt="portrait")))  # solid
+        elif wd == 3:
+            h = next(host_iter, None)
+            plan.append((_at(day, 20), host_post(h) if h else compare_post(next(isl), next(isl))))  # photo
+            plan.append((_at(day, 12), as_story(tip_post(ASK_US, fmt="story"),
+                                                "Add a question sticker: 'Ask us about any island'. Answer the best ones on Sunday.")))
+        elif wd == 4:
+            pick = week % 4
+            data = (tip_post(LATE_LANDING, fmt="portrait") if pick == 0 else mood_post(islands) if pick == 1
+                    else word_post(next(words)) if pick == 2 else fact_post(next(facts)))
+            data = data or word_post(next(words))
+            data["format"] = "portrait"
+            plan.append((_at(day, 20), data))                                                # solid
+        elif wd == 5:
+            plan.append((_at(day, 20), island_reel(next(reel_isl))))                         # photo
+        elif wd == 6:
+            data = island_post(next(isl), fmt="story", story=True)
+            plan.append((_at(day, 10), as_story(data, "Add a link sticker to the island guide and answer Thursday's questions.")))
+            week += 1
+        day += dt.timedelta(1)
+
+    created, now = [], timezone.now()
+    for when, data in plan:
+        if when < now or data is None:
+            continue
+        data.setdefault("platforms", "instagram,facebook")
+        data.setdefault("post_type", "feed")
+        created.append(SocialPost.objects.create(publish_at=when, status=SocialPost.STATUS_DRAFT, link=LINK, **data))
+    return created

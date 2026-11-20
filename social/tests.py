@@ -475,3 +475,29 @@ class PopularIslandsSeriesTests(TestCase):
         grid = [p for p in popular_islands_series(timezone.localdate() + dt.timedelta(days=1)) if p.post_type == "feed"]
         templates = [p.template for p in grid]
         self.assertTrue(all(a != b for a, b in zip(templates, templates[1:])), templates)
+
+
+class KnowBeforeYouGoMonthTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from django.core.management import call_command
+        call_command("seed_maldives", "--demo", stdout=open("/dev/null", "w"))
+
+    def test_month_alternates_photo_and_solid_and_posts_at_eight(self):
+        import datetime as dt
+        from django.utils import timezone
+        from social.planner import know_before_you_go_month
+
+        start = timezone.localdate() + dt.timedelta(days=1)
+        start += dt.timedelta(days=(7 - start.weekday()) % 7)  # a Monday
+        posts = know_before_you_go_month(start, start + dt.timedelta(days=27))
+        grid = sorted([p for p in posts if p.post_type in ("feed", "reel", "carousel")], key=lambda p: p.publish_at)
+        self.assertEqual(len(grid), 24)  # six a week
+        photo = {"island", "experience", "host", "compare", "stay"}
+        kinds = ["P" if p.template in photo else "S" for p in grid]
+        self.assertTrue(all(a != b for a, b in zip(kinds, kinds[1:])), kinds)
+        self.assertTrue(all(timezone.localtime(p.publish_at).hour == 20 for p in grid))
+        self.assertEqual(sum(p.post_type == "reel" for p in grid), 8)  # two Reels a week
+        stories = [p for p in posts if p.post_type == "story"]
+        self.assertEqual(len(stories), 12)
+        self.assertTrue(any(p.headline == "Landing after 6 pm?" for p in grid))
